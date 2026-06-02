@@ -43,9 +43,9 @@ defmodule StickerWeb.ReplicateWebhookController do
 
           # automatically kick off gen image step
           if rating <= 5 do
-            gen_sticker(prompt)
+            Predictions.gen_image(prediction.prompt, user_id, prediction_id)
           else
-            broadcast(user_id, {:moderation_failed, "AI generated safety rating:  {3}/10")})
+            broadcast(user_id, {:moderation_failed, "AI generated safety rating: #{10 - rating}/10"})
           end
 
         "failed" ->
