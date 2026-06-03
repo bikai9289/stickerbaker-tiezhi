@@ -1,34 +1,26 @@
-<header class="px-4 sm:px-6 lg:px-8">
-  <div class="flex items-center justify-between border-b border-zinc-100 py-3">
-    <div class="flex items-center gap-4">
-      <.link class="font-bold inline-flex items-center" navigate="/">
-        <img class="h-9 w-9" src="/images/oven.png" />
-        <span class="hidden md:inline-flex font-brand text-orange-500"> StickerBaker</span>
-      </.link>
-      <a href="https://github.com/cbh123/stickerbaker" class="font-brand hidden md:inline-flex">
-        Open Source AI Sticker Maker
-      </a>
-    </div>
+<header class="saas-nav">
+  <div class="saas-container saas-nav-inner">
+    <.link class="saas-brand" navigate={~p"/"}>
+      <span class="saas-logo-sticker"><span>*</span></span>
+      <span>AI Sticker Maker</span>
+    </.link>
 
-    <div class="font-brand flex items-center gap-4">
-      <.link navigate={~p"/stickers"}>
-        <.outline_button>Oven</.outline_button>
-      </.link>
-      <.link navigate={~p"/search"}>
-        <.outline_button>
-          Search
-          <span class="inline-flex items-center rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700">
-            NEW
-          </span>
-        </.outline_button>
-      </.link>
+    <nav class="saas-nav-links" aria-label="Primary navigation">
+      <a href="/#generator">Generator</a>
+      <a href="/#upload">Upload</a>
+      <a href="/#latest">Latest</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/#faq">FAQ</a>
+    </nav>
+
+    <div class="saas-nav-actions">
+      <a class="saas-button saas-button-ghost" href="#signin">Sign In</a>
+      <a class="saas-button saas-button-primary" href="/#generator">Start Free</a>
     </div>
   </div>
 </header>
 
-<main class="px-4 py-6 sm:px-6 lg:px-8">
-  <div class="mx-auto max-w-7xl">
-    <.flash_group flash={@flash} />
-    <%= @inner_content %>
-  </div>
+<main>
+  <.flash_group flash={@flash} />
+  <%= @inner_content %>
 </main>
