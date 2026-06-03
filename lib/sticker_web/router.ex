@@ -41,6 +41,10 @@ defmodule StickerWeb.Router do
     live "/sticker/:id", ShowLive, :show
     live "/stickers", HistoryLive, :index
     live "/search", SearchLive, :index
+
+    get "/contact", PageController, :contact
+    get "/privacy-policy", PageController, :privacy_policy
+    get "/terms-of-service", PageController, :terms_of_service
   end
 
   # Other scopes may use custom stacks.

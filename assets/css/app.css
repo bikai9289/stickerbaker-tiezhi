@@ -593,6 +593,126 @@ html {
   line-height: 1.65;
 }
 
+.saas-footer {
+  border-top: 1px solid var(--saas-line);
+  background: #fff;
+  color: var(--saas-ink);
+}
+
+.saas-footer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
+  gap: 54px;
+  padding: 48px 0 36px;
+}
+
+.saas-footer-about p {
+  max-width: 360px;
+  margin: 18px 0 22px;
+  color: var(--saas-muted);
+  line-height: 1.65;
+}
+
+.saas-footer-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--saas-line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.saas-footer h3 {
+  margin: 4px 0 16px;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.saas-footer-links {
+  display: grid;
+  gap: 12px;
+}
+
+.saas-footer-links a {
+  color: var(--saas-muted);
+  text-decoration: none;
+}
+
+.saas-footer-links a:hover {
+  color: var(--saas-brand);
+}
+
+.saas-copyright {
+  padding: 18px 0 24px;
+  border-top: 1px dotted var(--saas-line);
+  color: var(--saas-muted);
+  font-size: 14px;
+}
+
+.saas-legal-page {
+  padding: 54px 0 72px;
+  background: var(--saas-soft);
+}
+
+.saas-legal-card {
+  max-width: 860px;
+  border: 1px solid var(--saas-line);
+  border-radius: 8px;
+  padding: 38px;
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(24, 32, 51, 0.06);
+}
+
+.saas-legal-kicker {
+  margin: 0 0 10px;
+  color: var(--saas-brand);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.saas-legal-card h1 {
+  margin: 0 0 18px;
+  font-size: clamp(32px, 5vw, 48px);
+  letter-spacing: 0;
+}
+
+.saas-legal-card h2 {
+  margin: 28px 0 10px;
+  font-size: 22px;
+}
+
+.saas-legal-card p {
+  margin: 0 0 16px;
+  color: var(--saas-muted);
+  line-height: 1.75;
+}
+
+.saas-legal-card a {
+  color: var(--saas-brand-2);
+  font-weight: 800;
+}
+
+.saas-contact-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 26px 0;
+  border: 1px solid #d8e5ff;
+  border-radius: 8px;
+  padding: 16px 18px;
+  background: #f5f9ff;
+}
+
+.saas-contact-box span {
+  color: var(--saas-muted);
+  font-weight: 800;
+}
+
 @media (max-width: 920px) {
   .saas-nav-inner {
     grid-template-columns: 1fr auto;
@@ -606,6 +726,10 @@ html {
   .saas-pricing-grid,
   .saas-static-sticker-grid,
   .saas-generated-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .saas-footer-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -636,6 +760,24 @@ html {
 
   .saas-sticker-art {
     height: 190px;
+  }
+
+  .saas-footer-grid,
+  .saas-contact-box {
+    grid-template-columns: 1fr;
+  }
+
+  .saas-footer-grid {
+    gap: 28px;
+  }
+
+  .saas-contact-box {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .saas-legal-card {
+    padding: 26px 20px;
   }
 }
 

@@ -24,3 +24,51 @@
   <.flash_group flash={@flash} />
   <%= @inner_content %>
 </main>
+
+<footer class="saas-footer">
+  <div class="saas-container saas-footer-grid">
+    <div class="saas-footer-about">
+      <.link class="saas-footer-brand" navigate={~p"/"}>
+        <span class="saas-logo-sticker"><span>*</span></span>
+        <span>AI Sticker Maker</span>
+      </.link>
+      <p>
+        Create custom AI stickers from prompts and portraits. Built for simple sticker generation,
+        search traffic, and future credit-based plans.
+      </p>
+      <span class="saas-footer-badge">Built for AI-Sticker-Maker.com</span>
+    </div>
+
+    <div>
+      <h3>Product</h3>
+      <div class="saas-footer-links">
+        <a href="/#generator">AI Sticker Generator</a>
+        <a href="/#upload">Face to Sticker</a>
+        <a href="/#latest">Latest Stickers</a>
+      </div>
+    </div>
+
+    <div>
+      <h3>Resources</h3>
+      <div class="saas-footer-links">
+        <a href="/#faq">FAQ</a>
+        <a href="/search">Prompt Ideas</a>
+        <a href="/search">Sticker Examples</a>
+      </div>
+    </div>
+
+    <div>
+      <h3>Company</h3>
+      <div class="saas-footer-links">
+        <a href="mailto:support@ai-sticker-maker.com">support@ai-sticker-maker.com</a>
+        <.link navigate={~p"/contact"}>Contact</.link>
+        <.link navigate={~p"/privacy-policy"}>Privacy Policy</.link>
+        <.link navigate={~p"/terms-of-service"}>Terms of Service</.link>
+      </div>
+    </div>
+  </div>
+
+  <div class="saas-container saas-copyright">
+    &copy; 2026 AI-Sticker-Maker.com. All rights reserved.
+  </div>
+</footer>
