@@ -1,6 +1,7 @@
 defmodule StickerWeb.HomeLive do
   use StickerWeb, :live_view
   alias Phoenix.PubSub
+  alias Sticker.Accounts
   alias Sticker.Predictions
 
   @accepted ~w(.jpg .jpeg .png)
@@ -59,44 +60,65 @@ defmodule StickerWeb.HomeLive do
     {:noreply, socket |> assign(local_user_id: user_id)}
   end
 
+  def handle_event("save", %{"prompt" => _prompt}, %{assigns: %{current_user: nil}} = socket) do
+    {:noreply,
+     socket
+     |> put_flash(:error, "Please sign in to use your 3 free sticker credits.")}
+  end
+
   def handle_event("save", %{"prompt" => prompt}, socket) do
     user_id = socket.assigns.local_user_id
 
-    {:ok, prediction} =
-      Predictions.create_prediction(%{
-        prompt: prompt,
-        local_user_id: user_id
-      })
+    with {:ok, current_user} <- Accounts.spend_credit(socket.assigns.current_user),
+         {:ok, prediction} <-
+           Predictions.create_prediction(%{
+             prompt: prompt,
+             local_user_id: user_id
+           }) do
+      # Check if there are any uploaded images. If there are,
+      # we'll do face to sticker. Otherwise we'll kick off normal sticker prediction
+      if Enum.any?(socket.assigns.uploads.image.entries, & &1.done?) do
+        consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
+          uri =
+            path
+            |> File.read!()
+            |> Base.encode64()
+            |> Sticker.Utils.base64_to_data_uri(entry.client_type)
 
-    # Check if there are any uploaded images. If there are,
-    # we'll do face to sticker. Otherwise we'll kick off normal sticker prediction
-    if Enum.any?(socket.assigns.uploads.image.entries, & &1.done?) do
-      consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
-        uri =
-          path
-          |> File.read!()
-          |> Base.encode64()
-          |> Sticker.Utils.base64_to_data_uri(entry.client_type)
+          {:ok, _prediction} =
+            Predictions.update_prediction(prediction, %{
+              model: "face-to-sticker"
+            })
 
-        {:ok, _prediction} =
-          Predictions.update_prediction(prediction, %{
-            model: "face-to-sticker"
-          })
+          send(self(), {:kick_off_face_to_sticker, prediction, uri})
 
-        send(self(), {:kick_off_face_to_sticker, prediction, uri})
+          {:ok, path}
+        end)
+      else
+        send(self(), {:kick_off_sticker, prediction})
+      end
 
-        {:ok, path}
-      end)
+      {
+        :noreply,
+        socket
+        |> assign(current_user: current_user)
+        |> assign(form: to_form(%{"prompt" => ""}))
+        |> stream_insert(:my_predictions, prediction, at: 0)
+      }
     else
-      send(self(), {:kick_off_sticker, prediction})
-    end
+      {:error, :insufficient_credits} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "You have used your free credits. Please upgrade or buy more credits.")}
 
-    {
-      :noreply,
-      socket
-      |> assign(form: to_form(%{"prompt" => ""}))
-      |> stream_insert(:my_predictions, prediction, at: 0)
-    }
+      {:error, _changeset} ->
+        current_user = Accounts.refund_credit(socket.assigns.current_user)
+
+        {:noreply,
+         socket
+         |> assign(current_user: current_user)
+         |> put_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
+    end
   end
 
   def handle_info({:new_prediction, prediction}, socket) do

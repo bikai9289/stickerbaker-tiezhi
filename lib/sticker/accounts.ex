@@ -43,4 +43,27 @@ defmodule Sticker.Accounts do
   def change_user_registration(attrs \\ %{}) do
     User.registration_changeset(%User{}, attrs)
   end
+
+  def spend_credit(%User{id: user_id}) do
+    {count, _} =
+      from(u in User, where: u.id == ^user_id and u.credits > 0)
+      |> Repo.update_all(inc: [credits: -1])
+
+    if count == 1 do
+      {:ok, get_user(user_id)}
+    else
+      {:error, :insufficient_credits}
+    end
+  end
+
+  def spend_credit(_user), do: {:error, :not_signed_in}
+
+  def refund_credit(%User{id: user_id}) do
+    from(u in User, where: u.id == ^user_id)
+    |> Repo.update_all(inc: [credits: 1])
+
+    get_user(user_id)
+  end
+
+  def refund_credit(_user), do: nil
 end

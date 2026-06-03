@@ -15,6 +15,7 @@
 
     <div class="saas-nav-actions">
       <%= if @current_user do %>
+        <span class="saas-credit-pill">Credits: <%= @current_user.credits %></span>
         <span class="saas-user-email"><%= @current_user.email %></span>
         <.link class="saas-button saas-button-ghost" href={~p"/users/log-out"} method="delete">
           Sign Out

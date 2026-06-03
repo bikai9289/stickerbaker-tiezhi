@@ -6,7 +6,7 @@
 >
   <section class="saas-hero">
     <div class="saas-container saas-hero-main">
-      <span class="saas-eyebrow">AI sticker generator with free daily credits</span>
+      <span class="saas-eyebrow">Create an account and get 3 free sticker credits</span>
       <h1>AI Sticker Maker for Custom Stickers</h1>
       <p class="saas-lead">
         Create cute, clean, custom AI stickers from text prompts or portraits. Start free,
@@ -56,10 +56,16 @@
 
           <div class="saas-auth-note">
             <p>
-              <strong>Account required after free trial.</strong>
-              Try a few generations first, then sign in to manage credits, history, and downloads.
+              <strong>Account required.</strong>
+              New users get 3 free credits. Each sticker generation uses 1 credit.
             </p>
-            <.link class="saas-button saas-button-ghost" navigate={~p"/users/log-in"}>Sign In</.link>
+            <%= if @current_user do %>
+              <span class="saas-credit-pill">Credits: <%= @current_user.credits %></span>
+            <% else %>
+              <.link class="saas-button saas-button-ghost" navigate={~p"/users/log-in"}>
+                Sign In
+              </.link>
+            <% end %>
           </div>
 
           <div id="upload" class="saas-upload-panel">
@@ -263,14 +269,14 @@
       <div class="saas-section-head">
         <h2>Simple credits for AI sticker creation</h2>
         <p class="saas-section-copy">
-          Start with limited daily generations, then sign in to manage credits and downloads.
+          Start with 3 free credits, then sign in to manage future credits and downloads.
         </p>
       </div>
       <div class="saas-pricing-grid">
         <article class="saas-tile">
           <h3>Free</h3>
           <div class="saas-price">$0</div>
-          <p>Limited daily generations for trying the AI sticker maker.</p>
+          <p>3 free credits for testing prompts and trying the AI sticker maker.</p>
         </article>
         <article class="saas-tile">
           <h3>Starter</h3>
@@ -305,8 +311,8 @@
         <details>
           <summary>Is this AI sticker generator free?</summary>
           <p>
-            The site is planned around limited free daily generations. After the free trial, users
-            sign in to manage credits, history, and downloads.
+            New accounts start with 3 free credits. Each text or face sticker generation uses 1
+            credit, and more credits can be added later.
           </p>
         </details>
         <details>

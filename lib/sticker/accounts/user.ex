@@ -7,6 +7,7 @@ defmodule Sticker.Accounts.User do
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :public_id, :string
+    field :credits, :integer, default: 3
 
     timestamps()
   end

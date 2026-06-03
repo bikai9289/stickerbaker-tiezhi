@@ -145,6 +145,20 @@ html {
   white-space: nowrap;
 }
 
+.saas-credit-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid #ffd2b8;
+  border-radius: 999px;
+  background: #fff6ef;
+  color: #b94705;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .saas-home {
   color: var(--saas-ink);
   background:
