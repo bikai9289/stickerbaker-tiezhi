@@ -109,7 +109,7 @@ defmodule StickerWeb.HomeLive do
       {:error, :insufficient_credits} ->
         {:noreply,
          socket
-         |> put_flash(:error, "You have used your free credits. Please upgrade or buy more credits.")}
+         |> put_flash(:error, "You have used your free credits. Visit Pricing to buy more credits.")}
 
       {:error, _changeset} ->
         current_user = Accounts.refund_credit(socket.assigns.current_user)

@@ -33,6 +33,7 @@ defmodule StickerWeb.Router do
     import Phoenix.LiveDashboard.Router
 
     live "/", AdminLive, :index
+    live "/users", AdminUsersLive, :index
     live_dashboard "/dashboard", metrics: StickerWeb.Telemetry
   end
 
@@ -50,6 +51,7 @@ defmodule StickerWeb.Router do
     post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete
 
+    get "/pricing", PageController, :pricing
     get "/contact", PageController, :contact
     get "/privacy-policy", PageController, :privacy_policy
     get "/terms-of-service", PageController, :terms_of_service

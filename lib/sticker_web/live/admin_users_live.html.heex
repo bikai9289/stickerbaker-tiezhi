@@ -1,0 +1,45 @@
+<section class="admin-page">
+  <div class="admin-header">
+    <div>
+      <p class="admin-kicker">Admin</p>
+      <h1>User Credits</h1>
+      <p>Manually add credits after offline payment or customer support requests.</p>
+    </div>
+    <.link class="saas-button saas-button-ghost" navigate={~p"/admin"}>Back to Moderation</.link>
+  </div>
+
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Credits</th>
+          <th>Public ID</th>
+          <th>Joined</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr :for={user <- @users}>
+          <td><%= user.email %></td>
+          <td><span class="saas-credit-pill"><%= user.credits %></span></td>
+          <td><code><%= user.public_id %></code></td>
+          <td><%= Calendar.strftime(user.inserted_at, "%Y-%m-%d") %></td>
+          <td>
+            <div class="admin-credit-actions">
+              <button phx-click="add-credits" phx-value-id={user.id} phx-value-amount="10">
+                +10
+              </button>
+              <button phx-click="add-credits" phx-value-id={user.id} phx-value-amount="50">
+                +50
+              </button>
+              <button phx-click="add-credits" phx-value-id={user.id} phx-value-amount="100">
+                +100
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

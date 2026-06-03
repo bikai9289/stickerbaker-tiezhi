@@ -22,6 +22,10 @@ defmodule Sticker.Accounts do
 
   def get_user_by_public_id(_public_id), do: nil
 
+  def list_users do
+    Repo.all(from u in User, order_by: [desc: u.inserted_at])
+  end
+
   def register_user(attrs) do
     %User{}
     |> User.registration_changeset(attrs)
@@ -66,4 +70,18 @@ defmodule Sticker.Accounts do
   end
 
   def refund_credit(_user), do: nil
+
+  def add_credits(user_id, amount) when is_integer(amount) and amount > 0 do
+    {count, _} =
+      from(u in User, where: u.id == ^user_id)
+      |> Repo.update_all(inc: [credits: amount])
+
+    if count == 1 do
+      {:ok, get_user(user_id)}
+    else
+      {:error, :not_found}
+    end
+  end
+
+  def add_credits(_user_id, _amount), do: {:error, :invalid_amount}
 end

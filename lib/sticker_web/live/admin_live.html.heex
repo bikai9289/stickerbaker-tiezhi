@@ -30,6 +30,10 @@
     <%= if @autoplay, do: "Turn Off Autoplay", else: "Turn On Autoplay" %>
   </button>
 
+  <.link class="saas-button saas-button-ghost ml-3" navigate={~p"/admin/users"}>
+    Manage User Credits
+  </.link>
+
   <%= if @show_all do %>
     <.link navigate={~p"/admin"}>
       <.outline_button>Activate Tinder Mode</.outline_button>

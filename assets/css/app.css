@@ -472,6 +472,10 @@ html {
   line-height: 1.65;
 }
 
+.saas-plan-button {
+  margin-top: 18px;
+}
+
 .saas-icon {
   width: 42px;
   height: 42px;
@@ -815,6 +819,180 @@ html {
   text-decoration: none;
 }
 
+.saas-pricing-page {
+  padding: 62px 0 78px;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 107, 26, 0.08), transparent 26%),
+    radial-gradient(circle at 86% 0%, rgba(47, 109, 246, 0.08), transparent 28%),
+    var(--saas-soft);
+}
+
+.saas-pricing-hero {
+  max-width: 760px;
+  margin-bottom: 30px;
+}
+
+.saas-pricing-hero h1 {
+  margin: 0 0 14px;
+  font-size: clamp(38px, 6vw, 64px);
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.saas-pricing-hero p {
+  margin: 0;
+  color: var(--saas-muted);
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.saas-buy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.saas-buy-card {
+  position: relative;
+  border: 1px solid var(--saas-line);
+  border-radius: 8px;
+  padding: 26px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(24, 32, 51, 0.06);
+}
+
+.saas-buy-card.featured {
+  border-color: #ffb17e;
+  box-shadow: 0 18px 52px rgba(255, 107, 26, 0.13);
+}
+
+.saas-buy-card h2 {
+  margin: 0 0 12px;
+  font-size: 24px;
+}
+
+.saas-buy-card p {
+  min-height: 76px;
+  margin: 0 0 22px;
+  color: var(--saas-muted);
+  line-height: 1.65;
+}
+
+.saas-buy-price {
+  margin-bottom: 12px;
+  color: var(--saas-ink);
+  font-size: 38px;
+  font-weight: 900;
+}
+
+.saas-plan-badge {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #fff6ef;
+  color: #b94705;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.saas-buy-note {
+  margin-top: 20px;
+  border: 1px solid #d8e5ff;
+  border-radius: 8px;
+  padding: 16px 18px;
+  background: #f5f9ff;
+  color: var(--saas-muted);
+  line-height: 1.65;
+}
+
+.saas-buy-note strong {
+  color: var(--saas-ink);
+}
+
+.admin-page {
+  min-height: calc(100vh - 68px);
+  padding: 40px;
+  background: var(--saas-soft);
+  color: var(--saas-ink);
+}
+
+.admin-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.admin-kicker {
+  margin: 0 0 8px;
+  color: var(--saas-brand);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-header h1 {
+  margin: 0 0 8px;
+  font-size: 42px;
+  letter-spacing: 0;
+}
+
+.admin-header p {
+  margin: 0;
+  color: var(--saas-muted);
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--saas-line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(24, 32, 51, 0.06);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--saas-line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-table th {
+  color: var(--saas-muted);
+  font-weight: 900;
+}
+
+.admin-table code {
+  color: var(--saas-muted);
+  font-size: 12px;
+}
+
+.admin-credit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-credit-actions button {
+  min-height: 34px;
+  border: 1px solid #d8e5ff;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #f5f9ff;
+  color: #1d57c7;
+  font-weight: 900;
+}
+
 @media (max-width: 920px) {
   .saas-nav-inner {
     grid-template-columns: 1fr auto;
@@ -826,6 +1004,7 @@ html {
 
   .saas-feature-grid,
   .saas-pricing-grid,
+  .saas-buy-grid,
   .saas-static-sticker-grid,
   .saas-generated-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -849,6 +1028,7 @@ html {
   .saas-upload-panel,
   .saas-feature-grid,
   .saas-pricing-grid,
+  .saas-buy-grid,
   .saas-static-sticker-grid,
   .saas-generated-grid {
     grid-template-columns: 1fr;
