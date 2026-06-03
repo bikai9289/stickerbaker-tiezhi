@@ -1,0 +1,50 @@
+<section class="saas-auth-page">
+  <div class="saas-auth-card">
+    <p class="saas-legal-kicker">Start free</p>
+    <h1>Create your AI Sticker Maker account</h1>
+    <p class="saas-auth-copy">
+      Sign up to keep your sticker history, manage credits, and download generated stickers.
+    </p>
+
+    <.form
+      :let={f}
+      for={@changeset}
+      as={:user}
+      action={~p"/users/register"}
+      class="saas-auth-form"
+    >
+      <label>
+        <span>Email</span>
+        <input
+          type="email"
+          name={f[:email].name}
+          value={Phoenix.HTML.Form.normalize_value("email", f[:email].value)}
+          autocomplete="email"
+          required
+          class="saas-auth-input"
+        />
+        <.error :for={msg <- f[:email].errors}><%= translate_error(msg) %></.error>
+      </label>
+
+      <label>
+        <span>Password</span>
+        <input
+          type="password"
+          name={f[:password].name}
+          autocomplete="new-password"
+          minlength="8"
+          required
+          class="saas-auth-input"
+        />
+        <.error :for={msg <- f[:password].errors}><%= translate_error(msg) %></.error>
+      </label>
+
+      <button class="saas-button saas-button-primary saas-auth-submit">Create Account</button>
+    </.form>
+
+    <p class="saas-auth-switch">
+      Already have an account?
+      <.link navigate={~p"/users/log-in"}>Sign in</.link>
+    </p>
+  </div>
+</section>

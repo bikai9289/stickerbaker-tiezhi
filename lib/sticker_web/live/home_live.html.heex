@@ -1,4 +1,9 @@
-<div id="home" class="saas-home" phx-hook="AssignUserId">
+<div
+  id="home"
+  class="saas-home"
+  phx-hook="AssignUserId"
+  data-session-user-id={@local_user_id}
+>
   <section class="saas-hero">
     <div class="saas-container saas-hero-main">
       <span class="saas-eyebrow">AI sticker generator with free daily credits</span>
@@ -54,7 +59,7 @@
               <strong>Account required after free trial.</strong>
               Try a few generations first, then sign in to manage credits, history, and downloads.
             </p>
-            <a class="saas-button saas-button-ghost" href="#signin">Sign In</a>
+            <.link class="saas-button saas-button-ghost" navigate={~p"/users/log-in"}>Sign In</.link>
           </div>
 
           <div id="upload" class="saas-upload-panel">

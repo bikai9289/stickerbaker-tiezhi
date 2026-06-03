@@ -1,4 +1,9 @@
-<div id="history" phx-hook="AssignUserId" class="">
+<div
+  id="history"
+  phx-hook="AssignUserId"
+  data-session-user-id={@local_user_id}
+  class=""
+>
   <p :if={is_nil(@local_user_id)}>Loading...</p>
   <.header>My Stickers</.header>
   <ul

@@ -229,6 +229,14 @@ defmodule Sticker.Predictions do
     )
   end
 
+  def transfer_user_predictions(from_user_id, to_user_id)
+      when is_binary(from_user_id) and is_binary(to_user_id) and from_user_id != to_user_id do
+    from(p in Prediction, where: p.local_user_id == ^from_user_id)
+    |> Repo.update_all(set: [local_user_id: to_user_id])
+  end
+
+  def transfer_user_predictions(_from_user_id, _to_user_id), do: {0, nil}
+
   @doc """
   Gets a single prediction.
 

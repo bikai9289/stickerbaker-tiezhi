@@ -32,7 +32,8 @@ function genId() {
 
 Hooks.AssignUserId = {
   mounted() {
-    let userId = localStorage.getItem("userId");
+    const sessionUserId = this.el.dataset.sessionUserId;
+    let userId = sessionUserId || localStorage.getItem("userId");
     if (!userId) {
       userId = genId();
       localStorage.setItem("userId", userId);

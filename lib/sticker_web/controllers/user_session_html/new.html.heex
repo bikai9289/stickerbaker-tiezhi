@@ -1,0 +1,41 @@
+<section class="saas-auth-page">
+  <div class="saas-auth-card">
+    <p class="saas-legal-kicker">Account</p>
+    <h1>Sign in to AI Sticker Maker</h1>
+    <p class="saas-auth-copy">
+      Manage your credits, sticker history, and downloads with one account.
+    </p>
+
+    <.form :let={f} for={%{}} as={:user} action={~p"/users/log-in"} class="saas-auth-form">
+      <label>
+        <span>Email</span>
+        <input
+          type="email"
+          name={f[:email].name}
+          value={assigns[:email] || ""}
+          autocomplete="email"
+          required
+          class="saas-auth-input"
+        />
+      </label>
+
+      <label>
+        <span>Password</span>
+        <input
+          type="password"
+          name={f[:password].name}
+          autocomplete="current-password"
+          required
+          class="saas-auth-input"
+        />
+      </label>
+
+      <button class="saas-button saas-button-primary saas-auth-submit">Sign In</button>
+    </.form>
+
+    <p class="saas-auth-switch">
+      New here?
+      <.link navigate={~p"/users/register"}>Create an account</.link>
+    </p>
+  </div>
+</section>

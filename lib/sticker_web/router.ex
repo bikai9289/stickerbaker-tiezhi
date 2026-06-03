@@ -1,5 +1,6 @@
 defmodule StickerWeb.Router do
   use StickerWeb, :router
+  import StickerWeb.UserAuth
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -8,6 +9,7 @@ defmodule StickerWeb.Router do
     plug :put_root_layout, {StickerWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_user
   end
 
   pipeline :api do
@@ -41,6 +43,12 @@ defmodule StickerWeb.Router do
     live "/sticker/:id", ShowLive, :show
     live "/stickers", HistoryLive, :index
     live "/search", SearchLive, :index
+
+    get "/users/register", UserRegistrationController, :new
+    post "/users/register", UserRegistrationController, :create
+    get "/users/log-in", UserSessionController, :new
+    post "/users/log-in", UserSessionController, :create
+    delete "/users/log-out", UserSessionController, :delete
 
     get "/contact", PageController, :contact
     get "/privacy-policy", PageController, :privacy_policy

@@ -135,6 +135,16 @@ html {
   gap: 10px;
 }
 
+.saas-user-email {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--saas-muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .saas-home {
   color: var(--saas-ink);
   background:
@@ -711,6 +721,84 @@ html {
 .saas-contact-box span {
   color: var(--saas-muted);
   font-weight: 800;
+}
+
+.saas-auth-page {
+  min-height: calc(100vh - 68px);
+  display: grid;
+  place-items: center;
+  padding: 54px 16px;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255, 107, 26, 0.08), transparent 28%),
+    radial-gradient(circle at 80% 0%, rgba(47, 109, 246, 0.08), transparent 28%),
+    var(--saas-soft);
+}
+
+.saas-auth-card {
+  width: min(100%, 480px);
+  border: 1px solid var(--saas-line);
+  border-radius: 8px;
+  padding: 34px;
+  background: #fff;
+  box-shadow: var(--saas-shadow);
+}
+
+.saas-auth-card h1 {
+  margin: 0 0 12px;
+  font-size: clamp(30px, 5vw, 42px);
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.saas-auth-copy {
+  margin: 0 0 24px;
+  color: var(--saas-muted);
+  line-height: 1.65;
+}
+
+.saas-auth-form {
+  display: grid;
+  gap: 16px;
+}
+
+.saas-auth-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--saas-ink);
+  font-weight: 800;
+}
+
+.saas-auth-input {
+  width: 100%;
+  min-height: 50px;
+  border: 2px solid #b8c9df;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #fff;
+  color: var(--saas-ink);
+  outline: none;
+}
+
+.saas-auth-input:focus {
+  border-color: var(--saas-brand-2);
+  box-shadow: 0 0 0 4px rgba(47, 109, 246, 0.14);
+}
+
+.saas-auth-submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.saas-auth-switch {
+  margin: 18px 0 0;
+  color: var(--saas-muted);
+  text-align: center;
+}
+
+.saas-auth-switch a {
+  color: var(--saas-brand-2);
+  font-weight: 900;
+  text-decoration: none;
 }
 
 @media (max-width: 920px) {

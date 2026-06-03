@@ -54,6 +54,8 @@ defmodule StickerWeb do
       use Phoenix.LiveView,
         layout: {StickerWeb.Layouts, :app}
 
+      on_mount {StickerWeb.UserAuth, :mount_current_user}
+
       unquote(html_helpers())
     end
   end
