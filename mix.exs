@@ -56,7 +56,6 @@ defmodule Sticker.MixProject do
       {:nx, "~> 0.4"},
       {:hnswlib, "~> 0.1.2"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:image, "~> 0.37"},
       {:req, "~> 0.4.3"},
       {:httpoison, "~> 2.0", override: true},
       {:phoenix_seo, "~> 0.1.9"},

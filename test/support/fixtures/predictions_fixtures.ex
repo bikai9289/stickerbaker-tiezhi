@@ -11,7 +11,7 @@ defmodule Sticker.PredictionsFixtures do
     {:ok, prediction} =
       attrs
       |> Enum.into(%{
-        output: "some output",
+        sticker_output: "some output",
         prompt: "some prompt",
         uuid: "some uuid"
       })

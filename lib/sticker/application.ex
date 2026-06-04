@@ -19,13 +19,22 @@ defmodule Sticker.Application do
       # Start Finch
       {Finch, name: Sticker.Finch},
       # Start the Endpoint (http/https)
-      StickerWeb.Endpoint,
-      Sticker.Autoplay,
-      {Sticker.Embeddings.Index, []},
-      Sticker.Embeddings.Worker
+      StickerWeb.Endpoint
       # Start a worker by calling: Sticker.Worker.start_link(arg)
       # {Sticker.Worker, arg}
     ]
+
+    children =
+      if Application.get_env(:sticker, :start_background_workers, true) do
+        children ++
+          [
+            Sticker.Autoplay,
+            {Sticker.Embeddings.Index, []},
+            Sticker.Embeddings.Worker
+          ]
+      else
+        children
+      end
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

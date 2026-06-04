@@ -14,6 +14,15 @@ defmodule Sticker.Utils do
 
   def save_r2(file_name, image_url) do
     image_binary = Req.get!(image_url).body
+    save_r2_binary(file_name, image_binary)
+  end
+
+  def save_r2_base64(file_name, base64) do
+    image_binary = Base.decode64!(base64)
+    save_r2_binary(file_name, image_binary)
+  end
+
+  defp save_r2_binary(file_name, image_binary) do
     bucket = System.fetch_env!("BUCKET_NAME")
 
     %{status_code: 200} =

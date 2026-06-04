@@ -23,6 +23,8 @@ config :sticker, StickerWeb.Endpoint,
 # In test we don't send emails.
 config :sticker, Sticker.Mailer, adapter: Swoosh.Adapters.Test
 
+config :sticker, start_background_workers: false
+
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 

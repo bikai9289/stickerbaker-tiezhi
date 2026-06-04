@@ -8,6 +8,7 @@ defmodule Sticker.Predictions do
 
   alias Sticker.Predictions.Prediction
   alias Sticker.Predictions.Event
+  require Logger
 
   @doc """
   Moderates a prediction.
@@ -33,6 +34,13 @@ defmodule Sticker.Predictions do
   end
 
   def gen_image(prompt, user_id, prediction_id) do
+    case image_provider() do
+      "openai" -> gen_openai_image(prompt, user_id, prediction_id)
+      _provider -> gen_replicate_image(prompt, user_id, prediction_id)
+    end
+  end
+
+  defp gen_replicate_image(prompt, user_id, prediction_id) do
     "fofr/sticker-maker"
     |> Replicate.Models.get!()
     |> Replicate.Models.get_version!(
@@ -48,6 +56,59 @@ defmodule Sticker.Predictions do
       },
       "#{Sticker.Utils.get_host()}/webhooks/replicate?user_id=#{user_id}&prediction_id=#{prediction_id}"
     )
+  end
+
+  defp gen_openai_image(prompt, user_id, prediction_id) do
+    Task.start(fn -> do_gen_openai_image(prompt, user_id, prediction_id) end)
+  end
+
+  defp do_gen_openai_image(prompt, user_id, prediction_id) do
+    prediction = get_prediction!(prediction_id)
+
+    {:ok, prediction} =
+      update_prediction(prediction, %{
+        status: :processing,
+        model: System.get_env("OPENAI_IMAGE_MODEL", "gpt-image-2")
+      })
+
+    broadcast(user_id, {:prediction_loading, prediction})
+
+    case Sticker.OpenAIImage.generate(prompt) do
+      {:ok, base64} ->
+        complete_openai_image(prediction, user_id, prediction_id, base64)
+
+      {:error, reason} ->
+        fail_openai_image(prediction, user_id, reason)
+        {:error, reason}
+    end
+  end
+
+  defp complete_openai_image(prediction, user_id, prediction_id, base64) do
+    r2_url = Sticker.Utils.save_r2_base64("prediction-#{prediction_id}-sticker.png", base64)
+
+    {:ok, prediction} =
+      update_prediction(prediction, %{
+        sticker_output: r2_url,
+        status: :succeeded
+      })
+
+    broadcast(user_id, {:prediction_completed, prediction})
+    {:ok, prediction}
+  rescue
+    reason ->
+      fail_openai_image(prediction, user_id, reason)
+      {:error, reason}
+  end
+
+  defp fail_openai_image(prediction, user_id, reason) do
+    Logger.error("OpenAI image generation failed: #{inspect(reason)}")
+
+    {:ok, prediction} =
+      prediction
+      |> get_prediction_for_update()
+      |> update_prediction(%{status: :failed})
+
+    broadcast(user_id, {:prediction_failed, prediction})
   end
 
   def gen_face_to_sticker(prompt, image_uri, user_id, prediction_id) do
@@ -317,4 +378,14 @@ defmodule Sticker.Predictions do
   def change_prediction(%Prediction{} = prediction, attrs \\ %{}) do
     Prediction.changeset(prediction, attrs)
   end
+
+  defp image_provider do
+    System.get_env("IMAGE_PROVIDER", "replicate")
+    |> String.downcase()
+  end
+
+  defp get_prediction_for_update(%Prediction{id: id}), do: get_prediction!(id)
+
+  defp broadcast(user_id, message),
+    do: Phoenix.PubSub.broadcast(Sticker.PubSub, "user:#{user_id}", message)
 end

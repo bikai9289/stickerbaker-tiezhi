@@ -8,7 +8,7 @@ defmodule Sticker.PredictionsTest do
 
     import Sticker.PredictionsFixtures
 
-    @invalid_attrs %{output: nil, prompt: nil, uuid: nil}
+    @invalid_attrs %{sticker_output: nil, prompt: nil, uuid: nil}
 
     test "list_predictions/0 returns all predictions" do
       prediction = prediction_fixture()
@@ -21,10 +21,10 @@ defmodule Sticker.PredictionsTest do
     end
 
     test "create_prediction/1 with valid data creates a prediction" do
-      valid_attrs = %{output: "some output", prompt: "some prompt", uuid: "some uuid"}
+      valid_attrs = %{sticker_output: "some output", prompt: "some prompt", uuid: "some uuid"}
 
       assert {:ok, %Prediction{} = prediction} = Predictions.create_prediction(valid_attrs)
-      assert prediction.output == "some output"
+      assert prediction.sticker_output == "some output"
       assert prediction.prompt == "some prompt"
       assert prediction.uuid == "some uuid"
     end
@@ -37,7 +37,7 @@ defmodule Sticker.PredictionsTest do
       prediction = prediction_fixture()
 
       update_attrs = %{
-        output: "some updated output",
+        sticker_output: "some updated output",
         prompt: "some updated prompt",
         uuid: "some updated uuid"
       }
@@ -45,7 +45,7 @@ defmodule Sticker.PredictionsTest do
       assert {:ok, %Prediction{} = prediction} =
                Predictions.update_prediction(prediction, update_attrs)
 
-      assert prediction.output == "some updated output"
+      assert prediction.sticker_output == "some updated output"
       assert prediction.prompt == "some updated prompt"
       assert prediction.uuid == "some updated uuid"
     end

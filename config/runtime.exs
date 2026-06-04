@@ -23,17 +23,19 @@ end
 config :replicate,
   replicate_api_token: System.get_env("REPLICATE_API_TOKEN")
 
-config :ex_aws,
-  access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
-  secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY"),
-  s3: [
-    scheme: "https://",
-    host: "fly.storage.tigris.dev",
-    region: System.get_env("AWS_REGION"),
-    bucket:
-      System.get_env("BUCKET_NAME") ||
-        raise("Missing env variable: BUCKET_NAME")
-  ]
+if config_env() != :test do
+  config :ex_aws,
+    access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.get_env("AWS_SECRET_ACCESS_KEY"),
+    s3: [
+      scheme: "https://",
+      host: "fly.storage.tigris.dev",
+      region: System.get_env("AWS_REGION"),
+      bucket:
+        System.get_env("BUCKET_NAME") ||
+          raise("Missing env variable: BUCKET_NAME")
+    ]
+end
 
 if config_env() == :prod do
   database_url =
