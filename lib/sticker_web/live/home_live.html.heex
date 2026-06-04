@@ -1,0 +1,343 @@
+<div id="home" class="saas-home" phx-hook="AssignUserId" data-session-user-id={@local_user_id}>
+  <section class="saas-hero">
+    <div class="saas-container saas-hero-main">
+      <span class="saas-eyebrow">Create an account and get 3 free sticker credits</span>
+      <h1>AI Sticker Maker for Custom Stickers</h1>
+      <p class="saas-lead">
+        Create cute, clean, custom AI stickers from text prompts or portraits. Start free,
+        generate online, and turn simple ideas into sticker-ready designs.
+      </p>
+
+      <div id="generator" class="saas-tool-shell">
+        <div class="saas-mode-tabs" aria-label="Generator modes">
+          <a class="saas-mode-tab active" href="#generator">Text to Sticker</a>
+          <a class="saas-mode-tab" href="#upload">Face to Sticker</a>
+          <.link class="saas-mode-tab" navigate={~p"/search"}>Search</.link>
+        </div>
+
+        <.form for={@form} id="prediction-form" phx-change="validate" phx-submit="save">
+          <div class="saas-prompt-row">
+            <input
+              id={@form[:prompt].id}
+              name={@form[:prompt].name}
+              value={Phoenix.HTML.Form.normalize_value("text", @form[:prompt].value)}
+              type="text"
+              placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot..."
+              required={@uploads.image.entries == []}
+              phx-mounted={JS.focus()}
+              class="saas-prompt-input"
+            />
+            <button
+              name="submit"
+              value="generate"
+              phx-disable-with="Baking..."
+              class="saas-button saas-button-primary"
+            >
+              Bake Sticker
+            </button>
+          </div>
+
+          <div class="saas-hint-row" aria-label="Prompt examples">
+            <span class="saas-chip">cute panda eating cookie</span>
+            <span class="saas-chip">kawaii flower sticker</span>
+            <span class="saas-chip">3D robot mascot</span>
+            <span class="saas-chip">happy coffee cup</span>
+          </div>
+
+          <div class="saas-auth-note">
+            <p>
+              <strong>Account required.</strong>
+              New users get 3 free credits. Each sticker generation uses 1 credit.
+            </p>
+            <%= if @current_user do %>
+              <span class="saas-credit-pill">Credits: <%= @current_user.credits %></span>
+            <% else %>
+              <.link class="saas-button saas-button-ghost" navigate={~p"/users/log-in"}>
+                Sign In
+              </.link>
+            <% end %>
+          </div>
+
+          <div id="upload" class="saas-upload-panel">
+            <div class="saas-upload-box">
+              <p class="saas-mini-title">Upload a face</p>
+              <p class="saas-mini-copy">
+                Turn a portrait into a stylized sticker for avatars and social profiles.
+              </p>
+
+              <section class="saas-face-upload" phx-drop-target={@uploads.image.ref}>
+                <div :if={@uploads.image.entries == []}>
+                  <label for={@uploads.image.ref} class="saas-face-demo">
+                    <span>
+                      <span class="saas-face-demo-figure">
+                        <img
+                          src="/images/arnold_before.png"
+                          alt="Portrait before sticker generation"
+                        />
+                      </span>
+                      <span class="saas-face-demo-caption">Before</span>
+                    </span>
+                    <span class="saas-face-demo-arrow">-&gt;</span>
+                    <span>
+                      <span class="saas-face-demo-figure">
+                        <img src="/images/arnold.png" alt="Sticker result after generation" />
+                      </span>
+                      <span class="saas-face-demo-caption">After</span>
+                    </span>
+                    <span class="saas-button saas-button-ghost">Upload Image</span>
+                  </label>
+                </div>
+
+                <.live_file_input upload={@uploads.image} class="sr-only" />
+
+                <%= for entry <- @uploads.image.entries do %>
+                  <article class="saas-upload-preview">
+                    <figure>
+                      <.live_img_preview entry={entry} class="saas-upload-preview-img" />
+                    </figure>
+
+                    <%= for err <- upload_errors(@uploads.image, entry) do %>
+                      <p class="saas-upload-error"><%= error_to_string(err) %></p>
+                    <% end %>
+
+                    <%= if upload_errors(@uploads.image, entry) != [] do %>
+                      <.link navigate={~p"/"} class="saas-button saas-button-ghost">
+                        Try another upload
+                      </.link>
+                    <% end %>
+
+                    <button
+                      :if={upload_errors(@uploads.image, entry) == [] and entry.done?}
+                      name="submit"
+                      value="face"
+                      phx-disable-with="Baking..."
+                      class="saas-button saas-button-primary"
+                    >
+                      Generate Face Sticker
+                    </button>
+                  </article>
+                <% end %>
+
+                <%= for err <- upload_errors(@uploads.image) do %>
+                  <p class="saas-upload-error"><%= error_to_string(err) %></p>
+                <% end %>
+              </section>
+            </div>
+
+            <div class="saas-search-box">
+              <p class="saas-mini-title">Search sticker ideas</p>
+              <p class="saas-mini-copy">
+                Browse generated stickers after your library starts filling with results.
+              </p>
+              <.link class="saas-button saas-button-ghost" navigate={~p"/search"}>
+                Open Search
+              </.link>
+            </div>
+          </div>
+        </.form>
+      </div>
+    </div>
+  </section>
+
+  <section :if={not is_nil(@local_user_id)} class="saas-section">
+    <div class="saas-container">
+      <div class="saas-section-head">
+        <h2>Your Sticker Generations</h2>
+        <p class="saas-section-copy">
+          Your current session results appear here while stickers are baking.
+        </p>
+      </div>
+      <ul id="my-predictions" phx-update="stream" role="list" class="saas-generated-grid">
+        <li :for={{id, prediction} <- @streams.my_predictions} id={id}>
+          <StickerWeb.Components.sticker
+            id={id}
+            prediction={prediction}
+            class="saas-generated-item"
+          />
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="saas-section saas-section-alt">
+    <div class="saas-container">
+      <div class="saas-section-head">
+        <h2>Free AI Sticker Generator Online</h2>
+        <p class="saas-section-copy">
+          Keep the tool in the first screen: enter a prompt, upload a face, or search sticker
+          ideas without jumping between pages.
+        </p>
+      </div>
+      <div class="saas-feature-grid">
+        <article class="saas-tile">
+          <div class="saas-icon">T</div>
+          <h3>Text to sticker</h3>
+          <p>Describe an idea and generate a sticker-style image from a short prompt.</p>
+        </article>
+        <article class="saas-tile">
+          <div class="saas-icon">F</div>
+          <h3>Face to sticker</h3>
+          <p>Upload a portrait and create a playful sticker version for profiles and posts.</p>
+        </article>
+        <article class="saas-tile">
+          <div class="saas-icon">S</div>
+          <h3>Sticker search</h3>
+          <p>Search the generated sticker library once your site has enough saved results.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="latest" class="saas-section">
+    <div class="saas-container">
+      <div class="saas-section-head">
+        <h2>Latest AI Stickers</h2>
+        <p class="saas-section-copy">
+          Generated stickers can appear here to make the page richer and help visitors discover
+          prompt ideas.
+        </p>
+      </div>
+
+      <div :if={@page == 0} class="saas-static-sticker-grid">
+        <article class="saas-sticker-card">
+          <div class="saas-sticker-art">
+            <span class="saas-sticker-visual">
+              <img src="/images/chef.png" alt="Chef sticker example" />
+            </span>
+          </div>
+          <div class="saas-sticker-meta">
+            <div class="saas-sticker-label">Chef Mascot</div>
+            <div class="saas-tag">Cute</div>
+          </div>
+        </article>
+        <article class="saas-sticker-card">
+          <div class="saas-sticker-art">
+            <span class="saas-sticker-visual">
+              <img src="/images/airplane.png" alt="Airplane sticker example" />
+            </span>
+          </div>
+          <div class="saas-sticker-meta">
+            <div class="saas-sticker-label">Rocket Sticker</div>
+            <div class="saas-tag">Travel</div>
+          </div>
+        </article>
+        <article class="saas-sticker-card">
+          <div class="saas-sticker-art">
+            <span class="saas-sticker-visual">
+              <img src="/images/thumbs-up.png" alt="Thumbs up sticker example" />
+            </span>
+          </div>
+          <div class="saas-sticker-meta">
+            <div class="saas-sticker-label">Thumbs Up</div>
+            <div class="saas-tag">Mascot</div>
+          </div>
+        </article>
+        <article class="saas-sticker-card">
+          <div class="saas-sticker-art">
+            <span class="saas-sticker-visual">
+              <img src="/images/oven.png" alt="Oven sticker example" />
+            </span>
+          </div>
+          <div class="saas-sticker-meta">
+            <div class="saas-sticker-label">Baker Oven</div>
+            <div class="saas-tag">Cozy</div>
+          </div>
+        </article>
+      </div>
+
+      <ul
+        id="latest-predictions"
+        phx-update="stream"
+        phx-viewport-bottom="load-more"
+        role="list"
+        class="saas-generated-grid saas-live-latest"
+      >
+        <li :for={{id, prediction} <- @streams.latest_predictions} id={id}>
+          <StickerWeb.Components.sticker
+            id={id}
+            prediction={prediction}
+            class="saas-generated-item"
+          />
+        </li>
+      </ul>
+
+      <p :if={@page < @max_pages} class="saas-loading">
+        <img src="/images/loading.png" alt="loading" /> Loading more stickers...
+      </p>
+    </div>
+  </section>
+
+  <section id="pricing" class="saas-section saas-section-alt">
+    <div class="saas-container">
+      <div class="saas-section-head">
+        <h2>Simple credits for AI sticker creation</h2>
+        <p class="saas-section-copy">
+          Start with 3 free credits, then sign in to manage future credits and downloads.
+        </p>
+      </div>
+      <div class="saas-pricing-grid">
+        <article class="saas-tile">
+          <h3>Free</h3>
+          <div class="saas-price">$0</div>
+          <p>3 free credits for testing prompts and trying the AI sticker maker.</p>
+          <.link
+            class="saas-button saas-button-ghost saas-plan-button"
+            navigate={~p"/users/register"}
+          >
+            Start Free
+          </.link>
+        </article>
+        <article class="saas-tile">
+          <h3>Starter</h3>
+          <div class="saas-price">$4.99</div>
+          <p>50 credits for light use, social posts, and quick experiments.</p>
+          <.link class="saas-button saas-button-primary saas-plan-button" navigate={~p"/pricing"}>
+            Buy Credits
+          </.link>
+        </article>
+        <article class="saas-tile">
+          <h3>Creator</h3>
+          <div class="saas-price">$9.99</div>
+          <p>150 credits for frequent sticker generation and creative projects.</p>
+          <.link class="saas-button saas-button-ghost saas-plan-button" navigate={~p"/pricing"}>
+            Buy Credits
+          </.link>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="saas-section">
+    <div class="saas-container">
+      <div class="saas-section-head">
+        <h2>AI Sticker Maker FAQ</h2>
+        <p class="saas-section-copy">
+          Quick answers for people comparing AI sticker generators online.
+        </p>
+      </div>
+      <div class="saas-faq">
+        <details open>
+          <summary>What is an AI sticker maker?</summary>
+          <p>
+            An AI sticker maker turns a text prompt or portrait into a sticker-style image you can
+            use for avatars, chats, thumbnails, and creative projects.
+          </p>
+        </details>
+        <details>
+          <summary>Is this AI sticker generator free?</summary>
+          <p>
+            New accounts start with 3 free credits. Each text or face sticker generation uses 1
+            credit, and more credits can be added later.
+          </p>
+        </details>
+        <details>
+          <summary>Why is my sticker still loading?</summary>
+          <p>
+            AI generation can take time, and public HTTPS webhooks are required in production for
+            reliable completion callbacks.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+</div>
