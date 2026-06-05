@@ -148,26 +148,38 @@ defmodule StickerWeb.ReplicateWebhookController do
     file_name = output_file_name(prediction_id, prediction.model)
     content_type = Sticker.Utils.content_type_for(file_name)
 
-    r2_url = Sticker.Utils.save_r2(file_name, output_url(output), content_type)
+    with {:ok, image_url} <- output_url(output) do
+      r2_url = Sticker.Utils.save_r2(file_name, image_url, content_type)
 
-    {:ok, prediction} =
-      Predictions.update_prediction(prediction, %{
-        uuid: uuid,
-        sticker_output: r2_url,
-        output_format: Sticker.Utils.output_format(file_name),
-        output_content_type: content_type,
-        status: :succeeded,
-        failure_reason: nil,
-        failure_stage: nil
-      })
+      {:ok, prediction} =
+        Predictions.update_prediction(prediction, %{
+          uuid: uuid,
+          sticker_output: r2_url,
+          output_format: Sticker.Utils.output_format(file_name),
+          output_content_type: content_type,
+          status: :succeeded,
+          failure_reason: nil,
+          failure_stage: nil
+        })
 
-    broadcast(user_id, {:prediction_completed, prediction})
+      broadcast(user_id, {:prediction_completed, prediction})
 
-    Phoenix.PubSub.broadcast(
-      Sticker.PubSub,
-      "prediction-firehose",
-      {:new_prediction, prediction}
-    )
+      Phoenix.PubSub.broadcast(
+        Sticker.PubSub,
+        "prediction-firehose",
+        {:new_prediction, prediction}
+      )
+    else
+      {:error, :missing_output_url} ->
+        {:ok, prediction} =
+          Predictions.fail_prediction_and_refund(
+            prediction,
+            :generation,
+            "Replicate succeeded without an image output: #{inspect(output)}"
+          )
+
+        broadcast(user_id, {:prediction_failed, prediction})
+    end
   rescue
     reason ->
       {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction, :storage, reason)
@@ -176,11 +188,8 @@ defmodule StickerWeb.ReplicateWebhookController do
 
   defp output_url(output) do
     case find_output_url(output) do
-      url when is_binary(url) ->
-        url
-
-      nil ->
-        raise ArgumentError, "Replicate output did not include an image URL: #{inspect(output)}"
+      url when is_binary(url) -> {:ok, url}
+      nil -> {:error, :missing_output_url}
     end
   end
 
