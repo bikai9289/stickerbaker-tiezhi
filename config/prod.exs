@@ -12,9 +12,11 @@ import Config
 
 config :sticker, StickerWeb.Endpoint,
   http: [port: {:system, "PORT"}],
-  url: [scheme: "https", host: "stickerbaker.com", port: 443],
+  url: [scheme: "https", host: "ai-sticker-maker.com", port: 443],
   cache_static_manifest: "priv/static/cache_manifest.json",
   check_origin: [
+    "https://ai-sticker-maker.com",
+    "https://www.ai-sticker-maker.com",
     "https://stickerbaker.com",
     "https://www.stickerbaker.com",
     "https://sticker.fly.dev"

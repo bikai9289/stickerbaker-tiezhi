@@ -77,11 +77,20 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  host = System.get_env("PHX_HOST") || "example.com"
+  host = System.get_env("PHX_HOST") || "ai-sticker-maker.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
 
   config :sticker, StickerWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
+    check_origin: [
+      "https://#{host}",
+      "https://www.#{host}",
+      "https://ai-sticker-maker.com",
+      "https://www.ai-sticker-maker.com",
+      "https://stickerbaker.com",
+      "https://www.stickerbaker.com",
+      "https://sticker.fly.dev"
+    ],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.

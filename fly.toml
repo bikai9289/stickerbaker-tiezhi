@@ -13,7 +13,7 @@ kill_signal = 'SIGTERM'
   release_command = '/app/bin/migrate'
 
 [env]
-  PHX_HOST = 'stickerbaker.com'
+  PHX_HOST = 'ai-sticker-maker.com'
   PORT = '8080'
 
 [http_service]
