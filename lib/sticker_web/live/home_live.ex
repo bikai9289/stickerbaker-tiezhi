@@ -260,7 +260,7 @@ defmodule StickerWeb.HomeLive do
 
     with :ok <- Predictions.check_generation_limits(user_id, 1),
          true <- Accounts.has_credits?(socket.assigns.current_user, 1),
-         {:ok, upload} <- uploaded_entry_data(socket, entry),
+         %{data_uri: _data_uri} = upload <- uploaded_entry_data(socket, entry),
          :ok <- Sticker.ImageSafety.review(upload.data_uri),
          {:ok, source_image_url} <- save_source_image(upload),
          {:ok, current_user} <- Accounts.spend_credit(socket.assigns.current_user),
@@ -316,20 +316,18 @@ defmodule StickerWeb.HomeLive do
          )}
 
       {:error, :invalid_image} ->
-        discard_uploaded_entry(socket, entry)
-
         {:noreply, put_flash(socket, :error, "Upload a valid JPG or PNG portrait under 8 MB.")}
 
       {:error, :unsafe_image} ->
-        discard_uploaded_entry(socket, entry)
-
         {:noreply,
          put_flash(socket, :error, "This upload cannot be used for sticker generation.")}
 
       {:error, :review_failed} ->
-        discard_uploaded_entry(socket, entry)
-
         {:noreply, put_flash(socket, :error, "Image safety review failed. Try again later.")}
+
+      {:error, :source_image_upload_failed} ->
+        {:noreply,
+         put_flash(socket, :error, "Could not upload that portrait. Please try again.")}
 
       {:error, _changeset} ->
         current_user = Accounts.refund_credit(socket.assigns.current_user)
@@ -347,7 +345,7 @@ defmodule StickerWeb.HomeLive do
            {:ok, uri} <- Sticker.ImageUpload.data_uri(bytes, entry.client_type) do
         {:ok, %{data_uri: uri, bytes: bytes, content_type: entry.client_type}}
       else
-        _ -> {:postpone, {:error, :invalid_image}}
+        _ -> {:ok, {:error, :invalid_image}}
       end
     end)
   end
@@ -360,7 +358,7 @@ defmodule StickerWeb.HomeLive do
 
     {:ok, Sticker.Utils.save_r2_upload(file_name, bytes, content_type)}
   rescue
-    reason -> {:error, reason}
+    _reason -> {:error, :source_image_upload_failed}
   end
 
   defp discard_uploaded_entry(socket, entry) do
