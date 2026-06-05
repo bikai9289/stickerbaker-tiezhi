@@ -2,11 +2,12 @@ defmodule StickerWeb.HistoryLive do
   use StickerWeb, :live_view
   alias Sticker.Predictions
   alias StickerWeb.SEO, as: PageSEO
+  @per_page 24
 
   def mount(_params, session, socket) do
     local_user_id = session["local_user_id"]
     filters = %{status: "all", query: "", batch_id: "all"}
-    predictions = if local_user_id, do: Predictions.list_user_predictions(local_user_id, filters), else: []
+    page = if local_user_id, do: Predictions.paginate_user_predictions(local_user_id, filters), else: empty_page()
     batches = Predictions.list_user_batches(local_user_id)
 
     {:ok,
@@ -20,20 +21,25 @@ defmodule StickerWeb.HistoryLive do
      |> assign(local_user_id: local_user_id)
      |> assign(filters: filters)
      |> assign(batches: batches)
-     |> assign(prediction_count: length(predictions))
+     |> assign(page: page.page)
+     |> assign(per_page: page.per_page)
+     |> assign(has_more?: page.has_more?)
+     |> assign(prediction_count: page.total)
      |> assign(selected_ids: MapSet.new())
      |> assign(download_format: "original")
      |> assign(results: [])
-     |> stream(:predictions, predictions)}
+     |> stream(:predictions, page.entries)}
   end
 
   def handle_event("assign-user-id", %{"userId" => user_id}, socket) do
+    page = Predictions.paginate_user_predictions(user_id, socket.assigns.filters, 0, socket.assigns.per_page)
+
     {:noreply,
      socket
      |> assign(local_user_id: user_id)
      |> assign(batches: Predictions.list_user_batches(user_id))
-     |> assign(prediction_count: length(Predictions.list_user_predictions(user_id, socket.assigns.filters)))
-     |> stream(:predictions, Predictions.list_user_predictions(user_id, socket.assigns.filters), reset: true)}
+     |> assign_page(page)
+     |> stream(:predictions, page.entries, reset: true)}
   end
 
   def handle_event("filter", params, socket) do
@@ -42,14 +48,31 @@ defmodule StickerWeb.HistoryLive do
       query: Map.get(params, "query", socket.assigns.filters.query),
       batch_id: Map.get(params, "batch_id", socket.assigns.filters.batch_id)
     }
-    predictions = Predictions.list_user_predictions(socket.assigns.local_user_id, filters)
+    page = Predictions.paginate_user_predictions(socket.assigns.local_user_id, filters, 0, socket.assigns.per_page)
 
     {:noreply,
      socket
      |> assign(filters: filters)
      |> assign(selected_ids: MapSet.new())
-     |> assign(prediction_count: length(predictions))
-     |> stream(:predictions, predictions, reset: true)}
+     |> assign_page(page)
+     |> stream(:predictions, page.entries, reset: true)}
+  end
+
+  def handle_event("load-more", _params, socket) do
+    next_page = socket.assigns.page + 1
+
+    page =
+      Predictions.paginate_user_predictions(
+        socket.assigns.local_user_id,
+        socket.assigns.filters,
+        next_page,
+        socket.assigns.per_page
+      )
+
+    {:noreply,
+     socket
+     |> assign_page(page)
+     |> stream(:predictions, page.entries)}
   end
 
   def handle_event("set-download-format", %{"format" => format}, socket) do
@@ -75,14 +98,14 @@ defmodule StickerWeb.HistoryLive do
   def handle_event("delete-selected", _params, socket) do
     ids = MapSet.to_list(socket.assigns.selected_ids)
     {count, _} = Predictions.delete_user_predictions(ids, socket.assigns.local_user_id)
-    predictions = Predictions.list_user_predictions(socket.assigns.local_user_id, socket.assigns.filters)
+    page = Predictions.paginate_user_predictions(socket.assigns.local_user_id, socket.assigns.filters, 0, socket.assigns.per_page)
 
     {:noreply,
      socket
      |> assign(selected_ids: MapSet.new())
      |> assign(batches: Predictions.list_user_batches(socket.assigns.local_user_id))
-     |> assign(prediction_count: length(predictions))
-     |> stream(:predictions, predictions, reset: true)
+     |> assign_page(page)
+     |> stream(:predictions, page.entries, reset: true)
      |> put_flash(:info, "#{count} stickers deleted.")}
   end
 
@@ -185,4 +208,16 @@ defmodule StickerWeb.HistoryLive do
 
   defp download_format(format) when format in ["original", "png", "webp"], do: format
   defp download_format(_format), do: "original"
+
+  defp assign_page(socket, page) do
+    socket
+    |> assign(page: page.page)
+    |> assign(per_page: page.per_page)
+    |> assign(has_more?: page.has_more?)
+    |> assign(prediction_count: page.total)
+  end
+
+  defp empty_page do
+    %{entries: [], page: 0, per_page: @per_page, total: 0, has_more?: false}
+  end
 end

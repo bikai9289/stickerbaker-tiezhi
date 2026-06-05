@@ -12,6 +12,8 @@ defmodule Sticker.Predictions do
   alias Sticker.Predictions.Event
   require Logger
 
+  @history_page_size 24
+
   @doc """
   Moderates a prediction.
   The logic in replicate_webhook_controller.ex handles
@@ -80,7 +82,7 @@ defmodule Sticker.Predictions do
         complete_openai_image(prediction, user_id, prediction_id, base64)
 
       {:error, reason} ->
-        fail_openai_image(prediction, user_id, reason)
+        fail_openai_image(prediction, user_id, :openai, reason)
         {:error, reason}
     end
   end
@@ -102,14 +104,14 @@ defmodule Sticker.Predictions do
     {:ok, prediction}
   rescue
     reason ->
-      fail_openai_image(prediction, user_id, reason)
+      fail_openai_image(prediction, user_id, :storage, reason)
       {:error, reason}
   end
 
-  defp fail_openai_image(prediction, user_id, reason) do
+  defp fail_openai_image(prediction, user_id, stage, reason) do
     Logger.error("OpenAI image generation failed: #{inspect(reason)}")
 
-    {:ok, prediction} = fail_prediction_and_refund(prediction)
+    {:ok, prediction} = fail_prediction_and_refund(prediction, stage, reason)
 
     broadcast(user_id, {:prediction_failed, prediction})
   end
@@ -305,6 +307,29 @@ defmodule Sticker.Predictions do
     |> Repo.all()
   end
 
+  def paginate_user_predictions(user_id, filters, page \\ 0, per_page \\ @history_page_size)
+      when is_map(filters) do
+    page = max(to_integer(page), 0)
+    per_page = max(to_integer(per_page), 1)
+    query = user_predictions_query(user_id, filters)
+
+    entries =
+      query
+      |> limit(^per_page)
+      |> offset(^(page * per_page))
+      |> Repo.all()
+
+    total = Repo.aggregate(query, :count)
+
+    %{
+      entries: entries,
+      page: page,
+      per_page: per_page,
+      total: total,
+      has_more?: (page + 1) * per_page < total
+    }
+  end
+
   def list_user_recent_predictions(user_id, limit \\ 12) do
     Repo.all(
       from p in Prediction,
@@ -353,6 +378,22 @@ defmodule Sticker.Predictions do
     |> Repo.all()
   end
 
+  def get_user_batch(user_id, batch_id) when is_binary(batch_id) do
+    batch =
+      list_user_batches(user_id)
+      |> Enum.find(&(&1.batch_id == batch_id))
+
+    if batch do
+      {:ok, batch}
+    else
+      {:error, :not_found}
+    end
+  end
+
+  def list_user_batch_predictions(user_id, batch_id) when is_binary(batch_id) do
+    list_user_predictions(user_id, %{status: "all", query: "", batch_id: batch_id})
+  end
+
   def get_user_prediction!(id, user_id) do
     Repo.get_by!(Prediction, id: id, local_user_id: user_id)
   end
@@ -378,6 +419,12 @@ defmodule Sticker.Predictions do
     |> Repo.all()
   end
 
+  def count_user_predictions_since(user_id, since) do
+    Prediction
+    |> where([p], p.local_user_id == ^user_id and p.inserted_at >= ^since)
+    |> Repo.aggregate(:count)
+  end
+
   def retry_user_prediction(id, user_id) do
     prediction = get_user_prediction!(id, user_id)
 
@@ -386,6 +433,52 @@ defmodule Sticker.Predictions do
     else
       {:error, :not_retryable}
     end
+  end
+
+  def list_retryable_batch_predictions(batch_id, user_id) when is_binary(batch_id) do
+    from(p in Prediction,
+      where:
+        p.local_user_id == ^user_id and p.batch_id == ^batch_id and
+          p.status in [:failed, :canceled] and
+          (is_nil(p.model) or p.model != "face-to-sticker"),
+      order_by: [asc: p.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def restart_user_predictions(ids, user_id) when is_list(ids) do
+    restartable_ids =
+      from(p in Prediction,
+        where:
+          p.local_user_id == ^user_id and p.id in ^ids and
+            p.status in [:failed, :canceled] and
+            (is_nil(p.model) or p.model != "face-to-sticker"),
+        select: p.id
+      )
+      |> Repo.all()
+
+    from(p in Prediction,
+      where:
+        p.local_user_id == ^user_id and p.id in ^restartable_ids and
+          p.status in [:failed, :canceled] and
+          (is_nil(p.model) or p.model != "face-to-sticker")
+    )
+    |> Repo.update_all(
+      set: [
+        status: :starting,
+        sticker_output: nil,
+        no_bg_output: nil,
+        uuid: nil,
+        output_format: nil,
+        output_content_type: nil,
+        credit_refunded: false,
+        failure_reason: nil,
+        failure_stage: nil
+      ]
+    )
+
+    from(p in Prediction, where: p.local_user_id == ^user_id and p.id in ^restartable_ids)
+    |> Repo.all()
   end
 
   def restart_user_prediction(id, user_id) do
@@ -431,17 +524,39 @@ defmodule Sticker.Predictions do
     end
   end
 
+  def cancel_user_batch(batch_id, user_id) when is_binary(batch_id) do
+    predictions =
+      from(p in Prediction,
+        where:
+          p.local_user_id == ^user_id and p.batch_id == ^batch_id and
+            p.status in [:starting, :processing, :moderation_succeeded],
+        order_by: [asc: p.inserted_at]
+      )
+      |> Repo.all()
+
+    Enum.reduce(predictions, {:ok, []}, fn prediction, {:ok, canceled} ->
+      case cancel_user_prediction(prediction.id, user_id) do
+        {:ok, prediction} -> {:ok, [prediction | canceled]}
+        {:error, reason} -> {:error, reason}
+      end
+    end)
+    |> case do
+      {:ok, canceled} -> {:ok, Enum.reverse(canceled)}
+      error -> error
+    end
+  end
+
   def toggle_favorite(id, user_id) do
     prediction = get_user_prediction!(id, user_id)
     update_prediction(prediction, %{is_favorite: not prediction.is_favorite})
   end
 
-  def fail_prediction_and_refund(%Prediction{} = prediction) do
+  def fail_prediction_and_refund(%Prediction{} = prediction, stage \\ nil, reason \\ nil) do
     prediction = get_prediction_for_update(prediction)
     should_refund? = not prediction.credit_refunded
 
     Multi.new()
-    |> Multi.update(:prediction, Prediction.changeset(prediction, failed_attrs(prediction)))
+    |> Multi.update(:prediction, Prediction.changeset(prediction, failed_attrs(prediction, stage, reason)))
     |> Multi.run(:refund, fn _repo, %{prediction: prediction} ->
       if should_refund? do
         case Accounts.refund_credit_by_public_id(prediction.local_user_id) do
@@ -558,8 +673,15 @@ defmodule Sticker.Predictions do
   defp broadcast(user_id, message),
     do: Phoenix.PubSub.broadcast(Sticker.PubSub, "user:#{user_id}", message)
 
-  defp failed_attrs(%Prediction{credit_refunded: true}), do: %{status: :failed}
-  defp failed_attrs(_prediction), do: %{status: :failed, credit_refunded: true}
+  defp failed_attrs(%Prediction{credit_refunded: true}, stage, reason) do
+    %{status: :failed}
+    |> add_failure_details(stage, reason)
+  end
+
+  defp failed_attrs(_prediction, stage, reason) do
+    %{status: :failed, credit_refunded: true}
+    |> add_failure_details(stage, reason)
+  end
 
   defp retryable?(%Prediction{model: "face-to-sticker"}), do: false
   defp retryable?(%Prediction{status: :failed}), do: true
@@ -606,4 +728,44 @@ defmodule Sticker.Predictions do
        do: where(query, [p], p.batch_id == ^batch_id)
 
   defp filter_user_prediction_batch(query, _batch_id), do: query
+
+  defp user_predictions_query(user_id, filters) do
+    status = Map.get(filters, :status, "all")
+    query_text = Map.get(filters, :query, "")
+    batch_id = Map.get(filters, :batch_id, "all")
+
+    Prediction
+    |> where([p], p.local_user_id == ^user_id)
+    |> filter_user_prediction_status(status)
+    |> filter_user_prediction_query(query_text)
+    |> filter_user_prediction_batch(batch_id)
+    |> order_by([p], desc: p.inserted_at)
+  end
+
+  defp add_failure_details(attrs, nil, nil), do: attrs
+
+  defp add_failure_details(attrs, stage, reason) do
+    attrs
+    |> Map.put(:failure_stage, stage && to_string(stage))
+    |> Map.put(:failure_reason, failure_reason(reason))
+  end
+
+  defp failure_reason(nil), do: nil
+
+  defp failure_reason(reason) do
+    reason
+    |> inspect()
+    |> String.slice(0, 500)
+  end
+
+  defp to_integer(value) when is_integer(value), do: value
+
+  defp to_integer(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {integer, ""} -> integer
+      _ -> 0
+    end
+  end
+
+  defp to_integer(_value), do: 0
 end

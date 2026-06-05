@@ -691,6 +691,7 @@ html {
 }
 
 .saas-batch-summary article,
+.saas-batch-detail,
 .saas-empty-state {
   border: 1px solid var(--saas-line);
   border-radius: 8px;
@@ -702,6 +703,11 @@ html {
 .saas-batch-summary strong,
 .saas-batch-summary span {
   display: block;
+}
+
+.saas-batch-summary a {
+  color: var(--saas-ink);
+  text-decoration: none;
 }
 
 .saas-batch-summary span {
@@ -722,6 +728,17 @@ html {
 .saas-empty-state p {
   margin: 0 0 14px;
   color: var(--saas-muted);
+}
+
+.saas-history-load {
+  display: flex;
+  justify-content: center;
+  margin: 24px 0 0;
+}
+
+.saas-batch-detail {
+  display: grid;
+  gap: 18px;
 }
 
 .saas-history-check {

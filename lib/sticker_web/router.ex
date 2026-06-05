@@ -47,6 +47,7 @@ defmodule StickerWeb.Router do
     get "/stickers/download", StickerBatchDownloadController, :show
     get "/sticker/:id/download", StickerDownloadController, :show
     live "/stickers", HistoryLive, :index
+    live "/stickers/batches/:id", BatchLive, :show
     live "/search", SearchLive, :index
 
     get "/users/register", UserRegistrationController, :new
@@ -60,6 +61,10 @@ defmodule StickerWeb.Router do
     get "/face-to-sticker", PageController, :face_to_sticker
     get "/custom-sticker-maker", PageController, :custom_sticker_maker
     get "/cute-sticker-ideas", PageController, :cute_sticker_ideas
+    get "/sticker-maker-online", PageController, :sticker_maker_online
+    get "/ai-avatar-sticker", PageController, :ai_avatar_sticker
+    get "/kawaii-sticker-maker", PageController, :kawaii_sticker_maker
+    get "/transparent-sticker-maker", PageController, :transparent_sticker_maker
     get "/contact", PageController, :contact
     get "/payment-and-credits", PageController, :payment_and_credits
     get "/privacy-policy", PageController, :privacy_policy

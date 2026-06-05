@@ -87,6 +87,54 @@ defmodule StickerWeb.PageController do
     |> render(:cute_sticker_ideas)
   end
 
+  def sticker_maker_online(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/sticker-maker-online",
+        title: "Sticker Maker Online - Create AI Stickers",
+        description:
+          "Use an online sticker maker to create AI stickers from prompts or portraits, manage credits, download files, and build sticker batches."
+      )
+    )
+    |> render(:sticker_maker_online)
+  end
+
+  def ai_avatar_sticker(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/ai-avatar-sticker",
+        title: "AI Avatar Sticker Generator",
+        description:
+          "Create AI avatar stickers from portraits or character prompts. Generate profile-ready sticker art with history, retry, and download options."
+      )
+    )
+    |> render(:ai_avatar_sticker)
+  end
+
+  def kawaii_sticker_maker(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/kawaii-sticker-maker",
+        title: "Kawaii Sticker Maker for Cute AI Stickers",
+        description:
+          "Make kawaii AI stickers with cute prompt ideas for animals, food, mascots, cozy objects, and playful character stickers."
+      )
+    )
+    |> render(:kawaii_sticker_maker)
+  end
+
+  def transparent_sticker_maker(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/transparent-sticker-maker",
+        title: "Transparent Sticker Maker with PNG and WebP Downloads",
+        description:
+          "Generate sticker-style images and download PNG or WebP files. Learn when to use transparent-style sticker outputs for editing and web use."
+      )
+    )
+    |> render(:transparent_sticker_maker)
+  end
+
   def privacy_policy(conn, _params) do
     conn
     |> SEO.assign(
@@ -132,6 +180,10 @@ defmodule StickerWeb.PageController do
       "/face-to-sticker",
       "/custom-sticker-maker",
       "/cute-sticker-ideas",
+      "/sticker-maker-online",
+      "/ai-avatar-sticker",
+      "/kawaii-sticker-maker",
+      "/transparent-sticker-maker",
       "/contact",
       "/payment-and-credits",
       "/privacy-policy",

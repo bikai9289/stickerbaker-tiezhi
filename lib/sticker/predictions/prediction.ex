@@ -22,6 +22,8 @@ defmodule Sticker.Predictions.Prediction do
     field :is_favorite, :boolean, default: false
     field :credit_refunded, :boolean, default: false
     field :batch_id, :string
+    field :failure_reason, :string
+    field :failure_stage, :string
 
     field :status, Ecto.Enum,
       values: [:starting, :processing, :succeeded, :failed, :canceled, :moderation_succeeded]
@@ -56,7 +58,9 @@ defmodule Sticker.Predictions.Prediction do
       :model,
       :is_favorite,
       :credit_refunded,
-      :batch_id
+      :batch_id,
+      :failure_reason,
+      :failure_stage
     ])
     |> validate_required([:prompt])
   end

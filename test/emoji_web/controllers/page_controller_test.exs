@@ -17,6 +17,18 @@ defmodule StickerWeb.PageControllerTest do
 
     conn = get(build_conn(), ~p"/cute-sticker-ideas")
     assert html_response(conn, 200) =~ "What are easy cute sticker ideas?"
+
+    conn = get(build_conn(), ~p"/sticker-maker-online")
+    assert html_response(conn, 200) =~ "Sticker Maker Online"
+
+    conn = get(build_conn(), ~p"/ai-avatar-sticker")
+    assert html_response(conn, 200) =~ "AI Avatar Sticker Generator"
+
+    conn = get(build_conn(), ~p"/kawaii-sticker-maker")
+    assert html_response(conn, 200) =~ "Kawaii Sticker Maker"
+
+    conn = get(build_conn(), ~p"/transparent-sticker-maker")
+    assert html_response(conn, 200) =~ "Transparent Sticker Maker"
   end
 
   test "sitemap includes public SEO landing pages", %{conn: conn} do
@@ -26,6 +38,10 @@ defmodule StickerWeb.PageControllerTest do
     assert body =~ "/face-to-sticker"
     assert body =~ "/custom-sticker-maker"
     assert body =~ "/cute-sticker-ideas"
+    assert body =~ "/sticker-maker-online"
+    assert body =~ "/ai-avatar-sticker"
+    assert body =~ "/kawaii-sticker-maker"
+    assert body =~ "/transparent-sticker-maker"
     refute body =~ "/account"
   end
 

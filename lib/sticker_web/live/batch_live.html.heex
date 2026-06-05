@@ -1,0 +1,59 @@
+<section class="saas-section">
+  <div class="saas-container">
+    <div class="saas-section-head">
+      <p class="saas-legal-kicker">Batch</p>
+      <h1>Sticker Batch</h1>
+      <p class="saas-section-copy">
+        Review generation progress, retry failed prompts, cancel processing work, and download completed stickers.
+      </p>
+    </div>
+
+    <div :if={is_nil(@batch)} class="saas-empty-state">
+      <h2>Batch not found</h2>
+      <p>This batch is unavailable or does not belong to the current account.</p>
+      <.link class="saas-button saas-button-primary" navigate={~p"/stickers"}>Back to History</.link>
+    </div>
+
+    <div :if={@batch} class="saas-batch-detail">
+      <div class="saas-delivery-grid">
+        <div>
+          <span>Total</span>
+          <strong><%= @batch.total %></strong>
+        </div>
+        <div>
+          <span>Completed</span>
+          <strong><%= @batch.completed %></strong>
+        </div>
+        <div>
+          <span>Failed</span>
+          <strong><%= @batch.failed %></strong>
+        </div>
+        <div>
+          <span>Processing</span>
+          <strong><%= @batch.processing %></strong>
+        </div>
+      </div>
+
+      <div class="saas-history-bulk">
+        <button phx-click="retry-failed">Retry Failed</button>
+        <button phx-click="cancel-processing">Cancel Processing</button>
+        <.link href={~p"/stickers"}>Back to History</.link>
+      </div>
+
+      <ul id="batch-predictions" phx-update="stream" role="list" class="saas-generated-grid">
+        <li :for={{id, prediction} <- @streams.predictions} id={id}>
+          <div class="saas-history-item">
+            <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
+            <div class="saas-history-actions">
+              <span>Status: <%= prediction.status || :starting %></span>
+              <span :if={prediction.status == :failed}>Reason: <%= failed_reason(prediction) %></span>
+              <.link :if={prediction.sticker_output} href={~p"/sticker/#{prediction.id}/download"}>
+                Download
+              </.link>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>

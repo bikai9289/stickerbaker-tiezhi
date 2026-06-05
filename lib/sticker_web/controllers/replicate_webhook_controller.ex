@@ -46,7 +46,13 @@ defmodule StickerWeb.ReplicateWebhookController do
             if rating <= 5 do
               Predictions.gen_image(prediction.prompt, user_id, prediction_id)
             else
-              {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
+              {:ok, prediction} =
+                Predictions.fail_prediction_and_refund(
+                  prediction,
+                  :moderation,
+                  "Safety rating too low: #{10 - rating}/10"
+                )
+
               broadcast(user_id, {:prediction_failed, prediction})
               broadcast(user_id, {:moderation_failed, "AI generated safety rating: #{10 - rating}/10"})
             end
@@ -56,7 +62,9 @@ defmodule StickerWeb.ReplicateWebhookController do
           prediction = prediction_id |> Predictions.get_prediction!()
 
           if prediction.status != :canceled do
-            {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
+            {:ok, prediction} =
+              Predictions.fail_prediction_and_refund(prediction, :moderation, "Replicate moderation failed")
+
             broadcast(user_id, {:prediction_failed, prediction})
             broadcast(user_id, {:moderation_failed, "Something went wrong...try again?"})
           end
@@ -85,32 +93,7 @@ defmodule StickerWeb.ReplicateWebhookController do
     case status do
       "succeeded" ->
         if prediction.status != :canceled do
-          file_name = output_file_name(prediction_id, prediction.model)
-          content_type = Sticker.Utils.content_type_for(file_name)
-
-          r2_url =
-            Sticker.Utils.save_r2(
-              file_name,
-              output |> List.last(),
-              content_type
-            )
-
-          {:ok, prediction} =
-            Predictions.update_prediction(prediction, %{
-              uuid: uuid,
-              sticker_output: r2_url,
-              output_format: Sticker.Utils.output_format(file_name),
-              output_content_type: content_type,
-              status: :succeeded
-            })
-
-          broadcast(user_id, {:prediction_completed, prediction})
-
-          Phoenix.PubSub.broadcast(
-            Sticker.PubSub,
-            "prediction-firehose",
-            {:new_prediction, prediction}
-          )
+          complete_prediction(prediction, prediction_id, output, uuid, user_id)
         end
 
       "failed" ->
@@ -119,7 +102,9 @@ defmodule StickerWeb.ReplicateWebhookController do
             prediction
             |> Predictions.update_prediction(%{uuid: uuid})
             |> case do
-              {:ok, prediction} -> Predictions.fail_prediction_and_refund(prediction)
+              {:ok, prediction} ->
+                Predictions.fail_prediction_and_refund(prediction, :generation, "Replicate image failed")
+
               error -> error
             end
 
@@ -158,4 +143,39 @@ defmodule StickerWeb.ReplicateWebhookController do
 
   defp output_file_name(prediction_id, _model),
     do: "prediction-#{prediction_id}-sticker.webp"
+
+  defp complete_prediction(prediction, prediction_id, output, uuid, user_id) do
+    file_name = output_file_name(prediction_id, prediction.model)
+    content_type = Sticker.Utils.content_type_for(file_name)
+
+    r2_url =
+      Sticker.Utils.save_r2(
+        file_name,
+        output |> List.last(),
+        content_type
+      )
+
+    {:ok, prediction} =
+      Predictions.update_prediction(prediction, %{
+        uuid: uuid,
+        sticker_output: r2_url,
+        output_format: Sticker.Utils.output_format(file_name),
+        output_content_type: content_type,
+        status: :succeeded,
+        failure_reason: nil,
+        failure_stage: nil
+      })
+
+    broadcast(user_id, {:prediction_completed, prediction})
+
+    Phoenix.PubSub.broadcast(
+      Sticker.PubSub,
+      "prediction-firehose",
+      {:new_prediction, prediction}
+    )
+  rescue
+    reason ->
+      {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction, :storage, reason)
+      broadcast(user_id, {:prediction_failed, prediction})
+  end
 end
