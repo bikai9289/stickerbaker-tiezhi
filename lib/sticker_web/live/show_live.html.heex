@@ -49,6 +49,20 @@
           </a>
           <a
             :if={@prediction.sticker_output}
+            href={~p"/sticker/#{@prediction.id}/download?format=png"}
+            class="saas-button saas-button-ghost"
+          >
+            PNG
+          </a>
+          <a
+            :if={@prediction.sticker_output}
+            href={~p"/sticker/#{@prediction.id}/download?format=webp"}
+            class="saas-button saas-button-ghost"
+          >
+            WebP
+          </a>
+          <a
+            :if={@prediction.sticker_output}
             href={@prediction.sticker_output}
             target="_blank"
             class="saas-button saas-button-ghost"
@@ -81,7 +95,9 @@
         <div class="saas-buy-note">
           <strong>Transparent background:</strong>
           Sticker results are optimized for sticker-style use and stored as generated image files.
-          Confirm transparency in the downloaded file before print production.
+          Download PNG for broad editing support or WebP for smaller web files. Canvas is generated
+          at 1024 x 1024 px unless the upstream model returns a different size. Confirm transparency
+          in the downloaded file before print production.
         </div>
       </div>
     </div>

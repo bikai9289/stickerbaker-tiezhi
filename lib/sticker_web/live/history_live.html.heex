@@ -26,17 +26,56 @@
           <option value="completed" selected={@filters.status == "completed"}>Completed</option>
           <option value="processing" selected={@filters.status == "processing"}>Processing</option>
           <option value="failed" selected={@filters.status == "failed"}>Failed</option>
+          <option value="canceled" selected={@filters.status == "canceled"}>Canceled</option>
           <option value="favorites" selected={@filters.status == "favorites"}>Favorites</option>
+        </select>
+        <select name="batch_id" class="saas-history-select">
+          <option value="all" selected={@filters.batch_id == "all"}>All batches</option>
+          <option
+            :for={batch <- @batches}
+            value={batch.batch_id}
+            selected={@filters.batch_id == batch.batch_id}
+          >
+            <%= batch_label(batch) %>
+          </option>
         </select>
       </.form>
 
       <div :if={not is_nil(@local_user_id) and MapSet.size(@selected_ids) > 0} class="saas-history-bulk">
         <strong><%= MapSet.size(@selected_ids) %> selected</strong>
-        <.link href={~p"/stickers/download?ids=#{selected_ids_param(@selected_ids)}"}>
+        <button
+          class={if @download_format == "original", do: "active", else: nil}
+          phx-click="set-download-format"
+          phx-value-format="original"
+        >
+          Original
+        </button>
+        <button
+          class={if @download_format == "png", do: "active", else: nil}
+          phx-click="set-download-format"
+          phx-value-format="png"
+        >
+          PNG
+        </button>
+        <button
+          class={if @download_format == "webp", do: "active", else: nil}
+          phx-click="set-download-format"
+          phx-value-format="webp"
+        >
+          WebP
+        </button>
+        <.link href={~p"/stickers/download?ids=#{selected_ids_param(@selected_ids)}&format=#{download_format_param(@download_format)}"}>
           Download ZIP
         </.link>
         <button phx-click="delete-selected">Delete Selected</button>
         <button phx-click="clear-selection">Clear</button>
+      </div>
+
+      <div :if={@batches != []} class="saas-batch-summary">
+        <article :for={batch <- Enum.take(@batches, 4)}>
+          <strong><%= batch_label(batch) %></strong>
+          <span><%= batch.processing %> processing</span>
+        </article>
       </div>
 
       <ul
@@ -65,6 +104,20 @@
               <.link :if={prediction.sticker_output} href={~p"/sticker/#{prediction.id}/download"}>
                 Download
               </.link>
+              <button
+                :if={failed_or_canceled?(prediction)}
+                phx-click="retry"
+                phx-value-id={prediction.id}
+              >
+                Retry
+              </button>
+              <button
+                :if={processing?(prediction)}
+                phx-click="cancel"
+                phx-value-id={prediction.id}
+              >
+                Cancel
+              </button>
               <.link navigate={~p"/?prompt=#{prediction.prompt}"}>Regenerate</.link>
               <.link navigate={~p"/?prompt=#{prediction.prompt <> " variation"}"}>Variation</.link>
               <button phx-click="delete" phx-value-id={prediction.id}>Delete</button>
@@ -72,6 +125,12 @@
           </div>
         </li>
       </ul>
+
+      <div :if={not is_nil(@local_user_id) and @prediction_count == 0} class="saas-empty-state">
+        <h2>No stickers found</h2>
+        <p>Try a different filter, or generate a new sticker from the home page.</p>
+        <.link class="saas-button saas-button-primary" navigate={~p"/"}>Create Sticker</.link>
+      </div>
     </div>
   </section>
 </div>

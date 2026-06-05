@@ -294,11 +294,13 @@ defmodule Sticker.Predictions do
   def list_user_predictions(user_id, filters) when is_map(filters) do
     status = Map.get(filters, :status, "all")
     query_text = Map.get(filters, :query, "")
+    batch_id = Map.get(filters, :batch_id, "all")
 
     Prediction
     |> where([p], p.local_user_id == ^user_id)
     |> filter_user_prediction_status(status)
     |> filter_user_prediction_query(query_text)
+    |> filter_user_prediction_batch(batch_id)
     |> order_by([p], desc: p.inserted_at)
     |> Repo.all()
   end
@@ -332,6 +334,25 @@ defmodule Sticker.Predictions do
     }
   end
 
+  def list_user_batches(nil), do: []
+
+  def list_user_batches(user_id) do
+    Prediction
+    |> where([p], p.local_user_id == ^user_id and not is_nil(p.batch_id))
+    |> group_by([p], p.batch_id)
+    |> select([p], %{
+      batch_id: p.batch_id,
+      total: count(p.id),
+      completed: filter(count(p.id), p.status == :succeeded),
+      failed: filter(count(p.id), p.status == :failed),
+      processing:
+        filter(count(p.id), p.status in [:starting, :processing, :moderation_succeeded]),
+      inserted_at: max(p.inserted_at)
+    })
+    |> order_by([p], desc: max(p.inserted_at))
+    |> Repo.all()
+  end
+
   def get_user_prediction!(id, user_id) do
     Repo.get_by!(Prediction, id: id, local_user_id: user_id)
   end
@@ -355,6 +376,59 @@ defmodule Sticker.Predictions do
       order_by: [desc: p.inserted_at]
     )
     |> Repo.all()
+  end
+
+  def retry_user_prediction(id, user_id) do
+    prediction = get_user_prediction!(id, user_id)
+
+    if retryable?(prediction) do
+      {:ok, prediction}
+    else
+      {:error, :not_retryable}
+    end
+  end
+
+  def restart_user_prediction(id, user_id) do
+    prediction = get_user_prediction!(id, user_id)
+
+    if retryable?(prediction) do
+      update_prediction(prediction, %{
+        status: :starting,
+        sticker_output: nil,
+        no_bg_output: nil,
+        uuid: nil,
+        output_format: nil,
+        output_content_type: nil,
+        credit_refunded: false
+      })
+    else
+      {:error, :not_retryable}
+    end
+  end
+
+  def cancel_user_prediction(id, user_id) do
+    prediction = get_user_prediction!(id, user_id)
+
+    if cancelable?(prediction) do
+      Multi.new()
+      |> Multi.update(
+        :prediction,
+        Prediction.changeset(prediction, %{status: :canceled, credit_refunded: true})
+      )
+      |> Multi.run(:refund, fn _repo, _changes ->
+        case Accounts.refund_credit_by_public_id(prediction.local_user_id) do
+          {:ok, _user} -> {:ok, :refunded}
+          {:error, :not_found} -> {:ok, :no_account}
+        end
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, %{prediction: prediction}} -> {:ok, prediction}
+        {:error, _step, reason, _changes} -> {:error, reason}
+      end
+    else
+      {:error, :not_cancelable}
+    end
   end
 
   def toggle_favorite(id, user_id) do
@@ -487,6 +561,17 @@ defmodule Sticker.Predictions do
   defp failed_attrs(%Prediction{credit_refunded: true}), do: %{status: :failed}
   defp failed_attrs(_prediction), do: %{status: :failed, credit_refunded: true}
 
+  defp retryable?(%Prediction{model: "face-to-sticker"}), do: false
+  defp retryable?(%Prediction{status: :failed}), do: true
+  defp retryable?(%Prediction{status: :canceled}), do: true
+  defp retryable?(_prediction), do: false
+
+  defp cancelable?(%Prediction{status: status})
+       when status in [:starting, :processing, :moderation_succeeded],
+       do: true
+
+  defp cancelable?(_prediction), do: false
+
   defp filter_user_prediction_status(query, "completed"),
     do: where(query, [p], p.status == :succeeded)
 
@@ -495,6 +580,9 @@ defmodule Sticker.Predictions do
 
   defp filter_user_prediction_status(query, "failed"),
     do: where(query, [p], p.status == :failed)
+
+  defp filter_user_prediction_status(query, "canceled"),
+    do: where(query, [p], p.status == :canceled)
 
   defp filter_user_prediction_status(query, "favorites"),
     do: where(query, [p], p.is_favorite == true)
@@ -512,4 +600,10 @@ defmodule Sticker.Predictions do
   end
 
   defp filter_user_prediction_query(query, _text), do: query
+
+  defp filter_user_prediction_batch(query, batch_id)
+       when is_binary(batch_id) and batch_id not in ["", "all"],
+       do: where(query, [p], p.batch_id == ^batch_id)
+
+  defp filter_user_prediction_batch(query, _batch_id), do: query
 end

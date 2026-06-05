@@ -194,13 +194,15 @@ defmodule StickerWeb.HomeLive do
 
   defp start_text_predictions(current_user, user_id, prompts) do
     credit_count = length(prompts)
+    batch_id = batch_id()
 
     with {:ok, current_user} <- Accounts.spend_credits(current_user, credit_count) do
       Enum.reduce_while(prompts, {:ok, []}, fn prompt, {:ok, predictions} ->
         case Predictions.create_prediction(%{
                prompt: prompt,
                local_user_id: user_id,
-               status: :starting
+               status: :starting,
+               batch_id: batch_id
              }) do
           {:ok, prediction} ->
             {:cont, {:ok, [prediction | predictions]}}
@@ -220,6 +222,10 @@ defmodule StickerWeb.HomeLive do
   defp generation_started_message([_prediction]), do: "Sticker generation started."
   defp generation_started_message(predictions), do: "#{length(predictions)} sticker generations started."
 
+  defp batch_id do
+    "batch-" <> Base.url_encode64(:crypto.strong_rand_bytes(8), padding: false)
+  end
+
   defp generate_face_sticker_from_upload(%{assigns: %{current_user: nil}} = socket, entry) do
     discard_uploaded_entry(socket, entry)
 
@@ -236,7 +242,8 @@ defmodule StickerWeb.HomeLive do
              Predictions.create_prediction(%{
                prompt: prompt,
                local_user_id: user_id,
-               model: "face-to-sticker"
+               model: "face-to-sticker",
+               batch_id: batch_id()
              }) do
       image_uri = uploaded_entry_data_uri(socket, entry)
       send(self(), {:kick_off_face_to_sticker, prediction, image_uri})

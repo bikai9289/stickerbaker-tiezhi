@@ -677,6 +677,53 @@ html {
   align-items: center;
 }
 
+.saas-history-bulk .active {
+  border-color: var(--saas-brand-2);
+  background: #eaf1ff;
+  color: var(--saas-brand-2);
+}
+
+.saas-batch-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.saas-batch-summary article,
+.saas-empty-state {
+  border: 1px solid var(--saas-line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(24, 32, 51, 0.04);
+}
+
+.saas-batch-summary strong,
+.saas-batch-summary span {
+  display: block;
+}
+
+.saas-batch-summary span {
+  margin-top: 4px;
+  color: var(--saas-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.saas-empty-state {
+  text-align: center;
+}
+
+.saas-empty-state h2 {
+  margin: 0 0 8px;
+}
+
+.saas-empty-state p {
+  margin: 0 0 14px;
+  color: var(--saas-muted);
+}
+
 .saas-history-check {
   display: flex;
   align-items: center;
@@ -1259,6 +1306,7 @@ html {
   .saas-buy-grid,
   .saas-info-grid,
   .saas-account-grid,
+  .saas-batch-summary,
   .saas-static-sticker-grid,
   .saas-generated-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1289,6 +1337,7 @@ html {
   .saas-buy-grid,
   .saas-info-grid,
   .saas-account-grid,
+  .saas-batch-summary,
   .saas-delivery-grid,
   .saas-static-sticker-grid,
   .saas-generated-grid {

@@ -4,7 +4,7 @@ defmodule StickerWeb.StickerBatchDownloadController do
   alias Sticker.Predictions
   alias StickerWeb.SEO, as: PageSEO
 
-  def show(conn, %{"ids" => ids_param}) do
+  def show(conn, %{"ids" => ids_param} = params) do
     conn =
       SEO.assign(
         conn,
@@ -15,12 +15,13 @@ defmodule StickerWeb.StickerBatchDownloadController do
       )
 
     ids = parse_ids(ids_param)
+    format = requested_format(params["format"])
     local_user_id = get_session(conn, :local_user_id) || get_session(conn, "local_user_id")
 
     with true <- local_user_id not in [nil, ""],
          predictions when predictions != [] <-
            Predictions.list_user_downloadable_predictions(ids, local_user_id),
-         {:ok, files} <- fetch_files(predictions),
+         {:ok, files} <- fetch_files(predictions, format),
          {:ok, zip_binary} <- create_zip(files) do
       conn
       |> put_resp_content_type("application/zip")
@@ -51,13 +52,21 @@ defmodule StickerWeb.StickerBatchDownloadController do
     |> Enum.uniq()
   end
 
-  defp fetch_files(predictions) do
+  defp requested_format("png"), do: "png"
+  defp requested_format("webp"), do: "webp"
+  defp requested_format(_format), do: "original"
+
+  defp fetch_files(predictions, format) do
     predictions
     |> Enum.reduce_while({:ok, []}, fn prediction, {:ok, files} ->
       case Req.get(prediction.sticker_output) do
         {:ok, %{status: 200, body: body}} ->
-          file_name = file_name(prediction)
-          {:cont, {:ok, [{String.to_charlist(file_name), body} | files]}}
+          with {:ok, body, extension} <- maybe_convert(body, prediction, format) do
+            file_name = file_name(prediction, extension)
+            {:cont, {:ok, [{String.to_charlist(file_name), body} | files]}}
+          else
+            _ -> {:halt, :error}
+          end
 
         _ ->
           {:halt, :error}
@@ -77,7 +86,25 @@ defmodule StickerWeb.StickerBatchDownloadController do
     end
   end
 
-  defp file_name(prediction) do
+  defp maybe_convert(body, prediction, "original") do
+    {:ok, body, source_extension(prediction)}
+  end
+
+  defp maybe_convert(body, prediction, requested_extension) do
+    source_extension = source_extension(prediction)
+
+    if source_extension == requested_extension do
+      {:ok, body, requested_extension}
+    else
+      with {:ok, body} <- Sticker.ImageConverter.convert(body, source_extension, requested_extension) do
+        {:ok, body, requested_extension}
+      end
+    end
+  end
+
+  defp file_name(prediction, extension), do: "sticker-#{prediction.id}.#{extension}"
+
+  defp source_extension(prediction) do
     extension =
       prediction.output_format ||
         prediction.sticker_output
@@ -86,7 +113,6 @@ defmodule StickerWeb.StickerBatchDownloadController do
         |> Path.extname()
         |> String.trim_leading(".")
 
-    extension = if extension in [nil, ""], do: "png", else: extension
-    "sticker-#{prediction.id}.#{extension}"
+    if extension in [nil, ""], do: "png", else: extension
   end
 end

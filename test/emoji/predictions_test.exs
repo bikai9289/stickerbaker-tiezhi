@@ -96,6 +96,42 @@ defmodule Sticker.PredictionsTest do
                })
     end
 
+    test "list_user_predictions/2 filters by batch" do
+      user = user_fixture()
+
+      first =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          prompt: "batch panda",
+          batch_id: "batch-one"
+        })
+
+      _second =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          prompt: "batch robot",
+          batch_id: "batch-two"
+        })
+
+      assert [^first] =
+               Predictions.list_user_predictions(user.public_id, %{
+                 status: "all",
+                 query: "",
+                 batch_id: "batch-one"
+               })
+    end
+
+    test "list_user_batches/1 returns batch status counts" do
+      user = user_fixture()
+
+      prediction_fixture(%{local_user_id: user.public_id, batch_id: "batch-a", status: :succeeded})
+      prediction_fixture(%{local_user_id: user.public_id, batch_id: "batch-a", status: :failed})
+      prediction_fixture(%{local_user_id: user.public_id, batch_id: "batch-a", status: :processing})
+
+      assert [%{batch_id: "batch-a", total: 3, completed: 1, failed: 1, processing: 1}] =
+               Predictions.list_user_batches(user.public_id)
+    end
+
     test "fail_prediction_and_refund/1 refunds a credit only once" do
       user = user_fixture()
 
@@ -114,6 +150,56 @@ defmodule Sticker.PredictionsTest do
       {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
       assert prediction.credit_refunded == true
       assert Sticker.Accounts.get_user(user.id).credits == user.credits + 1
+    end
+
+    test "cancel_user_prediction/2 cancels processing prediction and refunds credit" do
+      user = user_fixture()
+
+      prediction =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          status: :processing,
+          credit_refunded: false
+        })
+
+      {:ok, prediction} = Predictions.cancel_user_prediction(prediction.id, user.public_id)
+
+      assert prediction.status == :canceled
+      assert Sticker.Accounts.get_user(user.id).credits == user.credits + 1
+    end
+
+    test "restart_user_prediction/2 resets failed text prediction" do
+      user = user_fixture()
+
+      prediction =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          status: :failed,
+          sticker_output: "https://example.com/sticker.webp",
+          output_format: "webp",
+          credit_refunded: true
+        })
+
+      {:ok, prediction} = Predictions.restart_user_prediction(prediction.id, user.public_id)
+
+      assert prediction.status == :starting
+      assert prediction.sticker_output == nil
+      assert prediction.output_format == nil
+      assert prediction.credit_refunded == false
+    end
+
+    test "restart_user_prediction/2 rejects upload based stickers" do
+      user = user_fixture()
+
+      prediction =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          status: :failed,
+          model: "face-to-sticker"
+        })
+
+      assert {:error, :not_retryable} =
+               Predictions.restart_user_prediction(prediction.id, user.public_id)
     end
   end
 end

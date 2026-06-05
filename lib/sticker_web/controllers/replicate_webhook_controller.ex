@@ -30,31 +30,36 @@ defmodule StickerWeb.ReplicateWebhookController do
     else
       case status do
         "succeeded" ->
-          {:ok, prediction} =
-            prediction_id
-            |> Predictions.get_prediction!()
-            |> Predictions.update_prediction(%{
-              moderator: "fofr/prompt-classifier",
-              moderation_score: rating,
-              status: :moderation_succeeded
-            })
+          prediction = Predictions.get_prediction!(prediction_id)
 
-          broadcast(user_id, {:moderation_complete, prediction})
+          if prediction.status != :canceled do
+            {:ok, prediction} =
+              Predictions.update_prediction(prediction, %{
+                moderator: "fofr/prompt-classifier",
+                moderation_score: rating,
+                status: :moderation_succeeded
+              })
 
-          # automatically kick off gen image step
-          if rating <= 5 do
-            Predictions.gen_image(prediction.prompt, user_id, prediction_id)
-          else
-            {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
-            broadcast(user_id, {:prediction_failed, prediction})
-            broadcast(user_id, {:moderation_failed, "AI generated safety rating: #{10 - rating}/10"})
+            broadcast(user_id, {:moderation_complete, prediction})
+
+            # automatically kick off gen image step
+            if rating <= 5 do
+              Predictions.gen_image(prediction.prompt, user_id, prediction_id)
+            else
+              {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
+              broadcast(user_id, {:prediction_failed, prediction})
+              broadcast(user_id, {:moderation_failed, "AI generated safety rating: #{10 - rating}/10"})
+            end
           end
 
         "failed" ->
           prediction = prediction_id |> Predictions.get_prediction!()
-          {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
-          broadcast(user_id, {:prediction_failed, prediction})
-          broadcast(user_id, {:moderation_failed, "Something went wrong...try again?"})
+
+          if prediction.status != :canceled do
+            {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
+            broadcast(user_id, {:prediction_failed, prediction})
+            broadcast(user_id, {:moderation_failed, "Something went wrong...try again?"})
+          end
 
         status ->
           IO.inspect("status is... #{status}")
@@ -79,49 +84,55 @@ defmodule StickerWeb.ReplicateWebhookController do
 
     case status do
       "succeeded" ->
-        file_name = output_file_name(prediction_id, prediction.model)
-        content_type = Sticker.Utils.content_type_for(file_name)
+        if prediction.status != :canceled do
+          file_name = output_file_name(prediction_id, prediction.model)
+          content_type = Sticker.Utils.content_type_for(file_name)
 
-        r2_url =
-          Sticker.Utils.save_r2(
-            file_name,
-            output |> List.last(),
-            content_type
+          r2_url =
+            Sticker.Utils.save_r2(
+              file_name,
+              output |> List.last(),
+              content_type
+            )
+
+          {:ok, prediction} =
+            Predictions.update_prediction(prediction, %{
+              uuid: uuid,
+              sticker_output: r2_url,
+              output_format: Sticker.Utils.output_format(file_name),
+              output_content_type: content_type,
+              status: :succeeded
+            })
+
+          broadcast(user_id, {:prediction_completed, prediction})
+
+          Phoenix.PubSub.broadcast(
+            Sticker.PubSub,
+            "prediction-firehose",
+            {:new_prediction, prediction}
           )
-
-        {:ok, prediction} =
-          Predictions.update_prediction(prediction, %{
-            uuid: uuid,
-            sticker_output: r2_url,
-            output_format: Sticker.Utils.output_format(file_name),
-            output_content_type: content_type,
-            status: :succeeded
-          })
-
-        broadcast(user_id, {:prediction_completed, prediction})
-
-        Phoenix.PubSub.broadcast(
-          Sticker.PubSub,
-          "prediction-firehose",
-          {:new_prediction, prediction}
-        )
+        end
 
       "failed" ->
-        {:ok, prediction} =
-          prediction
-          |> Predictions.update_prediction(%{uuid: uuid})
-          |> case do
-            {:ok, prediction} -> Predictions.fail_prediction_and_refund(prediction)
-            error -> error
-          end
+        if prediction.status != :canceled do
+          {:ok, prediction} =
+            prediction
+            |> Predictions.update_prediction(%{uuid: uuid})
+            |> case do
+              {:ok, prediction} -> Predictions.fail_prediction_and_refund(prediction)
+              error -> error
+            end
 
-        broadcast(user_id, {:prediction_failed, prediction})
+          broadcast(user_id, {:prediction_failed, prediction})
+        end
 
       "processing" ->
-        {:ok, prediction} =
-          Predictions.update_prediction(prediction, %{status: :processing})
+        if prediction.status != :canceled do
+          {:ok, prediction} =
+            Predictions.update_prediction(prediction, %{status: :processing})
 
-        broadcast(user_id, {:prediction_loading, prediction})
+          broadcast(user_id, {:prediction_loading, prediction})
+        end
 
       status ->
         IO.puts("status is... #{status}")

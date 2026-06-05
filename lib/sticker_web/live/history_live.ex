@@ -5,8 +5,9 @@ defmodule StickerWeb.HistoryLive do
 
   def mount(_params, session, socket) do
     local_user_id = session["local_user_id"]
-    filters = %{status: "all", query: ""}
+    filters = %{status: "all", query: "", batch_id: "all"}
     predictions = if local_user_id, do: Predictions.list_user_predictions(local_user_id, filters), else: []
+    batches = Predictions.list_user_batches(local_user_id)
 
     {:ok,
      socket
@@ -18,7 +19,10 @@ defmodule StickerWeb.HistoryLive do
      )
      |> assign(local_user_id: local_user_id)
      |> assign(filters: filters)
+     |> assign(batches: batches)
+     |> assign(prediction_count: length(predictions))
      |> assign(selected_ids: MapSet.new())
+     |> assign(download_format: "original")
      |> assign(results: [])
      |> stream(:predictions, predictions)}
   end
@@ -27,20 +31,29 @@ defmodule StickerWeb.HistoryLive do
     {:noreply,
      socket
      |> assign(local_user_id: user_id)
+     |> assign(batches: Predictions.list_user_batches(user_id))
+     |> assign(prediction_count: length(Predictions.list_user_predictions(user_id, socket.assigns.filters)))
      |> stream(:predictions, Predictions.list_user_predictions(user_id, socket.assigns.filters), reset: true)}
   end
 
   def handle_event("filter", params, socket) do
     filters = %{
       status: Map.get(params, "status", socket.assigns.filters.status),
-      query: Map.get(params, "query", socket.assigns.filters.query)
+      query: Map.get(params, "query", socket.assigns.filters.query),
+      batch_id: Map.get(params, "batch_id", socket.assigns.filters.batch_id)
     }
+    predictions = Predictions.list_user_predictions(socket.assigns.local_user_id, filters)
 
     {:noreply,
      socket
      |> assign(filters: filters)
      |> assign(selected_ids: MapSet.new())
-     |> stream(:predictions, Predictions.list_user_predictions(socket.assigns.local_user_id, filters), reset: true)}
+     |> assign(prediction_count: length(predictions))
+     |> stream(:predictions, predictions, reset: true)}
+  end
+
+  def handle_event("set-download-format", %{"format" => format}, socket) do
+    {:noreply, assign(socket, download_format: download_format(format))}
   end
 
   def handle_event("toggle-select", %{"id" => id}, socket) do
@@ -62,12 +75,70 @@ defmodule StickerWeb.HistoryLive do
   def handle_event("delete-selected", _params, socket) do
     ids = MapSet.to_list(socket.assigns.selected_ids)
     {count, _} = Predictions.delete_user_predictions(ids, socket.assigns.local_user_id)
+    predictions = Predictions.list_user_predictions(socket.assigns.local_user_id, socket.assigns.filters)
 
     {:noreply,
      socket
      |> assign(selected_ids: MapSet.new())
-     |> stream(:predictions, Predictions.list_user_predictions(socket.assigns.local_user_id, socket.assigns.filters), reset: true)
+     |> assign(batches: Predictions.list_user_batches(socket.assigns.local_user_id))
+     |> assign(prediction_count: length(predictions))
+     |> stream(:predictions, predictions, reset: true)
      |> put_flash(:info, "#{count} stickers deleted.")}
+  end
+
+  def handle_event("retry", %{"id" => id}, socket) do
+    with {:ok, _prediction} <- Predictions.retry_user_prediction(id, socket.assigns.local_user_id),
+         {:ok, current_user} <- Sticker.Accounts.spend_credit(socket.assigns.current_user),
+         {:ok, prediction} <- Predictions.restart_user_prediction(id, socket.assigns.local_user_id) do
+      send(self(), {:retry_sticker, prediction})
+
+      {:noreply,
+       socket
+       |> assign(current_user: current_user)
+       |> assign(batches: Predictions.list_user_batches(socket.assigns.local_user_id))
+       |> assign(prediction_count: socket.assigns.prediction_count)
+       |> stream_insert(:predictions, prediction)
+       |> put_flash(:info, "Retry started. 1 credit was used.")}
+    else
+      {:error, :insufficient_credits} ->
+        {:noreply, put_flash(socket, :error, "Not enough credits to retry this sticker.")}
+
+      {:error, :not_signed_in} ->
+        {:noreply, put_flash(socket, :error, "Sign in before retrying this sticker.")}
+
+      {:error, :not_retryable} ->
+        {:noreply, put_flash(socket, :error, "Upload-based stickers must be regenerated from a new upload.")}
+
+      {:error, _reason} ->
+        current_user =
+          socket.assigns.current_user &&
+            Sticker.Accounts.refund_credit(socket.assigns.current_user)
+
+        {:noreply,
+         socket
+         |> assign(current_user: current_user)
+         |> put_flash(:error, "Could not restart this sticker. Your credit was refunded.")}
+    end
+  end
+
+  def handle_event("cancel", %{"id" => id}, socket) do
+    case Predictions.cancel_user_prediction(id, socket.assigns.local_user_id) do
+      {:ok, prediction} ->
+        current_user =
+          socket.assigns.current_user &&
+            Sticker.Accounts.get_user(socket.assigns.current_user.id)
+
+        {:noreply,
+         socket
+         |> assign(current_user: current_user)
+         |> assign(batches: Predictions.list_user_batches(socket.assigns.local_user_id))
+         |> assign(prediction_count: socket.assigns.prediction_count)
+         |> stream_insert(:predictions, prediction)
+         |> put_flash(:info, "Generation canceled and 1 credit was refunded.")}
+
+      {:error, :not_cancelable} ->
+        {:noreply, put_flash(socket, :error, "Only queued or processing stickers can be canceled.")}
+    end
   end
 
   def handle_event("toggle-favorite", %{"id" => id}, socket) do
@@ -80,8 +151,15 @@ defmodule StickerWeb.HistoryLive do
 
     {:noreply,
      socket
+     |> assign(batches: Predictions.list_user_batches(socket.assigns.local_user_id))
+     |> assign(prediction_count: max(socket.assigns.prediction_count - 1, 0))
      |> stream_delete(:predictions, prediction)
      |> put_flash(:info, "Sticker deleted.")}
+  end
+
+  def handle_info({:retry_sticker, prediction}, socket) do
+    Predictions.moderate(prediction.prompt, prediction.local_user_id, prediction.id)
+    {:noreply, socket}
   end
 
   def selected?(selected_ids, id), do: MapSet.member?(selected_ids, id)
@@ -91,4 +169,20 @@ defmodule StickerWeb.HistoryLive do
     |> MapSet.to_list()
     |> Enum.join(",")
   end
+
+  def download_format_param("png"), do: "png"
+  def download_format_param("webp"), do: "webp"
+  def download_format_param(_format), do: "original"
+
+  def processing?(prediction),
+    do: prediction.status in [:starting, :processing, :moderation_succeeded]
+
+  def failed_or_canceled?(prediction), do: prediction.status in [:failed, :canceled]
+
+  def batch_label(%{batch_id: batch_id, total: total, completed: completed, failed: failed}) do
+    "#{String.replace_prefix(batch_id, "batch-", "Batch ")} - #{completed}/#{total} done, #{failed} failed"
+  end
+
+  defp download_format(format) when format in ["original", "png", "webp"], do: format
+  defp download_format(_format), do: "original"
 end

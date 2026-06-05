@@ -14,7 +14,8 @@ defmodule Sticker.PredictionsFixtures do
         sticker_output: "some output",
         prompt: "some prompt",
         uuid: "some uuid",
-        local_user_id: "some-user"
+        local_user_id: "some-user",
+        status: :succeeded
       })
       |> Sticker.Predictions.create_prediction()
 
