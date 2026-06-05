@@ -121,6 +121,47 @@ defmodule Sticker.PredictionsTest do
                })
     end
 
+    test "list_user_recent_predictions/2 ignores orphaned records with no status or output" do
+      user = user_fixture()
+
+      completed =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          status: :succeeded,
+          sticker_output: "https://example.com/sticker.webp"
+        })
+
+      processing =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          status: :processing,
+          sticker_output: nil
+        })
+
+      failed =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          status: :failed,
+          sticker_output: nil
+        })
+
+      _orphaned =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          status: nil,
+          sticker_output: nil,
+          no_bg_output: nil
+        })
+
+      recent_ids =
+        user.public_id
+        |> Predictions.list_user_recent_predictions(12)
+        |> Enum.map(& &1.id)
+        |> MapSet.new()
+
+      assert recent_ids == MapSet.new([failed.id, processing.id, completed.id])
+    end
+
     test "list_user_batches/1 returns batch status counts" do
       user = user_fixture()
 

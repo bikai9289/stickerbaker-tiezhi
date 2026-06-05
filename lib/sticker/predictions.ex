@@ -356,6 +356,9 @@ defmodule Sticker.Predictions do
     Repo.all(
       from p in Prediction,
         where: p.local_user_id == ^user_id,
+        where:
+          not is_nil(p.sticker_output) or not is_nil(p.no_bg_output) or
+            p.status in [:starting, :processing, :moderation_succeeded, :failed, :canceled],
         order_by: [desc: p.inserted_at],
         limit: ^limit
     )

@@ -51,9 +51,9 @@ defmodule StickerWeb.Components do
         <%= if is_nil(@prediction.sticker_output) and is_nil(@prediction.no_bg_output) do %>
           <div class="flex items-center justify-center h-48">
             <div role="status" class="saas-card-status">
-              <%= if @prediction.status == :failed do %>
-                <strong>Failed</strong>
-                <span>Regenerate or try a simpler prompt.</span>
+              <%= if @prediction.status in [:failed, nil] do %>
+                <strong><%= status_label(@prediction.status) %></strong>
+                <span><%= status_hint(@prediction.status) %></span>
               <% else %>
                 <span class="saas-card-spinner"></span>
                 <strong><%= status_label(@prediction.status) %></strong>
@@ -92,10 +92,14 @@ defmodule StickerWeb.Components do
   defp status_label(:processing), do: "Processing"
   defp status_label(:moderation_succeeded), do: "Queued"
   defp status_label(:starting), do: "Starting"
+  defp status_label(:failed), do: "Failed"
+  defp status_label(nil), do: "Unavailable"
   defp status_label(_status), do: "Generating"
 
   defp status_hint(:processing), do: "The image service is still working. Check history later."
   defp status_hint(:moderation_succeeded), do: "Queued for image generation."
   defp status_hint(:starting), do: "Generation is being prepared."
+  defp status_hint(:failed), do: "Regenerate or try a simpler prompt."
+  defp status_hint(nil), do: "This older generation did not finish."
   defp status_hint(_status), do: "Waiting for the generated image."
 end
