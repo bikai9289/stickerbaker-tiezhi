@@ -125,8 +125,14 @@ defmodule Sticker.PredictionsTest do
       user = user_fixture()
 
       prediction_fixture(%{local_user_id: user.public_id, batch_id: "batch-a", status: :succeeded})
+
       prediction_fixture(%{local_user_id: user.public_id, batch_id: "batch-a", status: :failed})
-      prediction_fixture(%{local_user_id: user.public_id, batch_id: "batch-a", status: :processing})
+
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        batch_id: "batch-a",
+        status: :processing
+      })
 
       assert [%{batch_id: "batch-a", total: 3, completed: 1, failed: 1, processing: 1}] =
                Predictions.list_user_batches(user.public_id)
@@ -139,7 +145,13 @@ defmodule Sticker.PredictionsTest do
         prediction_fixture(%{local_user_id: user.public_id, prompt: "page #{index}"})
       end)
 
-      page = Predictions.paginate_user_predictions(user.public_id, %{status: "all", query: "", batch_id: "all"}, 0, 2)
+      page =
+        Predictions.paginate_user_predictions(
+          user.public_id,
+          %{status: "all", query: "", batch_id: "all"},
+          0,
+          2
+        )
 
       assert length(page.entries) == 2
       assert page.total == 3
@@ -156,7 +168,9 @@ defmodule Sticker.PredictionsTest do
           credit_refunded: false
         })
 
-      {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction, :generation, "timeout")
+      {:ok, prediction} =
+        Predictions.fail_prediction_and_refund(prediction, :generation, "timeout")
+
       assert prediction.status == :failed
       assert prediction.credit_refunded == true
       assert prediction.failure_stage == "generation"
@@ -168,12 +182,67 @@ defmodule Sticker.PredictionsTest do
       assert Sticker.Accounts.get_user(user.id).credits == user.credits + 1
     end
 
+    test "has_credits?/2 checks account balance before upload consumption" do
+      assert Sticker.Accounts.has_credits?(user_fixture(%{credits: 1}), 1)
+
+      user = user_fixture()
+      Sticker.Accounts.spend_credits(user, user.credits)
+
+      refute Sticker.Accounts.has_credits?(Sticker.Accounts.get_user(user.id), 1)
+      refute Sticker.Accounts.has_credits?(nil, 1)
+    end
+
+    test "check_generation_limits/3 rejects too many active predictions" do
+      user = user_fixture()
+
+      Enum.each(1..8, fn index ->
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          prompt: "active #{index}",
+          status: :processing
+        })
+      end)
+
+      assert {:error, :active_limited} = Predictions.check_generation_limits(user.public_id, 1)
+    end
+
+    test "check_generation_limits/3 rejects excessive daily predictions" do
+      user = user_fixture()
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+      Enum.each(1..80, fn index ->
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          prompt: "daily #{index}",
+          status: :succeeded,
+          inserted_at: now,
+          updated_at: now
+        })
+      end)
+
+      assert {:error, :rate_limited} = Predictions.check_generation_limits(user.public_id, 1, now)
+    end
+
     test "cancel_user_batch/2 cancels processing items and refunds each credit" do
       user = user_fixture()
 
-      prediction_fixture(%{local_user_id: user.public_id, batch_id: "batch-cancel", status: :processing})
-      prediction_fixture(%{local_user_id: user.public_id, batch_id: "batch-cancel", status: :starting})
-      prediction_fixture(%{local_user_id: user.public_id, batch_id: "batch-cancel", status: :succeeded})
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        batch_id: "batch-cancel",
+        status: :processing
+      })
+
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        batch_id: "batch-cancel",
+        status: :starting
+      })
+
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        batch_id: "batch-cancel",
+        status: :succeeded
+      })
 
       {:ok, predictions} = Predictions.cancel_user_batch("batch-cancel", user.public_id)
 
@@ -244,6 +313,8 @@ defmodule Sticker.PredictionsTest do
       assert prediction.sticker_output == nil
       assert prediction.output_format == nil
       assert prediction.credit_refunded == false
+      assert prediction.failure_stage == nil
+      assert prediction.failure_reason == nil
     end
 
     test "restart_user_prediction/2 rejects upload based stickers" do

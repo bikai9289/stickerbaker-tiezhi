@@ -62,6 +62,11 @@ defmodule Sticker.Accounts do
 
   def spend_credit(_user), do: {:error, :not_signed_in}
 
+  def has_credits?(%User{credits: credits}, amount) when is_integer(amount) and amount > 0,
+    do: credits >= amount
+
+  def has_credits?(_user, _amount), do: false
+
   def spend_credits(%User{id: user_id}, amount) when is_integer(amount) and amount > 0 do
     {count, _} =
       from(u in User, where: u.id == ^user_id and u.credits >= ^amount)

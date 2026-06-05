@@ -13,13 +13,20 @@ defmodule StickerWeb.BatchLive do
      |> SEO.assign(
        PageSEO.noindex("/stickers/batches/#{batch_id}",
          title: "Sticker Batch",
-         description: "Review a sticker batch, retry failed prompts, cancel processing items, and download completed stickers."
+         description:
+           "Review a sticker batch, retry failed prompts, cancel processing items, and download completed stickers."
        )
      )
      |> assign(local_user_id: local_user_id)
      |> assign(batch_id: batch_id)
      |> assign(batch: batch)
+     |> assign(download_format: "original")
+     |> assign(download_ids: download_ids(predictions))
      |> stream(:predictions, predictions)}
+  end
+
+  def handle_event("download-format", %{"format" => format}, socket) do
+    {:noreply, assign(socket, download_format: download_format(format))}
   end
 
   def handle_event("retry-failed", _params, socket) do
@@ -30,7 +37,8 @@ defmodule StickerWeb.BatchLive do
       )
 
     with true <- retryable != [],
-         {:ok, current_user} <- Sticker.Accounts.spend_credits(socket.assigns.current_user, length(retryable)) do
+         {:ok, current_user} <-
+           Sticker.Accounts.spend_credits(socket.assigns.current_user, length(retryable)) do
       predictions =
         retryable
         |> Enum.map(& &1.id)
@@ -96,6 +104,7 @@ defmodule StickerWeb.BatchLive do
 
     socket
     |> assign(batch: batch)
+    |> assign(download_ids: download_ids(predictions))
     |> stream(:predictions, predictions, reset: true)
   end
 
@@ -110,4 +119,14 @@ defmodule StickerWeb.BatchLive do
 
     {batch, Predictions.list_user_batch_predictions(local_user_id, batch_id)}
   end
+
+  defp download_ids(predictions) do
+    predictions
+    |> Enum.filter(& &1.sticker_output)
+    |> Enum.map(& &1.id)
+    |> Enum.join(",")
+  end
+
+  defp download_format(format) when format in ["original", "png", "webp"], do: format
+  defp download_format(_format), do: "original"
 end

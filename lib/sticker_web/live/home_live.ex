@@ -8,15 +8,13 @@ defmodule StickerWeb.HomeLive do
   @accepted ~w(.jpg .jpeg .png)
   @face_sticker_prompt "A cute, clean portrait sticker with a white border, expressive face, simple background, high quality"
   @max_batch_prompts 5
-  @daily_generation_limit 80
 
   def mount(_params, session, socket) do
     page = 0
     per_page = 20
     max_pages = Predictions.number_moderated_predictions() / per_page
 
-    loading_predictions =
-      Predictions.list_loading_predictions(session["local_user_id"])
+    loading_predictions = Predictions.list_loading_predictions(session["local_user_id"])
 
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Sticker.PubSub, "safe-prediction-firehose")
@@ -107,10 +105,23 @@ defmodule StickerWeb.HomeLive do
 
       {:error, :insufficient_credits} ->
         {:noreply,
-         put_flash(socket, :error, "You have used your free credits. Visit Pricing to buy more credits.")}
+         put_flash(
+           socket,
+           :error,
+           "You have used your free credits. Visit Pricing to buy more credits."
+         )}
 
       {:error, :rate_limited} ->
-        {:noreply, put_flash(socket, :error, "Daily generation limit reached. Try again tomorrow.")}
+        {:noreply,
+         put_flash(socket, :error, "Daily generation limit reached. Try again tomorrow.")}
+
+      {:error, :active_limited} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Too many stickers are already processing. Wait for a few to finish."
+         )}
 
       {:error, :create_failed, current_user} ->
         {:noreply,
@@ -169,7 +180,10 @@ defmodule StickerWeb.HomeLive do
   def handle_info({:prediction_failed, _prediction}, socket) do
     {:noreply,
      socket
-     |> put_flash(:error, "Image generation failed or timed out. Try a simpler prompt or generate again.")}
+     |> put_flash(
+       :error,
+       "Image generation failed or timed out. Try a simpler prompt or generate again."
+     )}
   end
 
   def handle_info({:prediction_completed, prediction}, socket) do
@@ -201,7 +215,7 @@ defmodule StickerWeb.HomeLive do
     credit_count = length(prompts)
     batch_id = batch_id()
 
-    with :ok <- check_daily_limit(user_id, credit_count),
+    with :ok <- Predictions.check_generation_limits(user_id, credit_count),
          {:ok, current_user} <- Accounts.spend_credits(current_user, credit_count) do
       Enum.reduce_while(prompts, {:ok, []}, fn prompt, {:ok, predictions} ->
         case Predictions.create_prediction(%{
@@ -226,7 +240,9 @@ defmodule StickerWeb.HomeLive do
   end
 
   defp generation_started_message([_prediction]), do: "Sticker generation started."
-  defp generation_started_message(predictions), do: "#{length(predictions)} sticker generations started."
+
+  defp generation_started_message(predictions),
+    do: "#{length(predictions)} sticker generations started."
 
   defp batch_id do
     "batch-" <> Base.url_encode64(:crypto.strong_rand_bytes(8), padding: false)
@@ -235,24 +251,24 @@ defmodule StickerWeb.HomeLive do
   defp generate_face_sticker_from_upload(%{assigns: %{current_user: nil}} = socket, entry) do
     discard_uploaded_entry(socket, entry)
 
-    {:noreply,
-     put_flash(socket, :error, "Please sign in to use your 3 free sticker credits.")}
+    {:noreply, put_flash(socket, :error, "Please sign in to use your 3 free sticker credits.")}
   end
 
   defp generate_face_sticker_from_upload(socket, entry) do
     user_id = socket.assigns.local_user_id || socket.assigns.current_user.public_id
     prompt = face_sticker_prompt(socket.assigns.form)
 
-    with :ok <- check_daily_limit(user_id, 1),
+    with :ok <- Predictions.check_generation_limits(user_id, 1),
+         true <- Accounts.has_credits?(socket.assigns.current_user, 1),
+         {:ok, image_uri} <- uploaded_entry_data_uri(socket, entry),
          {:ok, current_user} <- Accounts.spend_credit(socket.assigns.current_user),
          {:ok, prediction} <-
-             Predictions.create_prediction(%{
-               prompt: prompt,
-               local_user_id: user_id,
-               model: "face-to-sticker",
-               batch_id: batch_id()
-             }) do
-      image_uri = uploaded_entry_data_uri(socket, entry)
+           Predictions.create_prediction(%{
+             prompt: prompt,
+             local_user_id: user_id,
+             model: "face-to-sticker",
+             batch_id: batch_id()
+           }) do
       send(self(), {:kick_off_face_to_sticker, prediction, image_uri})
 
       {:noreply,
@@ -262,19 +278,46 @@ defmodule StickerWeb.HomeLive do
        |> put_flash(:info, "Face sticker generation started.")}
     else
       {:error, :insufficient_credits} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "You have used your free credits. Visit Pricing to buy more credits."
+         )}
+
+      false ->
         discard_uploaded_entry(socket, entry)
 
         {:noreply,
-         put_flash(socket, :error, "You have used your free credits. Visit Pricing to buy more credits.")}
+         put_flash(
+           socket,
+           :error,
+           "You have used your free credits. Visit Pricing to buy more credits."
+         )}
 
       {:error, :rate_limited} ->
         discard_uploaded_entry(socket, entry)
 
-        {:noreply, put_flash(socket, :error, "Daily generation limit reached. Try again tomorrow.")}
+        {:noreply,
+         put_flash(socket, :error, "Daily generation limit reached. Try again tomorrow.")}
+
+      {:error, :active_limited} ->
+        discard_uploaded_entry(socket, entry)
+
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Too many stickers are already processing. Wait for a few to finish."
+         )}
+
+      {:error, :invalid_image} ->
+        discard_uploaded_entry(socket, entry)
+
+        {:noreply, put_flash(socket, :error, "Upload a valid JPG or PNG portrait under 8 MB.")}
 
       {:error, _changeset} ->
         current_user = Accounts.refund_credit(socket.assigns.current_user)
-        discard_uploaded_entry(socket, entry)
 
         {:noreply,
          socket
@@ -285,13 +328,12 @@ defmodule StickerWeb.HomeLive do
 
   defp uploaded_entry_data_uri(socket, entry) do
     consume_uploaded_entry(socket, entry, fn %{path: path} ->
-      uri =
-        path
-        |> File.read!()
-        |> Base.encode64()
-        |> Sticker.Utils.base64_to_data_uri(entry.client_type)
-
-      {:ok, uri}
+      with {:ok, bytes} <- File.read(path),
+           {:ok, uri} <- Sticker.ImageUpload.data_uri(bytes, entry.client_type) do
+        {:ok, uri}
+      else
+        _ -> {:postpone, {:error, :invalid_image}}
+      end
     end)
   end
 
@@ -310,19 +352,4 @@ defmodule StickerWeb.HomeLive do
 
   def error_to_string(:too_large), do: "Too large"
   def error_to_string(:not_accepted), do: "Sorry, we only accept #{@accepted}"
-
-  defp check_daily_limit(user_id, amount) when is_binary(user_id) do
-    since =
-      DateTime.utc_now()
-      |> DateTime.add(-24 * 60 * 60, :second)
-      |> DateTime.truncate(:second)
-
-    if Predictions.count_user_predictions_since(user_id, since) + amount <= @daily_generation_limit do
-      :ok
-    else
-      {:error, :rate_limited}
-    end
-  end
-
-  defp check_daily_limit(_user_id, _amount), do: {:error, :rate_limited}
 end

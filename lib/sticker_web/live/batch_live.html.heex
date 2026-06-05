@@ -11,7 +11,9 @@
     <div :if={is_nil(@batch)} class="saas-empty-state">
       <h2>Batch not found</h2>
       <p>This batch is unavailable or does not belong to the current account.</p>
-      <.link class="saas-button saas-button-primary" navigate={~p"/stickers"}>Back to History</.link>
+      <.link class="saas-button saas-button-primary" navigate={~p"/stickers"}>
+        Back to History
+      </.link>
     </div>
 
     <div :if={@batch} class="saas-batch-detail">
@@ -37,16 +39,49 @@
       <div class="saas-history-bulk">
         <button phx-click="retry-failed">Retry Failed</button>
         <button phx-click="cancel-processing">Cancel Processing</button>
+        <button
+          phx-click="download-format"
+          phx-value-format="original"
+          class={if @download_format == "original", do: "active", else: nil}
+        >
+          Original
+        </button>
+        <button
+          phx-click="download-format"
+          phx-value-format="png"
+          class={if @download_format == "png", do: "active", else: nil}
+        >
+          PNG
+        </button>
+        <button
+          phx-click="download-format"
+          phx-value-format="webp"
+          class={if @download_format == "webp", do: "active", else: nil}
+        >
+          WebP
+        </button>
+        <.link
+          :if={@download_ids != ""}
+          href={~p"/stickers/download?ids=#{@download_ids}&format=#{@download_format}"}
+        >
+          Download Batch ZIP
+        </.link>
         <.link href={~p"/stickers"}>Back to History</.link>
       </div>
 
       <ul id="batch-predictions" phx-update="stream" role="list" class="saas-generated-grid">
         <li :for={{id, prediction} <- @streams.predictions} id={id}>
           <div class="saas-history-item">
-            <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
+            <StickerWeb.Components.sticker
+              id={id}
+              prediction={prediction}
+              class="saas-generated-item"
+            />
             <div class="saas-history-actions">
               <span>Status: <%= prediction.status || :starting %></span>
-              <span :if={prediction.status == :failed}>Reason: <%= failed_reason(prediction) %></span>
+              <span :if={prediction.status == :failed}>
+                Reason: <%= failed_reason(prediction) %>
+              </span>
               <.link :if={prediction.sticker_output} href={~p"/sticker/#{prediction.id}/download"}>
                 Download
               </.link>

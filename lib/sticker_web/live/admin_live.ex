@@ -7,15 +7,20 @@ defmodule StickerWeb.AdminLive do
     page = 0
     per_page = 50
     max_pages = Predictions.number_predictions() / per_page
-    autoplay = Sticker.Autoplay.get_state()
+    autoplay = autoplay_state()
     total_unmoderated_predictions = Predictions.number_unmoderated_predictions()
     total_moderated_predictions = Predictions.number_moderated_predictions()
+    failed_predictions = Predictions.number_failed_predictions()
+    active_predictions = Predictions.number_active_predictions()
 
     {:ok,
      socket
      |> assign(autoplay: autoplay)
      |> assign(total_unmoderated_predictions: total_unmoderated_predictions)
      |> assign(total_moderated_predictions: total_moderated_predictions)
+     |> assign(failed_predictions: failed_predictions)
+     |> assign(active_predictions: active_predictions)
+     |> assign(recent_failed_predictions: Predictions.list_recent_failed_predictions())
      |> assign(show_all: false)
      |> assign(local_user_id: session["local_user_id"])
      |> assign(page: page)
@@ -142,5 +147,9 @@ defmodule StickerWeb.AdminLive do
 
   def handle_info({:new_prediction, prediction}, socket) do
     {:noreply, socket |> stream_insert(:latest_predictions, prediction, at: 0)}
+  end
+
+  defp autoplay_state do
+    if Process.whereis(Sticker.Autoplay), do: Sticker.Autoplay.get_state(), else: false
   end
 end

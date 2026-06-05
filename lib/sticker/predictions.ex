@@ -13,6 +13,8 @@ defmodule Sticker.Predictions do
   require Logger
 
   @history_page_size 24
+  @daily_generation_limit 80
+  @active_generation_limit 8
 
   @doc """
   Moderates a prediction.
@@ -282,6 +284,26 @@ defmodule Sticker.Predictions do
     |> Repo.aggregate(:count)
   end
 
+  def number_failed_predictions do
+    Prediction
+    |> where([p], p.status == :failed)
+    |> Repo.aggregate(:count)
+  end
+
+  def number_active_predictions do
+    Prediction
+    |> where([p], p.status in [:starting, :processing, :moderation_succeeded])
+    |> Repo.aggregate(:count)
+  end
+
+  def list_recent_failed_predictions(limit \\ 25) do
+    Prediction
+    |> where([p], p.status == :failed)
+    |> order_by([p], desc: p.updated_at)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
   @doc """
   Returns the list of predictions for a user.
   """
@@ -425,6 +447,38 @@ defmodule Sticker.Predictions do
     |> Repo.aggregate(:count)
   end
 
+  def count_user_active_predictions(user_id) do
+    Prediction
+    |> where(
+      [p],
+      p.local_user_id == ^user_id and p.status in [:starting, :processing, :moderation_succeeded]
+    )
+    |> Repo.aggregate(:count)
+  end
+
+  def check_generation_limits(user_id, amount, now \\ DateTime.utc_now())
+
+  def check_generation_limits(user_id, amount, now)
+      when is_binary(user_id) and is_integer(amount) and amount > 0 do
+    since =
+      now
+      |> DateTime.add(-24 * 60 * 60, :second)
+      |> DateTime.truncate(:second)
+
+    cond do
+      count_user_active_predictions(user_id) + amount > @active_generation_limit ->
+        {:error, :active_limited}
+
+      count_user_predictions_since(user_id, since) + amount > @daily_generation_limit ->
+        {:error, :rate_limited}
+
+      true ->
+        :ok
+    end
+  end
+
+  def check_generation_limits(_user_id, _amount, _now), do: {:error, :rate_limited}
+
   def retry_user_prediction(id, user_id) do
     prediction = get_user_prediction!(id, user_id)
 
@@ -492,7 +546,9 @@ defmodule Sticker.Predictions do
         uuid: nil,
         output_format: nil,
         output_content_type: nil,
-        credit_refunded: false
+        credit_refunded: false,
+        failure_reason: nil,
+        failure_stage: nil
       })
     else
       {:error, :not_retryable}
@@ -556,7 +612,10 @@ defmodule Sticker.Predictions do
     should_refund? = not prediction.credit_refunded
 
     Multi.new()
-    |> Multi.update(:prediction, Prediction.changeset(prediction, failed_attrs(prediction, stage, reason)))
+    |> Multi.update(
+      :prediction,
+      Prediction.changeset(prediction, failed_attrs(prediction, stage, reason))
+    )
     |> Multi.run(:refund, fn _repo, %{prediction: prediction} ->
       if should_refund? do
         case Accounts.refund_credit_by_public_id(prediction.local_user_id) do

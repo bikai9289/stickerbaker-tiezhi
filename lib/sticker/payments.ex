@@ -8,8 +8,20 @@ defmodule Sticker.Payments do
 
   def plans do
     [
-      %{id: "starter", name: "Starter", price: "$4.99", credits: 50, env: "STRIPE_STARTER_PRICE_ID"},
-      %{id: "creator", name: "Creator", price: "$9.99", credits: 150, env: "STRIPE_CREATOR_PRICE_ID"}
+      %{
+        id: "starter",
+        name: "Starter",
+        price: "$4.99",
+        credits: 50,
+        env: "STRIPE_STARTER_PRICE_ID"
+      },
+      %{
+        id: "creator",
+        name: "Creator",
+        price: "$9.99",
+        credits: 150,
+        env: "STRIPE_CREATOR_PRICE_ID"
+      }
     ]
   end
 
@@ -36,28 +48,31 @@ defmodule Sticker.Payments do
   end
 
   def create_checkout_session(plan, user, success_url, cancel_url) do
-    body = [
-      {"mode", "payment"},
-      {"line_items[0][price]", fetch_price_id!(plan)},
-      {"line_items[0][quantity]", "1"},
-      {"success_url", success_url},
-      {"cancel_url", cancel_url},
-      {"customer_email", user.email},
-      {"metadata[user_id]", Integer.to_string(user.id)},
-      {"metadata[credits]", Integer.to_string(plan.credits)},
-      {"metadata[plan]", plan.id},
-      {"client_reference_id", Integer.to_string(user.id)}
-    ]
+    with {:ok, price_id} <- fetch_price_id(plan),
+         {:ok, headers} <- headers() do
+      body = [
+        {"mode", "payment"},
+        {"line_items[0][price]", price_id},
+        {"line_items[0][quantity]", "1"},
+        {"success_url", success_url},
+        {"cancel_url", cancel_url},
+        {"customer_email", user.email},
+        {"metadata[user_id]", Integer.to_string(user.id)},
+        {"metadata[credits]", Integer.to_string(plan.credits)},
+        {"metadata[plan]", plan.id},
+        {"client_reference_id", Integer.to_string(user.id)}
+      ]
 
-    case Req.post(url: "#{@stripe_api}/checkout/sessions", form: body, headers: headers()) do
-      {:ok, %{status: status, body: %{"url" => url}}} when status in 200..299 ->
-        {:ok, url}
+      case Req.post(url: "#{@stripe_api}/checkout/sessions", form: body, headers: headers) do
+        {:ok, %{status: status, body: %{"url" => url}}} when status in 200..299 ->
+          {:ok, url}
 
-      {:ok, %{status: status, body: body}} ->
-        {:error, {:stripe_error, status, body}}
+        {:ok, %{status: status, body: body}} ->
+          {:error, {:stripe_error, status, body}}
 
-      {:error, reason} ->
-        {:error, reason}
+        {:error, reason} ->
+          {:error, reason}
+      end
     end
   end
 
@@ -66,7 +81,8 @@ defmodule Sticker.Payments do
 
     with %{"t" => timestamp, "v1" => expected} <- parse_signature(signature),
          signed_payload = "#{timestamp}.#{payload}",
-         digest <- :crypto.mac(:hmac, :sha256, secret, signed_payload) |> Base.encode16(case: :lower),
+         digest <-
+           :crypto.mac(:hmac, :sha256, secret, signed_payload) |> Base.encode16(case: :lower),
          true <- Plug.Crypto.secure_compare(digest, expected) do
       Jason.decode(payload)
     else
@@ -76,10 +92,13 @@ defmodule Sticker.Payments do
 
   def verify_webhook(_payload, _signature), do: {:error, :missing_signature}
 
-  def fulfill_checkout(%{
-        "id" => session_id,
-        "metadata" => %{"user_id" => user_id, "credits" => credits} = metadata
-      }, stripe_event_id) do
+  def fulfill_checkout(
+        %{
+          "id" => session_id,
+          "metadata" => %{"user_id" => user_id, "credits" => credits} = metadata
+        },
+        stripe_event_id
+      ) do
     with {user_id, ""} <- Integer.parse(user_id),
          {credits, ""} <- Integer.parse(credits) do
       Multi.new()
@@ -109,13 +128,25 @@ defmodule Sticker.Payments do
 
   def fulfill_checkout(_session, _stripe_event_id), do: {:error, :invalid_checkout_metadata}
 
-  defp fetch_price_id!(plan), do: System.fetch_env!(plan.env)
+  defp fetch_price_id(plan) do
+    case System.fetch_env(plan.env) do
+      {:ok, price_id} when price_id != "" -> {:ok, price_id}
+      _ -> {:error, :checkout_not_configured}
+    end
+  end
 
   defp headers do
-    [
-      {"authorization", "Bearer #{System.fetch_env!("STRIPE_SECRET_KEY")}"},
-      {"content-type", "application/x-www-form-urlencoded"}
-    ]
+    case System.fetch_env("STRIPE_SECRET_KEY") do
+      {:ok, secret_key} when secret_key != "" ->
+        {:ok,
+         [
+           {"authorization", "Bearer #{secret_key}"},
+           {"content-type", "application/x-www-form-urlencoded"}
+         ]}
+
+      _ ->
+        {:error, :checkout_not_configured}
+    end
   end
 
   defp parse_signature(signature) do

@@ -25,6 +25,9 @@ config :sticker, Sticker.Mailer, adapter: Swoosh.Adapters.Test
 
 config :sticker, start_background_workers: false
 
+System.put_env("ADMIN_USERNAME", System.get_env("ADMIN_USERNAME") || "admin")
+System.put_env("ADMIN_PASSWORD", System.get_env("ADMIN_PASSWORD") || "admin")
+
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 

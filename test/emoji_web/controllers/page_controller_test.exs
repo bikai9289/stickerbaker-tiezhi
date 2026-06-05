@@ -1,6 +1,9 @@
 defmodule StickerWeb.PageControllerTest do
   use StickerWeb.ConnCase
 
+  import Sticker.AccountsFixtures
+  import Sticker.PredictionsFixtures
+
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")
     assert html_response(conn, 200) =~ "AI Sticker Maker"
@@ -50,4 +53,81 @@ defmodule StickerWeb.PageControllerTest do
 
     assert redirected_to(conn, 302) == ~p"/stickers"
   end
+
+  test "checkout redirects with a friendly message when Stripe is not configured", %{conn: conn} do
+    user = user_fixture()
+    stripe_secret_key = System.get_env("STRIPE_SECRET_KEY")
+    starter_price_id = System.get_env("STRIPE_STARTER_PRICE_ID")
+
+    on_exit(fn ->
+      restore_env("STRIPE_SECRET_KEY", stripe_secret_key)
+      restore_env("STRIPE_STARTER_PRICE_ID", starter_price_id)
+    end)
+
+    System.delete_env("STRIPE_SECRET_KEY")
+    System.delete_env("STRIPE_STARTER_PRICE_ID")
+
+    conn =
+      conn
+      |> Plug.Test.init_test_session(%{user_id: user.id, local_user_id: user.public_id})
+      |> post(~p"/checkout", %{"plan" => "starter"})
+
+    assert redirected_to(conn, 302) == ~p"/pricing"
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Checkout is not ready"
+  end
+
+  test "batch detail renders retry, cancel, and ZIP download controls", %{conn: conn} do
+    user = user_fixture()
+
+    prediction_fixture(%{
+      local_user_id: user.public_id,
+      batch_id: "batch-live",
+      status: :succeeded,
+      sticker_output: "https://example.com/sticker.webp",
+      output_format: "webp"
+    })
+
+    conn =
+      conn
+      |> Plug.Test.init_test_session(%{user_id: user.id, local_user_id: user.public_id})
+
+    conn = get(conn, ~p"/stickers/batches/batch-live")
+    html = html_response(conn, 200)
+
+    assert html =~ "Retry Failed"
+    assert html =~ "Cancel Processing"
+    assert html =~ "Download Batch ZIP"
+    assert html =~ "format=original"
+  end
+
+  test "admin page renders failed generation diagnostics", %{conn: conn} do
+    user = user_fixture()
+
+    prediction_fixture(%{
+      local_user_id: user.public_id,
+      status: :failed,
+      failure_stage: "openai",
+      failure_reason: "timeout"
+    })
+
+    conn =
+      conn
+      |> Plug.Test.init_test_session(%{})
+      |> Plug.Conn.put_req_header("authorization", basic_auth())
+
+    {:ok, _view, html} = live(conn, ~p"/admin")
+
+    assert html =~ "Recent Failure"
+    assert html =~ "openai"
+    assert html =~ "timeout"
+  end
+
+  defp basic_auth do
+    username = System.fetch_env!("ADMIN_USERNAME")
+    password = System.fetch_env!("ADMIN_PASSWORD")
+    "Basic " <> Base.encode64("#{username}:#{password}")
+  end
+
+  defp restore_env(key, nil), do: System.delete_env(key)
+  defp restore_env(key, value), do: System.put_env(key, value)
 end
