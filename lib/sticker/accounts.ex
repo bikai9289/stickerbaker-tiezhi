@@ -32,6 +32,40 @@ defmodule Sticker.Accounts do
     |> Repo.insert()
   end
 
+  def confirm_user(token) when is_binary(token) do
+    case Repo.get_by(User, confirmation_token: token) do
+      %User{} = user ->
+        user
+        |> User.confirm_changeset()
+        |> Repo.update()
+
+      nil ->
+        {:error, :not_found}
+    end
+  end
+
+  def confirm_user(_token), do: {:error, :not_found}
+
+  def send_confirmation_email(%User{confirmation_token: token} = user, url_fun)
+      when is_binary(token) and is_function(url_fun, 1) do
+    email =
+      Swoosh.Email.new()
+      |> Swoosh.Email.to(user.email)
+      |> Swoosh.Email.from({"AI Sticker Maker", support_email()})
+      |> Swoosh.Email.subject("Confirm your AI Sticker Maker account")
+      |> Swoosh.Email.text_body("""
+      Confirm your AI Sticker Maker account to unlock your 3 free sticker credits.
+
+      #{url_fun.(token)}
+
+      If you did not create this account, you can ignore this email.
+      """)
+
+    Sticker.Mailer.deliver(email)
+  end
+
+  def send_confirmation_email(_user, _url_fun), do: {:error, :missing_confirmation_token}
+
   def authenticate_user(email, password) when is_binary(email) and is_binary(password) do
     user = get_user_by_email(email)
 
@@ -121,4 +155,18 @@ defmodule Sticker.Accounts do
   end
 
   def add_credits(_user_id, _amount), do: {:error, :invalid_amount}
+
+  def count_signups_since_ip(ip, since) when is_binary(ip) do
+    from(u in User, where: u.signup_ip == ^ip and u.inserted_at >= ^since)
+    |> Repo.aggregate(:count)
+  end
+
+  def count_signups_since_ip(_ip, _since), do: 0
+
+  def confirmed?(%User{confirmed_at: %DateTime{}}), do: true
+  def confirmed?(_user), do: false
+
+  defp support_email do
+    System.get_env("SUPPORT_EMAIL", "support@ai-sticker-maker.com")
+  end
 end

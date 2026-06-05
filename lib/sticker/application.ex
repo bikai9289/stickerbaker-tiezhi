@@ -7,7 +7,9 @@ defmodule Sticker.Application do
 
   @impl true
   def start(_type, _args) do
-    Logger.add_backend(Sentry.LoggerBackend)
+    if sentry_configured?() do
+      Logger.add_backend(Sentry.LoggerBackend)
+    end
 
     children = [
       # Start the Telemetry supervisor
@@ -16,6 +18,7 @@ defmodule Sticker.Application do
       Sticker.Repo,
       # Start the PubSub system
       {Phoenix.PubSub, name: Sticker.PubSub},
+      StickerWeb.RateLimiter,
       # Start Finch
       {Finch, name: Sticker.Finch},
       # Start the Endpoint (http/https)
@@ -48,5 +51,11 @@ defmodule Sticker.Application do
   def config_change(changed, _new, removed) do
     StickerWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  defp sentry_configured? do
+    :sentry
+    |> Application.get_env(:dsn)
+    |> is_binary()
   end
 end

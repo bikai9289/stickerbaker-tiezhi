@@ -52,6 +52,7 @@ defmodule StickerWeb.Router do
 
     get "/users/register", UserRegistrationController, :new
     post "/users/register", UserRegistrationController, :create
+    get "/users/confirm/:token", UserRegistrationController, :confirm
     get "/users/log-in", UserSessionController, :new
     post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete

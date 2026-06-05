@@ -7,7 +7,12 @@ defmodule StickerWeb.HistoryLive do
   def mount(_params, session, socket) do
     local_user_id = session["local_user_id"]
     filters = %{status: "all", query: "", batch_id: "all"}
-    page = if local_user_id, do: Predictions.paginate_user_predictions(local_user_id, filters), else: empty_page()
+
+    page =
+      if local_user_id,
+        do: Predictions.paginate_user_predictions(local_user_id, filters),
+        else: empty_page()
+
     batches = Predictions.list_user_batches(local_user_id)
 
     {:ok,
@@ -15,7 +20,8 @@ defmodule StickerWeb.HistoryLive do
      |> SEO.assign(
        PageSEO.noindex("/stickers",
          title: "Sticker History",
-         description: "View and manage your generated AI sticker history, saved stickers, and downloads."
+         description:
+           "View and manage your generated AI sticker history, saved stickers, and downloads."
        )
      )
      |> assign(local_user_id: local_user_id)
@@ -32,7 +38,13 @@ defmodule StickerWeb.HistoryLive do
   end
 
   def handle_event("assign-user-id", %{"userId" => user_id}, socket) do
-    page = Predictions.paginate_user_predictions(user_id, socket.assigns.filters, 0, socket.assigns.per_page)
+    page =
+      Predictions.paginate_user_predictions(
+        user_id,
+        socket.assigns.filters,
+        0,
+        socket.assigns.per_page
+      )
 
     {:noreply,
      socket
@@ -48,7 +60,14 @@ defmodule StickerWeb.HistoryLive do
       query: Map.get(params, "query", socket.assigns.filters.query),
       batch_id: Map.get(params, "batch_id", socket.assigns.filters.batch_id)
     }
-    page = Predictions.paginate_user_predictions(socket.assigns.local_user_id, filters, 0, socket.assigns.per_page)
+
+    page =
+      Predictions.paginate_user_predictions(
+        socket.assigns.local_user_id,
+        filters,
+        0,
+        socket.assigns.per_page
+      )
 
     {:noreply,
      socket
@@ -98,7 +117,14 @@ defmodule StickerWeb.HistoryLive do
   def handle_event("delete-selected", _params, socket) do
     ids = MapSet.to_list(socket.assigns.selected_ids)
     {count, _} = Predictions.delete_user_predictions(ids, socket.assigns.local_user_id)
-    page = Predictions.paginate_user_predictions(socket.assigns.local_user_id, socket.assigns.filters, 0, socket.assigns.per_page)
+
+    page =
+      Predictions.paginate_user_predictions(
+        socket.assigns.local_user_id,
+        socket.assigns.filters,
+        0,
+        socket.assigns.per_page
+      )
 
     {:noreply,
      socket
@@ -110,9 +136,11 @@ defmodule StickerWeb.HistoryLive do
   end
 
   def handle_event("retry", %{"id" => id}, socket) do
-    with {:ok, _prediction} <- Predictions.retry_user_prediction(id, socket.assigns.local_user_id),
+    with {:ok, _prediction} <-
+           Predictions.retry_user_prediction(id, socket.assigns.local_user_id),
          {:ok, current_user} <- Sticker.Accounts.spend_credit(socket.assigns.current_user),
-         {:ok, prediction} <- Predictions.restart_user_prediction(id, socket.assigns.local_user_id) do
+         {:ok, prediction} <-
+           Predictions.restart_user_prediction(id, socket.assigns.local_user_id) do
       send(self(), {:retry_sticker, prediction})
 
       {:noreply,
@@ -130,7 +158,12 @@ defmodule StickerWeb.HistoryLive do
         {:noreply, put_flash(socket, :error, "Sign in before retrying this sticker.")}
 
       {:error, :not_retryable} ->
-        {:noreply, put_flash(socket, :error, "Upload-based stickers must be regenerated from a new upload.")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "This older upload sticker has no saved source image. Upload it again."
+         )}
 
       {:error, _reason} ->
         current_user =
@@ -160,7 +193,8 @@ defmodule StickerWeb.HistoryLive do
          |> put_flash(:info, "Generation canceled and 1 credit was refunded.")}
 
       {:error, :not_cancelable} ->
-        {:noreply, put_flash(socket, :error, "Only queued or processing stickers can be canceled.")}
+        {:noreply,
+         put_flash(socket, :error, "Only queued or processing stickers can be canceled.")}
     end
   end
 
@@ -181,7 +215,7 @@ defmodule StickerWeb.HistoryLive do
   end
 
   def handle_info({:retry_sticker, prediction}, socket) do
-    Predictions.moderate(prediction.prompt, prediction.local_user_id, prediction.id)
+    StickerWeb.PredictionRetry.start(prediction)
     {:noreply, socket}
   end
 

@@ -85,7 +85,7 @@ defmodule StickerWeb.BatchLive do
   end
 
   def handle_info({:retry_sticker, prediction}, socket) do
-    Predictions.moderate(prediction.prompt, prediction.local_user_id, prediction.id)
+    StickerWeb.PredictionRetry.start(prediction)
     {:noreply, socket}
   end
 

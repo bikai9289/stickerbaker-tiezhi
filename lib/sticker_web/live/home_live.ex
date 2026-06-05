@@ -260,16 +260,20 @@ defmodule StickerWeb.HomeLive do
 
     with :ok <- Predictions.check_generation_limits(user_id, 1),
          true <- Accounts.has_credits?(socket.assigns.current_user, 1),
-         {:ok, image_uri} <- uploaded_entry_data_uri(socket, entry),
+         {:ok, upload} <- uploaded_entry_data(socket, entry),
+         :ok <- Sticker.ImageSafety.review(upload.data_uri),
+         {:ok, source_image_url} <- save_source_image(upload),
          {:ok, current_user} <- Accounts.spend_credit(socket.assigns.current_user),
          {:ok, prediction} <-
            Predictions.create_prediction(%{
              prompt: prompt,
              local_user_id: user_id,
              model: "face-to-sticker",
+             source_image_url: source_image_url,
+             source_image_content_type: upload.content_type,
              batch_id: batch_id()
            }) do
-      send(self(), {:kick_off_face_to_sticker, prediction, image_uri})
+      send(self(), {:kick_off_face_to_sticker, prediction, upload.data_uri})
 
       {:noreply,
        socket
@@ -316,6 +320,17 @@ defmodule StickerWeb.HomeLive do
 
         {:noreply, put_flash(socket, :error, "Upload a valid JPG or PNG portrait under 8 MB.")}
 
+      {:error, :unsafe_image} ->
+        discard_uploaded_entry(socket, entry)
+
+        {:noreply,
+         put_flash(socket, :error, "This upload cannot be used for sticker generation.")}
+
+      {:error, :review_failed} ->
+        discard_uploaded_entry(socket, entry)
+
+        {:noreply, put_flash(socket, :error, "Image safety review failed. Try again later.")}
+
       {:error, _changeset} ->
         current_user = Accounts.refund_credit(socket.assigns.current_user)
 
@@ -326,15 +341,26 @@ defmodule StickerWeb.HomeLive do
     end
   end
 
-  defp uploaded_entry_data_uri(socket, entry) do
+  defp uploaded_entry_data(socket, entry) do
     consume_uploaded_entry(socket, entry, fn %{path: path} ->
       with {:ok, bytes} <- File.read(path),
            {:ok, uri} <- Sticker.ImageUpload.data_uri(bytes, entry.client_type) do
-        {:ok, uri}
+        {:ok, %{data_uri: uri, bytes: bytes, content_type: entry.client_type}}
       else
         _ -> {:postpone, {:error, :invalid_image}}
       end
     end)
+  end
+
+  defp save_source_image(%{bytes: bytes, content_type: content_type}) do
+    extension = if content_type == "image/png", do: "png", else: "jpg"
+
+    file_name =
+      "source-#{Base.url_encode64(:crypto.strong_rand_bytes(12), padding: false)}.#{extension}"
+
+    {:ok, Sticker.Utils.save_r2_upload(file_name, bytes, content_type)}
+  rescue
+    reason -> {:error, reason}
   end
 
   defp discard_uploaded_entry(socket, entry) do

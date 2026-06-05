@@ -192,6 +192,20 @@ defmodule Sticker.PredictionsTest do
       refute Sticker.Accounts.has_credits?(nil, 1)
     end
 
+    test "new accounts unlock free credits only after email confirmation" do
+      user = user_fixture(%{confirmed: false})
+
+      assert user.credits == 0
+      assert is_binary(user.confirmation_token)
+      refute Sticker.Accounts.confirmed?(user)
+
+      {:ok, user} = Sticker.Accounts.confirm_user(user.confirmation_token)
+
+      assert user.credits == 3
+      assert Sticker.Accounts.confirmed?(user)
+      assert user.confirmation_token == nil
+    end
+
     test "check_generation_limits/3 rejects too many active predictions" do
       user = user_fixture()
 
@@ -317,7 +331,7 @@ defmodule Sticker.PredictionsTest do
       assert prediction.failure_reason == nil
     end
 
-    test "restart_user_prediction/2 rejects upload based stickers" do
+    test "restart_user_prediction/2 rejects older upload based stickers without stored source" do
       user = user_fixture()
 
       prediction =
@@ -329,6 +343,25 @@ defmodule Sticker.PredictionsTest do
 
       assert {:error, :not_retryable} =
                Predictions.restart_user_prediction(prediction.id, user.public_id)
+    end
+
+    test "restart_user_prediction/2 accepts upload based stickers with stored source" do
+      user = user_fixture()
+
+      prediction =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          status: :failed,
+          model: "face-to-sticker",
+          source_image_url: "https://example.com/source.png",
+          source_image_content_type: "image/png"
+        })
+
+      assert {:ok, prediction} =
+               Predictions.restart_user_prediction(prediction.id, user.public_id)
+
+      assert prediction.status == :starting
+      assert prediction.source_image_url == "https://example.com/source.png"
     end
   end
 end

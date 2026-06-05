@@ -14,24 +14,44 @@ defmodule StickerWeb.PageControllerTest do
     body = html_response(conn, 200)
     assert body =~ "Face to Sticker AI Generator"
     assert body =~ "What makes a good face to sticker upload?"
+    assert body =~ "Face sticker prompt examples"
+    assert body =~ "application/ld+json"
+    assert body =~ "FAQPage"
+    assert body =~ "HowTo"
+    assert body =~ "BreadcrumbList"
 
     conn = get(build_conn(), ~p"/custom-sticker-maker")
-    assert html_response(conn, 200) =~ "How do I write a custom sticker prompt?"
+    body = html_response(conn, 200)
+    assert body =~ "How do I write a custom sticker prompt?"
+    assert body =~ "Custom sticker prompt templates"
+    assert body =~ "/sticker-maker-online"
 
     conn = get(build_conn(), ~p"/cute-sticker-ideas")
-    assert html_response(conn, 200) =~ "What are easy cute sticker ideas?"
+    body = html_response(conn, 200)
+    assert body =~ "What are easy cute sticker ideas?"
+    assert body =~ "Cute sticker prompt examples"
+    assert body =~ "Build a cute sticker set"
 
     conn = get(build_conn(), ~p"/sticker-maker-online")
-    assert html_response(conn, 200) =~ "Sticker Maker Online"
+    body = html_response(conn, 200)
+    assert body =~ "Sticker Maker Online"
+    assert body =~ "Online sticker maker workflow"
+    assert body =~ "What makes a good online sticker?"
 
     conn = get(build_conn(), ~p"/ai-avatar-sticker")
-    assert html_response(conn, 200) =~ "AI Avatar Sticker Generator"
+    body = html_response(conn, 200)
+    assert body =~ "AI Avatar Sticker Generator"
+    assert body =~ "Avatar sticker prompt examples"
 
     conn = get(build_conn(), ~p"/kawaii-sticker-maker")
-    assert html_response(conn, 200) =~ "Kawaii Sticker Maker"
+    body = html_response(conn, 200)
+    assert body =~ "Kawaii Sticker Maker"
+    assert body =~ "Kawaii sticker prompt formula"
 
     conn = get(build_conn(), ~p"/transparent-sticker-maker")
-    assert html_response(conn, 200) =~ "Transparent Sticker Maker"
+    body = html_response(conn, 200)
+    assert body =~ "Transparent Sticker Maker"
+    assert body =~ "PNG, WebP, and transparent background notes"
   end
 
   test "sitemap includes public SEO landing pages", %{conn: conn} do
@@ -74,6 +94,41 @@ defmodule StickerWeb.PageControllerTest do
 
     assert redirected_to(conn, 302) == ~p"/pricing"
     assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Checkout is not ready"
+  end
+
+  test "registration requires captcha and email confirmation before free credits", %{conn: conn} do
+    conn = get(conn, ~p"/users/register")
+    body = html_response(conn, 200)
+    assert body =~ "Security check"
+
+    captcha_answer = get_session(conn, :captcha_answer)
+
+    conn =
+      post(conn, ~p"/users/register", %{
+        "captcha_answer" => captcha_answer,
+        "user" => %{"email" => "new-user@example.com", "password" => "password123"}
+      })
+
+    assert redirected_to(conn, 302) == ~p"/"
+    user = Sticker.Accounts.get_user_by_email("new-user@example.com")
+    assert user.credits == 0
+    assert is_binary(user.confirmation_token)
+
+    {:ok, user} = Sticker.Accounts.confirm_user(user.confirmation_token)
+    assert user.credits == 3
+  end
+
+  test "registration rejects wrong captcha", %{conn: conn} do
+    conn =
+      conn
+      |> Plug.Test.init_test_session(%{captcha_answer: "12"})
+      |> post(~p"/users/register", %{
+        "captcha_answer" => "13",
+        "user" => %{"email" => "wrong-captcha@example.com", "password" => "password123"}
+      })
+
+    assert html_response(conn, 200) =~ "Captcha answer is incorrect"
+    assert Sticker.Accounts.get_user_by_email("wrong-captcha@example.com") == nil
   end
 
   test "batch detail renders retry, cancel, and ZIP download controls", %{conn: conn} do

@@ -2,38 +2,88 @@ defmodule StickerWeb.UserRegistrationController do
   use StickerWeb, :controller
 
   alias Sticker.Accounts
+  alias StickerWeb.AbuseProtection
   alias StickerWeb.UserSessionController
   alias StickerWeb.SEO, as: PageSEO
 
   def new(conn, _params) do
     changeset = Accounts.change_user_registration()
+    captcha = AbuseProtection.captcha_question()
 
     conn
+    |> put_session(:captcha_answer, captcha.answer)
     |> SEO.assign(
       PageSEO.noindex("/users/register",
         title: "Create Account",
         description: "Create an AI Sticker Maker account to manage credits and sticker history."
       )
     )
-    |> render(:new, changeset: changeset, page_title: "Create Account")
+    |> render(:new,
+      changeset: changeset,
+      captcha_question: captcha.question,
+      page_title: "Create Account"
+    )
   end
 
-  def create(conn, %{"user" => user_params}) do
-    case Accounts.register_user(user_params) do
+  def create(conn, %{"user" => user_params} = params) do
+    with :ok <- AbuseProtection.check_registration(conn),
+         true <- AbuseProtection.captcha_valid?(params, get_session(conn, :captcha_answer)) do
+      user_params = Map.put(user_params, "signup_ip", AbuseProtection.client_ip(conn))
+
+      case Accounts.register_user(user_params) do
+        {:ok, user} ->
+          Accounts.send_confirmation_email(user, fn token ->
+            url(~p"/users/confirm/#{token}")
+          end)
+
+          conn
+          |> delete_session(:captcha_answer)
+          |> put_flash(:info, "Account created. Confirm your email to unlock 3 free credits.")
+          |> UserSessionController.log_in_user(user)
+
+        {:error, changeset} ->
+          render_new(conn, changeset)
+      end
+    else
+      false ->
+        conn
+        |> put_flash(:error, "Captcha answer is incorrect.")
+        |> render_new(Accounts.change_user_registration(user_params))
+
+      %Plug.Conn{} = halted_conn ->
+        halted_conn
+    end
+  end
+
+  def confirm(conn, %{"token" => token}) do
+    case Accounts.confirm_user(token) do
       {:ok, user} ->
         conn
-        |> put_flash(:info, "Account created successfully.")
+        |> put_flash(:info, "Email confirmed. Your 3 free credits are ready.")
         |> UserSessionController.log_in_user(user)
 
-      {:error, changeset} ->
+      {:error, :not_found} ->
         conn
-        |> SEO.assign(
-          PageSEO.noindex("/users/register",
-            title: "Create Account",
-            description: "Create an AI Sticker Maker account to manage credits and sticker history."
-          )
-        )
-        |> render(:new, changeset: changeset, page_title: "Create Account")
+        |> put_flash(:error, "Confirmation link is invalid or already used.")
+        |> redirect(to: ~p"/users/log-in")
     end
+  end
+
+  defp render_new(conn, changeset) do
+    captcha = AbuseProtection.captcha_question()
+
+    conn
+    |> put_session(:captcha_answer, captcha.answer)
+    |> SEO.assign(
+      PageSEO.noindex("/users/register",
+        title: "Create Account",
+        description: "Create an AI Sticker Maker account to manage credits and sticker history."
+      )
+    )
+    |> render(:new,
+      changeset: changeset,
+      captcha_question: captcha.question,
+      page_title: "Create Account"
+    )
   end
 end

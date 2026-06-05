@@ -8,13 +8,17 @@ defmodule Sticker.Accounts.User do
     field :hashed_password, :string, redact: true
     field :public_id, :string
     field :credits, :integer, default: 3
+    field :confirmed_at, :utc_datetime
+    field :confirmation_token, :string
+    field :confirmation_sent_at, :utc_datetime
+    field :signup_ip, :string
 
     timestamps()
   end
 
   def registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:email, :password])
+    |> cast(attrs, [:email, :password, :signup_ip])
     |> validate_required([:email, :password])
     |> update_change(:email, &normalize_email/1)
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must be a valid email")
@@ -23,7 +27,19 @@ defmodule Sticker.Accounts.User do
     |> unique_constraint(:email, name: :users_email_lower_index)
     |> unique_constraint(:public_id)
     |> put_public_id()
+    |> put_change(:credits, 0)
+    |> put_confirmation()
     |> put_password_hash()
+  end
+
+  def confirm_changeset(user) do
+    user
+    |> change(%{
+      confirmed_at: DateTime.utc_now() |> DateTime.truncate(:second),
+      confirmation_token: nil,
+      confirmation_sent_at: nil,
+      credits: max(user.credits, 3)
+    })
   end
 
   defp normalize_email(email) when is_binary(email) do
@@ -40,6 +56,14 @@ defmodule Sticker.Accounts.User do
       _public_id -> changeset
     end
   end
+
+  defp put_confirmation(%Ecto.Changeset{valid?: true} = changeset) do
+    changeset
+    |> put_change(:confirmation_token, random_token(24))
+    |> put_change(:confirmation_sent_at, DateTime.utc_now() |> DateTime.truncate(:second))
+  end
+
+  defp put_confirmation(changeset), do: changeset
 
   defp put_password_hash(%Ecto.Changeset{valid?: true} = changeset) do
     password = get_change(changeset, :password)

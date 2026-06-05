@@ -23,6 +23,18 @@ end
 config :replicate,
   replicate_api_token: System.get_env("REPLICATE_API_TOKEN")
 
+if sentry_dsn = System.get_env("SENTRY_DSN") do
+  config :sentry,
+    dsn: sentry_dsn,
+    environment_name: config_env(),
+    enable_source_code_context: true,
+    root_source_code_path: File.cwd!(),
+    tags: %{env: to_string(config_env())},
+    included_environments: [config_env()]
+else
+  config :sentry, dsn: nil, included_environments: []
+end
+
 if config_env() != :test do
   config :ex_aws,
     access_key_id: System.get_env("AWS_ACCESS_KEY_ID"),
@@ -79,6 +91,20 @@ if config_env() == :prod do
       port: port
     ],
     secret_key_base: secret_key_base
+
+  if smtp_relay = System.get_env("SMTP_RELAY") do
+    config :sticker, Sticker.Mailer,
+      adapter: Swoosh.Adapters.SMTP,
+      relay: smtp_relay,
+      username: System.get_env("SMTP_USERNAME"),
+      password: System.get_env("SMTP_PASSWORD"),
+      port: String.to_integer(System.get_env("SMTP_PORT") || "587"),
+      ssl: System.get_env("SMTP_SSL") in ~w(true 1),
+      tls: :if_available,
+      auth: :if_available,
+      retries: 2,
+      no_mx_lookups: true
+  end
 
   # ## SSL Support
   #

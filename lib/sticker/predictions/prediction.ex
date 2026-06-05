@@ -24,6 +24,8 @@ defmodule Sticker.Predictions.Prediction do
     field :batch_id, :string
     field :failure_reason, :string
     field :failure_stage, :string
+    field :source_image_url, :string
+    field :source_image_content_type, :string
 
     field :status, Ecto.Enum,
       values: [:starting, :processing, :succeeded, :failed, :canceled, :moderation_succeeded]
@@ -60,7 +62,9 @@ defmodule Sticker.Predictions.Prediction do
       :credit_refunded,
       :batch_id,
       :failure_reason,
-      :failure_stage
+      :failure_stage,
+      :source_image_url,
+      :source_image_content_type
     ])
     |> validate_required([:prompt])
   end

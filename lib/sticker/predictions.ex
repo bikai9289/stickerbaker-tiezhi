@@ -494,7 +494,7 @@ defmodule Sticker.Predictions do
       where:
         p.local_user_id == ^user_id and p.batch_id == ^batch_id and
           p.status in [:failed, :canceled] and
-          (is_nil(p.model) or p.model != "face-to-sticker"),
+          (is_nil(p.model) or p.model != "face-to-sticker" or not is_nil(p.source_image_url)),
       order_by: [asc: p.inserted_at]
     )
     |> Repo.all()
@@ -506,7 +506,7 @@ defmodule Sticker.Predictions do
         where:
           p.local_user_id == ^user_id and p.id in ^ids and
             p.status in [:failed, :canceled] and
-            (is_nil(p.model) or p.model != "face-to-sticker"),
+            (is_nil(p.model) or p.model != "face-to-sticker" or not is_nil(p.source_image_url)),
         select: p.id
       )
       |> Repo.all()
@@ -515,7 +515,7 @@ defmodule Sticker.Predictions do
       where:
         p.local_user_id == ^user_id and p.id in ^restartable_ids and
           p.status in [:failed, :canceled] and
-          (is_nil(p.model) or p.model != "face-to-sticker")
+          (is_nil(p.model) or p.model != "face-to-sticker" or not is_nil(p.source_image_url))
     )
     |> Repo.update_all(
       set: [
@@ -742,7 +742,7 @@ defmodule Sticker.Predictions do
     |> add_failure_details(stage, reason)
   end
 
-  defp retryable?(%Prediction{model: "face-to-sticker"}), do: false
+  defp retryable?(%Prediction{model: "face-to-sticker", source_image_url: nil}), do: false
   defp retryable?(%Prediction{status: :failed}), do: true
   defp retryable?(%Prediction{status: :canceled}), do: true
   defp retryable?(_prediction), do: false

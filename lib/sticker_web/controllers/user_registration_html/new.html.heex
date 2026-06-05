@@ -1,7 +1,9 @@
 <section class="saas-auth-page">
   <div class="saas-auth-card">
     <p class="saas-legal-kicker">Start free</p>
+
     <h1>Create your AI Sticker Maker account</h1>
+
     <p class="saas-auth-copy">
       Sign up to keep your sticker history, manage credits, and download generated stickers.
     </p>
@@ -39,12 +41,27 @@
         <.error :for={msg <- f[:password].errors}><%= translate_error(msg) %></.error>
       </label>
 
+      <label>
+        <span>Security check: <%= @captcha_question %></span>
+        <input
+          type="text"
+          name="captcha_answer"
+          inputmode="numeric"
+          autocomplete="off"
+          required
+          class="saas-auth-input"
+        />
+      </label>
+
+      <p class="saas-auth-copy">
+        Confirm your email after signup to unlock the 3 free sticker credits.
+      </p>
+
       <button class="saas-button saas-button-primary saas-auth-submit">Create Account</button>
     </.form>
 
     <p class="saas-auth-switch">
-      Already have an account?
-      <.link navigate={~p"/users/log-in"}>Sign in</.link>
+      Already have an account? <.link navigate={~p"/users/log-in"}>Sign in</.link>
     </p>
   </div>
 </section>

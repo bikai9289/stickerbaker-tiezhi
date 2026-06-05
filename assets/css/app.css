@@ -1018,6 +1018,67 @@ html {
   font-weight: 800;
 }
 
+.saas-seo-block {
+  margin-top: 24px;
+  border: 1px solid var(--saas-line);
+  border-radius: 8px;
+  padding: 26px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(24, 32, 51, 0.05);
+}
+
+.saas-seo-block h2 {
+  margin: 0 0 12px;
+  font-size: 26px;
+}
+
+.saas-seo-block p,
+.saas-seo-block li {
+  color: var(--saas-muted);
+  line-height: 1.7;
+}
+
+.saas-seo-block ul,
+.saas-seo-block ol {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding-left: 22px;
+}
+
+.saas-prompt-list {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+}
+
+.saas-prompt-list code {
+  display: block;
+  border: 1px solid #d8e5ff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #f5f9ff;
+  color: var(--saas-ink);
+  white-space: normal;
+}
+
+.saas-related-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.saas-related-links a {
+  border: 1px solid #ffd2b8;
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #fff6ef;
+  color: #b94705;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .saas-page-links {
   display: grid;
   gap: 12px;

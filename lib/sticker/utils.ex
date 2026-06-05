@@ -14,12 +14,19 @@ defmodule Sticker.Utils do
 
   def save_r2(file_name, image_url, content_type \\ nil) do
     response = Req.get!(image_url)
-    content_type = content_type || header_content_type(response.headers) || content_type_for(file_name)
+
+    content_type =
+      content_type || header_content_type(response.headers) || content_type_for(file_name)
+
     save_r2_binary(file_name, response.body, content_type)
   end
 
   def save_r2_base64(file_name, base64, content_type \\ nil) do
     image_binary = Base.decode64!(base64)
+    save_r2_binary(file_name, image_binary, content_type || content_type_for(file_name))
+  end
+
+  def save_r2_upload(file_name, image_binary, content_type) when is_binary(image_binary) do
     save_r2_binary(file_name, image_binary, content_type || content_type_for(file_name))
   end
 
