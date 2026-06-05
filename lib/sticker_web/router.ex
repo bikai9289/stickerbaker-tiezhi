@@ -44,6 +44,7 @@ defmodule StickerWeb.Router do
     live "/", HomeLive, :index
     live "/account", AccountLive, :index
     live "/sticker/:id", ShowLive, :show
+    get "/sticker/:id/download", StickerDownloadController, :show
     live "/stickers", HistoryLive, :index
     live "/search", SearchLive, :index
 

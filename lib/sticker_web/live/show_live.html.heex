@@ -27,7 +27,7 @@
           </div>
           <div>
             <span>Output</span>
-            <strong>PNG / WebP</strong>
+            <strong><%= if @prediction.model == "face-to-sticker", do: "PNG", else: "WebP / PNG" %></strong>
           </div>
           <div>
             <span>Background</span>
@@ -42,19 +42,17 @@
         <div class="saas-detail-actions">
           <a
             :if={@prediction.sticker_output}
-            href={@prediction.sticker_output}
-            download={"sticker-#{@prediction.id}.png"}
+            href={~p"/sticker/#{@prediction.id}/download"}
             class="saas-button saas-button-primary"
           >
-            Download PNG
+            Download Sticker
           </a>
           <a
             :if={@prediction.sticker_output}
-            href={@prediction.sticker_output}
-            download={"sticker-#{@prediction.id}.webp"}
+            href={~p"/sticker/#{@prediction.id}/download?format=webp"}
             class="saas-button saas-button-ghost"
           >
-            Download WebP
+            Save as WebP name
           </a>
           <.link class="saas-button saas-button-ghost" navigate={~p"/?prompt=#{@prediction.prompt}"}>
             Regenerate
@@ -81,8 +79,8 @@
 
         <div class="saas-buy-note">
           <strong>Transparent background:</strong>
-          Generated sticker artwork is optimized for sticker-style use. If a print vendor requires
-          exact transparent PNG specifications, confirm the exported file before production.
+          Sticker results are optimized for sticker-style use and stored as generated image files.
+          Confirm transparency in the downloaded file before print production.
         </div>
       </div>
     </div>
