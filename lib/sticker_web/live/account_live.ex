@@ -3,10 +3,17 @@ defmodule StickerWeb.AccountLive do
 
   alias Sticker.Payments
   alias Sticker.Predictions
+  alias StickerWeb.SEO
 
   def mount(_params, _session, %{assigns: %{current_user: nil}} = socket) do
     {:ok,
      socket
+     |> SEO.assign(
+       SEO.noindex("/account",
+         title: "AI Sticker Maker Account",
+         description: "Manage AI Sticker Maker credits, saved stickers, generation history, and billing records."
+       )
+     )
      |> put_flash(:error, "Please sign in to view your account.")
      |> push_navigate(to: ~p"/users/log-in")}
   end
@@ -17,6 +24,12 @@ defmodule StickerWeb.AccountLive do
 
     {:ok,
      socket
+     |> SEO.assign(
+       SEO.noindex("/account",
+         title: "AI Sticker Maker Account",
+         description: "Manage AI Sticker Maker credits, saved stickers, generation history, and billing records."
+       )
+     )
      |> assign(:counts, Predictions.user_prediction_counts(user_id))
      |> assign(:payments, Payments.list_user_payment_events(user.id))
      |> stream(:recent_predictions, Predictions.list_user_recent_predictions(user_id, 12))

@@ -1,6 +1,7 @@
 defmodule StickerWeb.ShowLive do
   use StickerWeb, :live_view
   alias Sticker.Predictions
+  alias StickerWeb.SEO
 
   @num_results 21
 
@@ -26,12 +27,18 @@ defmodule StickerWeb.ShowLive do
   end
 
   def handle_params(_params, _url, socket) do
+    prediction = socket.assigns.prediction
+
     {:noreply,
-     SEO.assign(socket, %{
-       title: "I made an AI sticker of #{socket.assigns.prediction.prompt}",
-       description: socket.assigns.prediction.prompt,
-       image: socket.assigns.prediction.sticker_output
-     })}
+     SEO.assign(
+       socket,
+       SEO.page("/sticker/#{prediction.id}",
+         title: "AI Sticker: #{prediction.prompt}",
+         description:
+           "View and download an AI generated sticker for #{prediction.prompt}. Use it as sticker inspiration or regenerate a variation.",
+         image: prediction.sticker_output || "/og.webp"
+       )
+     )}
   end
 
   def handle_event("save", %{"prompt" => prompt}, socket) do

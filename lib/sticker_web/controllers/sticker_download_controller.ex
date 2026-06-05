@@ -2,9 +2,19 @@ defmodule StickerWeb.StickerDownloadController do
   use StickerWeb, :controller
 
   alias Sticker.Predictions
+  alias StickerWeb.SEO
 
   def show(conn, %{"id" => id} = params) do
     prediction = Predictions.get_prediction!(id)
+
+    conn =
+      SEO.assign(
+        conn,
+        SEO.noindex("/sticker/#{prediction.id}/download",
+          title: "Sticker Download",
+          description: "Download a generated AI sticker file."
+        )
+      )
 
     with output when is_binary(output) <- prediction.sticker_output,
          {:ok, %{status: 200, body: body, headers: headers}} <- Req.get(output) do

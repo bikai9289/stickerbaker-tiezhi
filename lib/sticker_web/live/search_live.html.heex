@@ -1,45 +1,67 @@
-<div class="max-w-2xl mx-auto">
-  <div class="text-center mt-6">
-    <h5 class="text-6xl font-bold font-brand">
-      <span class="text-blue-500">S</span><span class="text-red-500">t</span><span class="text-yellow-500">i</span><span class="text-blue-500">c</span><span class="text-green-500">k</span><span class="text-red-500">e</span><span class="text-yellow-500">r</span><span class="text-blue-500">S</span><span class="text-green-500">e</span><span class="text-red-500">a</span><span class="text-yellow-400">r</span><span class="text-blue-500">c</span><span class="text-green-500">h</span>
-    </h5>
-
-    <p class="italic text-sm text-gray-500">
-      Search <%= @number_searchable_stickers %> stickers and counting!
-    </p>
-  </div>
-  <.form for={@form} class="mt-4" name="sticker-search" id="sticker-search" phx-submit="search">
-    <div class="relative mt-1 flex items-center">
-      <.input
-        type="text"
-        name="query"
-        field={@form[:query]}
-        id="query"
-        required="true"
-        placeholder="Search for stickers"
-        phx-mounted={JS.focus()}
-        class="block w-full rounded-md border-gray-300 pr-12 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm"
-      />
+<section class="saas-section">
+  <div class="saas-container">
+    <div class="saas-section-head">
+      <p class="saas-legal-kicker">Sticker Ideas</p>
+      <h1>AI Sticker Search</h1>
+      <p class="saas-section-copy">
+        Search AI generated stickers for prompt ideas, cute examples, mascot concepts, and
+        reusable inspiration.
+      </p>
     </div>
-  </.form>
-  <p :if={not is_nil(@elapsed_time) and not @loading} class="mt-2 text-sm text-gray-500">
-    Searched <%= @number_searchable_stickers %> stickers in <%= @elapsed_time / 1000.0 %> seconds
-  </p>
 
-  <div :if={@loading} class="text-center mt-14 animate-pulse">
-    <h2 class="text-3xl text-bold">Searching <%= @number_searchable_stickers %> stickers...</h2>
-    <img src="/images/loading.png" class="mx-auto w-20" alt="" />
+    <div class="saas-tool-shell saas-search-tool">
+      <.form for={@form} name="sticker-search" id="sticker-search" phx-submit="search">
+        <div class="saas-prompt-row">
+          <input
+            type="text"
+            name={@form[:query].name}
+            id={@form[:query].id}
+            value={Phoenix.HTML.Form.normalize_value("text", @form[:query].value)}
+            required="true"
+            placeholder="Search sticker ideas: panda, coffee cup, robot mascot..."
+            phx-mounted={JS.focus()}
+            class="saas-prompt-input"
+          />
+          <button class="saas-button saas-button-primary" phx-disable-with="Searching...">
+            Search Stickers
+          </button>
+        </div>
+      </.form>
+
+      <p class="saas-mini-copy">
+        <%= @number_searchable_stickers %> searchable AI stickers are available.
+        Use results as inspiration, then regenerate a variation from any prompt.
+      </p>
+    </div>
   </div>
+</section>
 
-  <ul
-    :if={not @loading}
-    id="sticker-list"
-    phx-update="stream"
-    role="list"
-    class="mt-4 gap-6 grid grid-cols-3 divide-y divide-gray-200"
-  >
-    <li :for={{id, {prediction, _distance}} <- @streams.results}>
-      <StickerWeb.Components.sticker id={id} prediction={prediction} />
-    </li>
-  </ul>
-</div>
+<section class="saas-section saas-section-alt">
+  <div class="saas-container">
+    <div class="saas-section-head">
+      <h2>Sticker Search Results</h2>
+      <p :if={not is_nil(@elapsed_time) and not @loading} class="saas-section-copy">
+        Searched <%= @number_searchable_stickers %> stickers in <%= @elapsed_time / 1000.0 %> seconds.
+      </p>
+      <p :if={is_nil(@elapsed_time) and not @loading} class="saas-section-copy">
+        Enter a topic above to find matching AI sticker ideas.
+      </p>
+    </div>
+
+    <div :if={@loading} class="saas-loading">
+      <img src="/images/loading.png" alt="loading" /> Searching stickers...
+    </div>
+
+    <ul
+      :if={not @loading}
+      id="sticker-list"
+      phx-update="stream"
+      role="list"
+      class="saas-generated-grid"
+    >
+      <li :for={{id, {prediction, _distance}} <- @streams.results} id={id}>
+        <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
+      </li>
+    </ul>
+  </div>
+</section>

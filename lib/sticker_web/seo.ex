@@ -1,4 +1,6 @@
 defmodule StickerWeb.SEO do
+  @base_url "https://ai-sticker-maker.com"
+
   use SEO,
     json_library: Jason,
     # a function reference will be called with a conn during render
@@ -28,5 +30,30 @@ defmodule StickerWeb.SEO do
       windows_tile_color: "#ff6b1a",
       mask_icon_color: "#ff6b1a"
     )
+  end
+
+  def page(path, opts \\ []) do
+    path = normalize_path(path)
+    description = Keyword.fetch!(opts, :description)
+    title = Keyword.fetch!(opts, :title)
+
+    %{
+      title: title,
+      description: description,
+      image: Keyword.get(opts, :image, "/og.webp"),
+      canonical_url: @base_url <> path,
+      url: @base_url <> path,
+      robots: Keyword.get(opts, :robots)
+    }
+  end
+
+  def noindex(path, opts \\ []) do
+    page(path, Keyword.put(opts, :robots, ["noindex", "follow"]))
+  end
+
+  def base_url, do: @base_url
+
+  defp normalize_path(path) when is_binary(path) do
+    if String.starts_with?(path, "/"), do: path, else: "/" <> path
   end
 end
