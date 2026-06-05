@@ -62,7 +62,11 @@ defmodule Sticker.Utils do
       )
       |> ExAws.request!()
 
-    "#{System.get_env("AWS_PUBLIC_URL")}/#{bucket}/#{file_name}"
+    media_url(file_name)
+  end
+
+  def media_url(file_name) do
+    "#{get_host()}/media/#{URI.encode(file_name, &URI.char_unreserved?/1)}"
   end
 
   defp header_content_type(headers) do
