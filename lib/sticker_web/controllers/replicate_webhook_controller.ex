@@ -148,12 +148,7 @@ defmodule StickerWeb.ReplicateWebhookController do
     file_name = output_file_name(prediction_id, prediction.model)
     content_type = Sticker.Utils.content_type_for(file_name)
 
-    r2_url =
-      Sticker.Utils.save_r2(
-        file_name,
-        output |> List.last(),
-        content_type
-      )
+    r2_url = Sticker.Utils.save_r2(file_name, output_url(output), content_type)
 
     {:ok, prediction} =
       Predictions.update_prediction(prediction, %{
@@ -178,4 +173,9 @@ defmodule StickerWeb.ReplicateWebhookController do
       {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction, :storage, reason)
       broadcast(user_id, {:prediction_failed, prediction})
   end
+
+  defp output_url([_head | _tail] = output), do: List.last(output)
+  defp output_url(output) when is_binary(output), do: output
+  defp output_url(%{"url" => url}) when is_binary(url), do: url
+  defp output_url(%{url: url}) when is_binary(url), do: url
 end
