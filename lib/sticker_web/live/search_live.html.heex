@@ -38,7 +38,7 @@
     role="list"
     class="mt-4 gap-6 grid grid-cols-3 divide-y divide-gray-200"
   >
-    <li :for={{id, {prediction, distance}} <- @streams.results}>
+    <li :for={{id, {prediction, _distance}} <- @streams.results}>
       <StickerWeb.Components.sticker id={id} prediction={prediction} />
     </li>
   </ul>
