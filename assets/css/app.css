@@ -757,6 +757,21 @@ html {
   font-weight: 800;
 }
 
+.saas-page-links {
+  display: grid;
+  gap: 12px;
+}
+
+.saas-page-links a {
+  color: var(--saas-brand-2);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.saas-page-links a:hover {
+  color: var(--saas-brand);
+}
+
 .saas-contact-box {
   display: flex;
   align-items: center;
