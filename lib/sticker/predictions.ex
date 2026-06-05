@@ -99,10 +99,12 @@ defmodule Sticker.Predictions do
         sticker_output: r2_url,
         output_format: Sticker.Utils.output_format(file_name),
         output_content_type: content_type,
+        is_featured: true,
         status: :succeeded
       })
 
     broadcast(user_id, {:prediction_completed, prediction})
+    Phoenix.PubSub.broadcast(Sticker.PubSub, "safe-prediction-firehose", {:new_prediction, prediction})
     {:ok, prediction}
   rescue
     reason ->

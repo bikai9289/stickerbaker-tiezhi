@@ -162,6 +162,24 @@ defmodule Sticker.PredictionsTest do
       assert recent_ids == MapSet.new([failed.id, processing.id, completed.id])
     end
 
+    test "list_latest_safe_predictions/2 returns generated public stickers" do
+      public =
+        prediction_fixture(%{
+          sticker_output: "https://example.com/public.webp",
+          is_featured: true,
+          status: :succeeded
+        })
+
+      _private =
+        prediction_fixture(%{
+          sticker_output: "https://example.com/private.webp",
+          is_featured: nil,
+          status: :succeeded
+        })
+
+      assert [^public] = Predictions.list_latest_safe_predictions(0, 20)
+    end
+
     test "list_user_batches/1 returns batch status counts" do
       user = user_fixture()
 

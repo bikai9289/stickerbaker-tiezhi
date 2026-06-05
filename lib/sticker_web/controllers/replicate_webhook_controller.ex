@@ -157,6 +157,7 @@ defmodule StickerWeb.ReplicateWebhookController do
           sticker_output: r2_url,
           output_format: Sticker.Utils.output_format(file_name),
           output_content_type: content_type,
+          is_featured: true,
           status: :succeeded,
           failure_reason: nil,
           failure_stage: nil
@@ -166,7 +167,7 @@ defmodule StickerWeb.ReplicateWebhookController do
 
       Phoenix.PubSub.broadcast(
         Sticker.PubSub,
-        "prediction-firehose",
+        "safe-prediction-firehose",
         {:new_prediction, prediction}
       )
     else
