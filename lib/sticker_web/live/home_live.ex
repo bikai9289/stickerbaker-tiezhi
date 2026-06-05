@@ -3,6 +3,7 @@ defmodule StickerWeb.HomeLive do
   alias Phoenix.PubSub
   alias Sticker.Accounts
   alias Sticker.Predictions
+  alias StickerWeb.SEO, as: PageSEO
 
   @accepted ~w(.jpg .jpeg .png)
   @face_sticker_prompt "A cute, clean portrait sticker with a white border, expressive face, simple background, high quality"
@@ -22,6 +23,13 @@ defmodule StickerWeb.HomeLive do
 
     {:ok,
      socket
+     |> SEO.assign(
+       PageSEO.page("/",
+         title: "AI Sticker Maker - Free AI Sticker Generator Online",
+         description:
+           "Create custom AI stickers from text prompts or portraits. Start with 3 free credits and download sticker-ready designs online."
+       )
+     )
      |> assign(form: to_form(%{"prompt" => ""}))
      |> assign(local_user_id: session["local_user_id"])
      |> assign(page: page)
