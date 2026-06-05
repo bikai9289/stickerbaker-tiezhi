@@ -5,6 +5,7 @@ defmodule StickerWeb.HomeLive do
   alias Sticker.Predictions
 
   @accepted ~w(.jpg .jpeg .png)
+  @face_sticker_prompt "A cute, clean portrait sticker with a white border, expressive face, simple background, high quality"
 
   def mount(_params, session, socket) do
     page = 0
@@ -27,7 +28,12 @@ defmodule StickerWeb.HomeLive do
      |> assign(max_pages: max_pages)
      |> stream(:my_predictions, loading_predictions)
      |> stream(:latest_predictions, Predictions.list_latest_safe_predictions(page, per_page))
-     |> allow_upload(:image, accept: @accepted)}
+     |> allow_upload(:image,
+       accept: @accepted,
+       max_entries: 1,
+       auto_upload: true,
+       progress: &handle_image_progress/3
+     )}
   end
 
   def handle_params(%{"prompt" => prompt}, _, socket) do
@@ -75,28 +81,7 @@ defmodule StickerWeb.HomeLive do
              prompt: prompt,
              local_user_id: user_id
            }) do
-      # Check if there are any uploaded images. If there are,
-      # we'll do face to sticker. Otherwise we'll kick off normal sticker prediction
-      if Enum.any?(socket.assigns.uploads.image.entries, & &1.done?) do
-        consume_uploaded_entries(socket, :image, fn %{path: path}, entry ->
-          uri =
-            path
-            |> File.read!()
-            |> Base.encode64()
-            |> Sticker.Utils.base64_to_data_uri(entry.client_type)
-
-          {:ok, _prediction} =
-            Predictions.update_prediction(prediction, %{
-              model: "face-to-sticker"
-            })
-
-          send(self(), {:kick_off_face_to_sticker, prediction, uri})
-
-          {:ok, path}
-        end)
-      else
-        send(self(), {:kick_off_sticker, prediction})
-      end
+      send(self(), {:kick_off_sticker, prediction})
 
       {
         :noreply,
@@ -177,6 +162,83 @@ defmodule StickerWeb.HomeLive do
      socket
      |> stream_insert(:my_predictions, prediction)
      |> put_flash(:info, "Sticker generated! Click it to download.")}
+  end
+
+  defp handle_image_progress(:image, entry, socket) do
+    if entry.done? do
+      generate_face_sticker_from_upload(socket, entry)
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp generate_face_sticker_from_upload(%{assigns: %{current_user: nil}} = socket, entry) do
+    discard_uploaded_entry(socket, entry)
+
+    {:noreply,
+     put_flash(socket, :error, "Please sign in to use your 3 free sticker credits.")}
+  end
+
+  defp generate_face_sticker_from_upload(socket, entry) do
+    user_id = socket.assigns.local_user_id || socket.assigns.current_user.public_id
+    prompt = face_sticker_prompt(socket.assigns.form)
+
+    with {:ok, current_user} <- Accounts.spend_credit(socket.assigns.current_user),
+         {:ok, prediction} <-
+           Predictions.create_prediction(%{
+             prompt: prompt,
+             local_user_id: user_id,
+             model: "face-to-sticker"
+           }) do
+      image_uri = uploaded_entry_data_uri(socket, entry)
+      send(self(), {:kick_off_face_to_sticker, prediction, image_uri})
+
+      {:noreply,
+       socket
+       |> assign(current_user: current_user)
+       |> stream_insert(:my_predictions, prediction, at: 0)
+       |> put_flash(:info, "Face sticker generation started.")}
+    else
+      {:error, :insufficient_credits} ->
+        discard_uploaded_entry(socket, entry)
+
+        {:noreply,
+         put_flash(socket, :error, "You have used your free credits. Visit Pricing to buy more credits.")}
+
+      {:error, _changeset} ->
+        current_user = Accounts.refund_credit(socket.assigns.current_user)
+        discard_uploaded_entry(socket, entry)
+
+        {:noreply,
+         socket
+         |> assign(current_user: current_user)
+         |> put_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
+    end
+  end
+
+  defp uploaded_entry_data_uri(socket, entry) do
+    consume_uploaded_entry(socket, entry, fn %{path: path} ->
+      uri =
+        path
+        |> File.read!()
+        |> Base.encode64()
+        |> Sticker.Utils.base64_to_data_uri(entry.client_type)
+
+      {:ok, uri}
+    end)
+  end
+
+  defp discard_uploaded_entry(socket, entry) do
+    consume_uploaded_entry(socket, entry, fn _meta -> {:ok, :discarded} end)
+  end
+
+  defp face_sticker_prompt(form) do
+    prompt =
+      form[:prompt].value
+      |> to_string()
+      |> String.trim()
+
+    if prompt == "", do: @face_sticker_prompt, else: prompt
   end
 
   def error_to_string(:too_large), do: "Too large"

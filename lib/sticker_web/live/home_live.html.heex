@@ -72,7 +72,7 @@
             <div class="saas-upload-box">
               <p class="saas-mini-title">Upload a face</p>
               <p class="saas-mini-copy">
-                Turn a portrait into a stylized sticker for avatars and social profiles.
+                Choose a portrait to start face sticker generation automatically.
               </p>
 
               <section class="saas-face-upload" phx-drop-target={@uploads.image.ref}>
@@ -94,7 +94,7 @@
                       </span>
                       <span class="saas-face-demo-caption">After</span>
                     </span>
-                    <span class="saas-button saas-button-ghost">Upload Image</span>
+                    <span class="saas-button saas-button-ghost">Upload & Generate</span>
                   </label>
                 </div>
 
@@ -109,6 +109,10 @@
                     <%= for err <- upload_errors(@uploads.image, entry) do %>
                       <p class="saas-upload-error"><%= error_to_string(err) %></p>
                     <% end %>
+
+                    <p :if={!entry.done?} class="saas-mini-copy">
+                      Uploading...
+                    </p>
 
                     <%= if upload_errors(@uploads.image, entry) != [] do %>
                       <.link navigate={~p"/"} class="saas-button saas-button-ghost">
