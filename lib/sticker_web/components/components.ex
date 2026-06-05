@@ -34,8 +34,11 @@ defmodule StickerWeb.Components do
 
   defp image(assigns) do
     color_index = Enum.random(0..6)
-    bg = Enum.at(@bgs, color_index)
-    text_color = Enum.at(@text_colors, color_index)
+
+    assigns =
+      assigns
+      |> assign(:bg, Enum.at(@bgs, color_index))
+      |> assign(:text_color, Enum.at(@text_colors, color_index))
 
     ~H"""
     <.link navigate={~p"/sticker/#{@prediction.id}"}>
@@ -44,7 +47,7 @@ defmodule StickerWeb.Components do
       <span class="text-green-500 text-pink-500 text-blue-500 text-red-500 text-gray-500 text-orange-500 text-teal-500 hidden">
       </span>
 
-      <div class={"group aspect-h-10 aspect-w-10 block overflow-hidden rounded-lg #{bg} focus-within:ring-2 focus-within:ring-black-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100"}>
+      <div class={"group aspect-h-10 aspect-w-10 block overflow-hidden rounded-lg #{@bg} focus-within:ring-2 focus-within:ring-black-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100"}>
         <%= if is_nil(@prediction.sticker_output) and is_nil(@prediction.no_bg_output) do %>
           <div class="flex items-center justify-center h-48">
             <div role="status" class="saas-card-status">
@@ -78,7 +81,7 @@ defmodule StickerWeb.Components do
         <span class="block truncate text-sm font-medium text-gray-900">
           <%= @prediction.prompt %>
         </span>
-        <span :if={@prediction.score > 0} class={"inline-flex text-sm font-bold #{text_color}"}>
+        <span :if={@prediction.score > 0} class={"inline-flex text-sm font-bold #{@text_color}"}>
           <%= @prediction.score %>
         </span>
       </div>

@@ -24,7 +24,7 @@
         <h2>Starter</h2>
         <div class="saas-buy-price">$4.99</div>
         <p>50 credits for testing prompts, social stickers, and small creative batches.</p>
-        <.form action={~p"/checkout"} method="post">
+        <.form for={%{}} action={~p"/checkout"} method="post">
           <input type="hidden" name="plan" value="starter" />
           <button class="saas-button saas-button-primary saas-plan-button">
             Buy 50 Credits
@@ -36,7 +36,7 @@
         <h2>Creator</h2>
         <div class="saas-buy-price">$9.99</div>
         <p>150 credits for frequent generation, variations, and content experiments.</p>
-        <.form action={~p"/checkout"} method="post">
+        <.form for={%{}} action={~p"/checkout"} method="post">
           <input type="hidden" name="plan" value="creator" />
           <button class="saas-button saas-button-ghost saas-plan-button">
             Buy 150 Credits
