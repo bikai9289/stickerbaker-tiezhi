@@ -74,16 +74,22 @@ defmodule StickerWeb.ReplicateWebhookController do
 
     case status do
       "succeeded" ->
+        file_name = output_file_name(prediction_id, prediction.model)
+        content_type = Sticker.Utils.content_type_for(file_name)
+
         r2_url =
           Sticker.Utils.save_r2(
-            "prediction-#{prediction_id}-sticker.png",
-            output |> List.last()
+            file_name,
+            output |> List.last(),
+            content_type
           )
 
         {:ok, prediction} =
           Predictions.update_prediction(prediction, %{
             uuid: uuid,
             sticker_output: r2_url,
+            output_format: Sticker.Utils.output_format(file_name),
+            output_content_type: content_type,
             status: :succeeded
           })
 
@@ -125,4 +131,10 @@ defmodule StickerWeb.ReplicateWebhookController do
 
   defp broadcast(user_id, message),
     do: Phoenix.PubSub.broadcast(Sticker.PubSub, "user:#{user_id}", message)
+
+  defp output_file_name(prediction_id, "face-to-sticker"),
+    do: "prediction-#{prediction_id}-sticker.png"
+
+  defp output_file_name(prediction_id, _model),
+    do: "prediction-#{prediction_id}-sticker.webp"
 end

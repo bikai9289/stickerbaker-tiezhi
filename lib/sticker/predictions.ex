@@ -84,11 +84,15 @@ defmodule Sticker.Predictions do
   end
 
   defp complete_openai_image(prediction, user_id, prediction_id, base64) do
-    r2_url = Sticker.Utils.save_r2_base64("prediction-#{prediction_id}-sticker.png", base64)
+    file_name = "prediction-#{prediction_id}-sticker.png"
+    content_type = Sticker.Utils.content_type_for(file_name)
+    r2_url = Sticker.Utils.save_r2_base64(file_name, base64, content_type)
 
     {:ok, prediction} =
       update_prediction(prediction, %{
         sticker_output: r2_url,
+        output_format: Sticker.Utils.output_format(file_name),
+        output_content_type: content_type,
         status: :succeeded
       })
 
@@ -284,8 +288,7 @@ defmodule Sticker.Predictions do
     Repo.all(
       from p in Prediction,
         where: p.local_user_id == ^user_id,
-        order_by: [desc: p.inserted_at],
-        where: not is_nil(p.sticker_output)
+        order_by: [desc: p.inserted_at]
     )
   end
 

@@ -5,6 +5,8 @@ defmodule Sticker.Predictions.Prediction do
   schema "predictions" do
     field :no_bg_output, :string
     field :sticker_output, :string
+    field :output_format, :string
+    field :output_content_type, :string
     field :prompt, :string
     field :uuid, :string
     field :score, :integer, default: 0
@@ -36,6 +38,8 @@ defmodule Sticker.Predictions.Prediction do
       :prompt,
       :no_bg_output,
       :sticker_output,
+      :output_format,
+      :output_content_type,
       :score,
       :count_votes,
       :is_featured,

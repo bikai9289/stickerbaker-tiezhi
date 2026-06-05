@@ -53,11 +53,11 @@ defmodule StickerWeb.Components do
             <div role="status" class="saas-card-status">
               <%= if @prediction.status == :failed do %>
                 <strong>Failed</strong>
-                <span>Try a simpler prompt.</span>
+                <span>Regenerate or try a simpler prompt.</span>
               <% else %>
                 <span class="saas-card-spinner"></span>
                 <strong><%= status_label(@prediction.status) %></strong>
-                <span>Usually finishes in a few minutes.</span>
+                <span><%= status_hint(@prediction.status) %></span>
               <% end %>
             </div>
           </div>
@@ -93,4 +93,9 @@ defmodule StickerWeb.Components do
   defp status_label(:moderation_succeeded), do: "Queued"
   defp status_label(:starting), do: "Starting"
   defp status_label(_status), do: "Baking"
+
+  defp status_hint(:processing), do: "The image service is still working. Check history later."
+  defp status_hint(:moderation_succeeded), do: "Queued for image generation."
+  defp status_hint(:starting), do: "Generation is being prepared."
+  defp status_hint(_status), do: "Usually finishes in a few minutes."
 end

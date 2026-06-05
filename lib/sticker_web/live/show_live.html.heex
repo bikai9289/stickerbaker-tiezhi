@@ -27,7 +27,7 @@
           </div>
           <div>
             <span>Output</span>
-            <strong><%= if @prediction.model == "face-to-sticker", do: "PNG", else: "WebP / PNG" %></strong>
+            <strong><%= String.upcase(@prediction.output_format || "image") %></strong>
           </div>
           <div>
             <span>Background</span>
@@ -45,14 +45,15 @@
             href={~p"/sticker/#{@prediction.id}/download"}
             class="saas-button saas-button-primary"
           >
-            Download Sticker
+            Download <%= String.upcase(@prediction.output_format || "Sticker") %>
           </a>
           <a
             :if={@prediction.sticker_output}
-            href={~p"/sticker/#{@prediction.id}/download?format=webp"}
+            href={@prediction.sticker_output}
+            target="_blank"
             class="saas-button saas-button-ghost"
           >
-            Save as WebP name
+            Open Original
           </a>
           <.link class="saas-button saas-button-ghost" navigate={~p"/?prompt=#{@prediction.prompt}"}>
             Regenerate

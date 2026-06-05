@@ -18,8 +18,8 @@ defmodule StickerWeb.StickerDownloadController do
 
     with output when is_binary(output) <- prediction.sticker_output,
          {:ok, %{status: 200, body: body, headers: headers}} <- Req.get(output) do
-      extension = requested_extension(params["format"], output)
-      content_type = content_type(headers, extension)
+      extension = requested_extension(params["format"], prediction, output)
+      content_type = content_type(headers, prediction, extension)
 
       conn
       |> put_resp_content_type(content_type)
@@ -32,10 +32,14 @@ defmodule StickerWeb.StickerDownloadController do
     end
   end
 
-  defp requested_extension("webp", _output), do: "webp"
-  defp requested_extension("png", _output), do: "png"
+  defp requested_extension("webp", _prediction, _output), do: "webp"
+  defp requested_extension("png", _prediction, _output), do: "png"
 
-  defp requested_extension(_format, output) do
+  defp requested_extension(_format, %{output_format: format}, _output)
+       when is_binary(format) and format != "",
+       do: format
+
+  defp requested_extension(_format, _prediction, output) do
     output
     |> URI.parse()
     |> Map.get(:path)
@@ -47,13 +51,21 @@ defmodule StickerWeb.StickerDownloadController do
     end
   end
 
-  defp content_type(headers, "webp"), do: header_content_type(headers) || "image/webp"
-  defp content_type(headers, "png"), do: header_content_type(headers) || "image/png"
-  defp content_type(headers, _extension), do: header_content_type(headers) || "application/octet-stream"
+  defp content_type(_headers, %{output_content_type: content_type}, _extension)
+       when is_binary(content_type) and content_type != "",
+       do: content_type
+
+  defp content_type(headers, _prediction, "webp"), do: header_content_type(headers) || "image/webp"
+  defp content_type(headers, _prediction, "png"), do: header_content_type(headers) || "image/png"
+
+  defp content_type(headers, _prediction, _extension),
+    do: header_content_type(headers) || "application/octet-stream"
 
   defp header_content_type(headers) do
     Enum.find_value(headers, fn
+      {"content-type", [value | _]} -> value
       {"content-type", value} -> value
+      {"Content-Type", [value | _]} -> value
       {"Content-Type", value} -> value
       _header -> nil
     end)
