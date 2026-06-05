@@ -41,15 +41,15 @@ defmodule StickerWeb.Components do
       |> assign(:text_color, Enum.at(@text_colors, color_index))
 
     ~H"""
-    <.link navigate={~p"/sticker/#{@prediction.id}"}>
+    <.link navigate={~p"/sticker/#{@prediction.id}"} class="saas-generated-link">
       <span class="bg-green-50 bg-blue-50 bg-pink-50 bg-red-50 bg-gray-50 bg-orange-100 bg-teal-50 hidden">
       </span>
       <span class="text-green-500 text-pink-500 text-blue-500 text-red-500 text-gray-500 text-orange-500 text-teal-500 hidden">
       </span>
 
-      <div class={"group aspect-h-10 aspect-w-10 block overflow-hidden rounded-lg #{@bg} focus-within:ring-2 focus-within:ring-black-500 focus-within:ring-offset-2 focus-within:ring-offset-gray-100"}>
+      <div class={"saas-generated-frame group #{@bg}"}>
         <%= if is_nil(@prediction.sticker_output) and is_nil(@prediction.no_bg_output) do %>
-          <div class="flex items-center justify-center h-48">
+          <div class="saas-generated-placeholder">
             <div role="status" class="saas-card-status">
               <%= if @prediction.status in [:failed, nil] do %>
                 <strong><%= status_label(@prediction.status) %></strong>
@@ -64,6 +64,7 @@ defmodule StickerWeb.Components do
         <% else %>
           <button
             id={"prediction-#{@id}-btn"}
+            class="saas-generated-button"
             phx-value-name={@prediction.prompt}
             phx-value-image={@prediction.sticker_output}
             type="button"
@@ -71,17 +72,17 @@ defmodule StickerWeb.Components do
             <img
               src={@prediction.sticker_output}
               alt={@prediction.prompt}
-              class="pointer-events-none object-cover group-hover:opacity-75"
+              class="saas-generated-image pointer-events-none group-hover:opacity-75"
             />
           </button>
         <% end %>
       </div>
 
-      <div class="flex justify-between mt-2">
-        <span class="block truncate text-sm font-medium text-gray-900">
+      <div class="saas-generated-caption">
+        <span>
           <%= @prediction.prompt %>
         </span>
-        <span :if={@prediction.score > 0} class={"inline-flex text-sm font-bold #{@text_color}"}>
+        <span :if={@prediction.score > 0} class={@text_color}>
           <%= @prediction.score %>
         </span>
       </div>

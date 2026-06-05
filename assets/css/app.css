@@ -585,6 +585,65 @@ html {
 
 .saas-generated-item {
   display: block;
+  min-width: 0;
+}
+
+.saas-generated-link {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.saas-generated-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.saas-generated-placeholder,
+.saas-generated-button {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+}
+
+.saas-generated-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.saas-generated-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.saas-generated-caption {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--saas-ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.saas-generated-caption span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .saas-card-status {
@@ -612,6 +671,7 @@ html {
 .saas-history-item {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 .saas-history-actions {
