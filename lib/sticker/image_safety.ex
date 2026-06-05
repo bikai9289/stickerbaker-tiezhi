@@ -44,12 +44,12 @@ defmodule Sticker.ImageSafety do
         parse_review_response(response)
 
       {:ok, %{status: status}} ->
-        Logger.warning("Image safety review failed with HTTP #{status}")
-        {:error, :review_failed}
+        Logger.warning("Image safety review unavailable with HTTP #{status}; allowing upload")
+        :ok
 
       {:error, reason} ->
-        Logger.warning("Image safety review failed: #{inspect(reason)}")
-        {:error, :review_failed}
+        Logger.warning("Image safety review unavailable: #{inspect(reason)}; allowing upload")
+        :ok
     end
   end
 

@@ -25,4 +25,22 @@ defmodule Sticker.ImageSafetyTest do
 
     assert {:error, :unsafe_image} = ImageSafety.parse_review_response(response)
   end
+
+  test "review/1 allows uploads when the safety service is unavailable" do
+    original_key = System.get_env("OPENAI_API_KEY")
+    original_url = System.get_env("OPENAI_BASE_URL")
+
+    System.put_env("OPENAI_API_KEY", "test-key")
+    System.put_env("OPENAI_BASE_URL", "http://127.0.0.1:1/v1")
+
+    try do
+      assert :ok = ImageSafety.review("data:image/png;base64,abc")
+    after
+      restore_env("OPENAI_API_KEY", original_key)
+      restore_env("OPENAI_BASE_URL", original_url)
+    end
+  end
+
+  defp restore_env(key, nil), do: System.delete_env(key)
+  defp restore_env(key, value), do: System.put_env(key, value)
 end
