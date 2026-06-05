@@ -174,8 +174,37 @@ defmodule StickerWeb.ReplicateWebhookController do
       broadcast(user_id, {:prediction_failed, prediction})
   end
 
-  defp output_url([_head | _tail] = output), do: List.last(output)
-  defp output_url(output) when is_binary(output), do: output
-  defp output_url(%{"url" => url}) when is_binary(url), do: url
-  defp output_url(%{url: url}) when is_binary(url), do: url
+  defp output_url(output) do
+    case find_output_url(output) do
+      url when is_binary(url) ->
+        url
+
+      nil ->
+        raise ArgumentError, "Replicate output did not include an image URL: #{inspect(output)}"
+    end
+  end
+
+  defp find_output_url(url) when is_binary(url) do
+    if String.starts_with?(url, ["http://", "https://"]), do: url
+  end
+
+  defp find_output_url(output) when is_list(output) do
+    output
+    |> Enum.reverse()
+    |> Enum.find_value(&find_output_url/1)
+  end
+
+  defp find_output_url(output) when is_map(output) do
+    ["url", "image", "output", "file"]
+    |> Enum.find_value(fn key ->
+      Map.get(output, key) || Map.get(output, String.to_atom(key))
+    end)
+    |> find_output_url()
+    |> case do
+      nil -> output |> Map.values() |> find_output_url()
+      url -> url
+    end
+  end
+
+  defp find_output_url(_output), do: nil
 end
