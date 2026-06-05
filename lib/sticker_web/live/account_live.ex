@@ -22,6 +22,10 @@ defmodule StickerWeb.AccountLive do
     user = socket.assigns.current_user
     user_id = user.public_id
 
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Sticker.PubSub, "user:#{user_id}")
+    end
+
     {:ok,
      socket
      |> SEO.assign(
@@ -34,6 +38,17 @@ defmodule StickerWeb.AccountLive do
      |> assign(:payments, Payments.list_user_payment_events(user.id))
      |> stream(:recent_predictions, Predictions.list_user_recent_predictions(user_id, 12))
      |> stream(:favorite_predictions, Predictions.list_user_favorite_predictions(user_id))}
+  end
+
+  def handle_info({event, prediction}, socket)
+      when event in [:prediction_loading, :prediction_completed, :prediction_failed] do
+    user_id = socket.assigns.current_user.public_id
+
+    {:noreply,
+     socket
+     |> assign(:counts, Predictions.user_prediction_counts(user_id))
+     |> stream_insert(:recent_predictions, prediction, at: 0)
+     |> stream(:favorite_predictions, Predictions.list_user_favorite_predictions(user_id), reset: true)}
   end
 
   def handle_event("toggle-favorite", %{"id" => id}, socket) do
