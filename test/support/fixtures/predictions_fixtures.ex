@@ -13,7 +13,8 @@ defmodule Sticker.PredictionsFixtures do
       |> Enum.into(%{
         sticker_output: "some output",
         prompt: "some prompt",
-        uuid: "some uuid"
+        uuid: "some uuid",
+        local_user_id: "some-user"
       })
       |> Sticker.Predictions.create_prediction()
 

@@ -56,6 +56,9 @@ defmodule StickerWeb.Router do
 
     get "/pricing", PageController, :pricing
     post "/checkout", CheckoutController, :create
+    get "/face-to-sticker", PageController, :face_to_sticker
+    get "/custom-sticker-maker", PageController, :custom_sticker_maker
+    get "/cute-sticker-ideas", PageController, :cute_sticker_ideas
     get "/contact", PageController, :contact
     get "/payment-and-credits", PageController, :payment_and_credits
     get "/privacy-policy", PageController, :privacy_policy

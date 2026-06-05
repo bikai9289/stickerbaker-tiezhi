@@ -94,6 +94,15 @@ defmodule Sticker.Accounts do
 
   def refund_credit(_user), do: nil
 
+  def refund_credit_by_public_id(public_id) when is_binary(public_id) do
+    case get_user_by_public_id(public_id) do
+      %User{} = user -> {:ok, refund_credit(user)}
+      nil -> {:error, :not_found}
+    end
+  end
+
+  def refund_credit_by_public_id(_public_id), do: {:error, :not_found}
+
   def add_credits(user_id, amount) when is_integer(amount) and amount > 0 do
     {count, _} =
       from(u in User, where: u.id == ^user_id)

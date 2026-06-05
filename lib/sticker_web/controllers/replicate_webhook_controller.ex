@@ -45,10 +45,15 @@ defmodule StickerWeb.ReplicateWebhookController do
           if rating <= 5 do
             Predictions.gen_image(prediction.prompt, user_id, prediction_id)
           else
+            {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
+            broadcast(user_id, {:prediction_failed, prediction})
             broadcast(user_id, {:moderation_failed, "AI generated safety rating: #{10 - rating}/10"})
           end
 
         "failed" ->
+          prediction = prediction_id |> Predictions.get_prediction!()
+          {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
+          broadcast(user_id, {:prediction_failed, prediction})
           broadcast(user_id, {:moderation_failed, "Something went wrong...try again?"})
 
         status ->
@@ -103,7 +108,12 @@ defmodule StickerWeb.ReplicateWebhookController do
 
       "failed" ->
         {:ok, prediction} =
-          Predictions.update_prediction(prediction, %{uuid: uuid, status: :failed})
+          prediction
+          |> Predictions.update_prediction(%{uuid: uuid})
+          |> case do
+            {:ok, prediction} -> Predictions.fail_prediction_and_refund(prediction)
+            error -> error
+          end
 
         broadcast(user_id, {:prediction_failed, prediction})
 

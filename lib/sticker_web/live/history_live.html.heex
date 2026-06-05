@@ -13,6 +13,29 @@
         <img src="/images/loading.png" alt="loading" /> Loading your stickers...
       </p>
 
+      <.form :if={@local_user_id} for={%{}} phx-change="filter" class="saas-history-toolbar">
+        <input
+          type="search"
+          name="query"
+          value={@filters.query}
+          placeholder="Search your sticker history"
+          class="saas-history-search"
+        />
+        <select name="status" class="saas-history-select">
+          <option value="all" selected={@filters.status == "all"}>All</option>
+          <option value="completed" selected={@filters.status == "completed"}>Completed</option>
+          <option value="processing" selected={@filters.status == "processing"}>Processing</option>
+          <option value="failed" selected={@filters.status == "failed"}>Failed</option>
+          <option value="favorites" selected={@filters.status == "favorites"}>Favorites</option>
+        </select>
+      </.form>
+
+      <div :if={@local_user_id and MapSet.size(@selected_ids) > 0} class="saas-history-bulk">
+        <strong><%= MapSet.size(@selected_ids) %> selected</strong>
+        <button phx-click="delete-selected">Delete Selected</button>
+        <button phx-click="clear-selection">Clear</button>
+      </div>
+
       <ul
         :if={@local_user_id}
         id="predictions"
@@ -22,11 +45,23 @@
       >
         <li :for={{id, prediction} <- @streams.predictions} id={id}>
           <div class="saas-history-item">
+            <label class="saas-history-check">
+              <input
+                type="checkbox"
+                checked={selected?(@selected_ids, prediction.id)}
+                phx-click="toggle-select"
+                phx-value-id={prediction.id}
+              />
+              <span>Select</span>
+            </label>
             <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
             <div class="saas-history-actions">
               <button phx-click="toggle-favorite" phx-value-id={prediction.id}>
                 <%= if prediction.is_favorite, do: "Saved", else: "Save" %>
               </button>
+              <.link :if={prediction.sticker_output} href={~p"/sticker/#{prediction.id}/download"}>
+                Download
+              </.link>
               <.link navigate={~p"/?prompt=#{prediction.prompt}"}>Regenerate</.link>
               <.link navigate={~p"/?prompt=#{prediction.prompt <> " variation"}"}>Variation</.link>
               <button phx-click="delete" phx-value-id={prediction.id}>Delete</button>

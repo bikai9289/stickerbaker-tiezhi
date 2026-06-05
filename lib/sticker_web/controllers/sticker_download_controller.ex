@@ -17,8 +17,10 @@ defmodule StickerWeb.StickerDownloadController do
       )
 
     with output when is_binary(output) <- prediction.sticker_output,
-         {:ok, %{status: 200, body: body, headers: headers}} <- Req.get(output) do
-      extension = requested_extension(params["format"], prediction, output)
+         {:ok, %{status: 200, body: body, headers: headers}} <- Req.get(output),
+         extension = requested_extension(params["format"], prediction, output),
+         source_extension = source_extension(prediction, output),
+         {:ok, body} <- maybe_convert(body, source_extension, extension) do
       content_type = content_type(headers, prediction, extension)
 
       conn
@@ -51,6 +53,9 @@ defmodule StickerWeb.StickerDownloadController do
     end
   end
 
+  defp content_type(_headers, _prediction, format) when format in ["png", "webp"],
+    do: Sticker.ImageConverter.content_type(format)
+
   defp content_type(_headers, %{output_content_type: content_type}, _extension)
        when is_binary(content_type) and content_type != "",
        do: content_type
@@ -69,5 +74,18 @@ defmodule StickerWeb.StickerDownloadController do
       {"Content-Type", value} -> value
       _header -> nil
     end)
+  end
+
+  defp source_extension(%{output_format: format}, _output) when is_binary(format) and format != "",
+    do: format
+
+  defp source_extension(_prediction, output), do: requested_extension(nil, %{}, output)
+
+  defp maybe_convert(body, source_extension, requested_extension) do
+    if source_extension == requested_extension do
+      {:ok, body}
+    else
+      Sticker.ImageConverter.convert(body, source_extension, requested_extension)
+    end
   end
 end

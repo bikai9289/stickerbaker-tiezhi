@@ -51,6 +51,42 @@ defmodule StickerWeb.PageController do
     |> render(:payment_and_credits)
   end
 
+  def face_to_sticker(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/face-to-sticker",
+        title: "Face to Sticker AI Generator",
+        description:
+          "Turn a portrait into a sticker-style image with the AI face to sticker generator. Upload a face, use 1 credit, and download the result."
+      )
+    )
+    |> render(:face_to_sticker)
+  end
+
+  def custom_sticker_maker(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/custom-sticker-maker",
+        title: "Custom Sticker Maker Online",
+        description:
+          "Create custom stickers online from prompts or portraits. Use AI Sticker Maker to generate sticker-ready artwork and variations."
+      )
+    )
+    |> render(:custom_sticker_maker)
+  end
+
+  def cute_sticker_ideas(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/cute-sticker-ideas",
+        title: "Cute Sticker Ideas for AI Stickers",
+        description:
+          "Browse cute sticker ideas for AI prompts, mascots, pets, food stickers, cozy objects, and playful character sticker concepts."
+      )
+    )
+    |> render(:cute_sticker_ideas)
+  end
+
   def privacy_policy(conn, _params) do
     conn
     |> SEO.assign(
@@ -93,6 +129,9 @@ defmodule StickerWeb.PageController do
     paths = [
       "/",
       "/pricing",
+      "/face-to-sticker",
+      "/custom-sticker-maker",
+      "/cute-sticker-ideas",
       "/contact",
       "/payment-and-credits",
       "/privacy-policy",

@@ -20,6 +20,7 @@ defmodule Sticker.Predictions.Prediction do
     field :embedding_model, :string
     field :flag, Ecto.Enum, values: [true, false]
     field :is_favorite, :boolean, default: false
+    field :credit_refunded, :boolean, default: false
 
     field :status, Ecto.Enum,
       values: [:starting, :processing, :succeeded, :failed, :canceled, :moderation_succeeded]
@@ -52,7 +53,8 @@ defmodule Sticker.Predictions.Prediction do
       :status,
       :autoplay_time,
       :model,
-      :is_favorite
+      :is_favorite,
+      :credit_refunded
     ])
     |> validate_required([:prompt])
   end

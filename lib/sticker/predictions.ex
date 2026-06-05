@@ -4,6 +4,8 @@ defmodule Sticker.Predictions do
   """
 
   import Ecto.Query, warn: false
+  alias Ecto.Multi
+  alias Sticker.Accounts
   alias Sticker.Repo
 
   alias Sticker.Predictions.Prediction
@@ -107,10 +109,7 @@ defmodule Sticker.Predictions do
   defp fail_openai_image(prediction, user_id, reason) do
     Logger.error("OpenAI image generation failed: #{inspect(reason)}")
 
-    {:ok, prediction} =
-      prediction
-      |> get_prediction_for_update()
-      |> update_prediction(%{status: :failed})
+    {:ok, prediction} = fail_prediction_and_refund(prediction)
 
     broadcast(user_id, {:prediction_failed, prediction})
   end
@@ -292,6 +291,18 @@ defmodule Sticker.Predictions do
     )
   end
 
+  def list_user_predictions(user_id, filters) when is_map(filters) do
+    status = Map.get(filters, :status, "all")
+    query_text = Map.get(filters, :query, "")
+
+    Prediction
+    |> where([p], p.local_user_id == ^user_id)
+    |> filter_user_prediction_status(status)
+    |> filter_user_prediction_query(query_text)
+    |> order_by([p], desc: p.inserted_at)
+    |> Repo.all()
+  end
+
   def list_user_recent_predictions(user_id, limit \\ 12) do
     Repo.all(
       from p in Prediction,
@@ -331,9 +342,37 @@ defmodule Sticker.Predictions do
     |> delete_prediction()
   end
 
+  def delete_user_predictions(ids, user_id) when is_list(ids) do
+    from(p in Prediction, where: p.local_user_id == ^user_id and p.id in ^ids)
+    |> Repo.delete_all()
+  end
+
   def toggle_favorite(id, user_id) do
     prediction = get_user_prediction!(id, user_id)
     update_prediction(prediction, %{is_favorite: not prediction.is_favorite})
+  end
+
+  def fail_prediction_and_refund(%Prediction{} = prediction) do
+    prediction = get_prediction_for_update(prediction)
+    should_refund? = not prediction.credit_refunded
+
+    Multi.new()
+    |> Multi.update(:prediction, Prediction.changeset(prediction, failed_attrs(prediction)))
+    |> Multi.run(:refund, fn _repo, %{prediction: prediction} ->
+      if should_refund? do
+        case Accounts.refund_credit_by_public_id(prediction.local_user_id) do
+          {:ok, _user} -> {:ok, :refunded}
+          {:error, :not_found} -> {:ok, :no_account}
+        end
+      else
+        {:ok, :already_refunded}
+      end
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{prediction: prediction}} -> {:ok, prediction}
+      {:error, _step, reason, _changes} -> {:error, reason}
+    end
   end
 
   def transfer_user_predictions(from_user_id, to_user_id)
@@ -434,4 +473,33 @@ defmodule Sticker.Predictions do
 
   defp broadcast(user_id, message),
     do: Phoenix.PubSub.broadcast(Sticker.PubSub, "user:#{user_id}", message)
+
+  defp failed_attrs(%Prediction{credit_refunded: true}), do: %{status: :failed}
+  defp failed_attrs(_prediction), do: %{status: :failed, credit_refunded: true}
+
+  defp filter_user_prediction_status(query, "completed"),
+    do: where(query, [p], p.status == :succeeded)
+
+  defp filter_user_prediction_status(query, "processing"),
+    do: where(query, [p], p.status in [:starting, :processing, :moderation_succeeded])
+
+  defp filter_user_prediction_status(query, "failed"),
+    do: where(query, [p], p.status == :failed)
+
+  defp filter_user_prediction_status(query, "favorites"),
+    do: where(query, [p], p.is_favorite == true)
+
+  defp filter_user_prediction_status(query, _status), do: query
+
+  defp filter_user_prediction_query(query, text) when is_binary(text) do
+    text = String.trim(text)
+
+    if text == "" do
+      query
+    else
+      where(query, [p], ilike(p.prompt, ^"%#{text}%"))
+    end
+  end
+
+  defp filter_user_prediction_query(query, _text), do: query
 end

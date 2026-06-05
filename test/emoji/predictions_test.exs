@@ -7,6 +7,7 @@ defmodule Sticker.PredictionsTest do
     alias Sticker.Predictions.Prediction
 
     import Sticker.PredictionsFixtures
+    import Sticker.AccountsFixtures
 
     @invalid_attrs %{sticker_output: nil, prompt: nil, uuid: nil}
 
@@ -68,6 +69,51 @@ defmodule Sticker.PredictionsTest do
     test "change_prediction/1 returns a prediction changeset" do
       prediction = prediction_fixture()
       assert %Ecto.Changeset{} = Predictions.change_prediction(prediction)
+    end
+
+    test "list_user_predictions/2 filters by status, favorites, and query" do
+      user = user_fixture()
+
+      completed =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          prompt: "cute panda",
+          status: :succeeded,
+          is_favorite: true
+        })
+
+      _failed =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          prompt: "robot mascot",
+          status: :failed
+        })
+
+      assert [^completed] =
+               Predictions.list_user_predictions(user.public_id, %{
+                 status: "favorites",
+                 query: "panda"
+               })
+    end
+
+    test "fail_prediction_and_refund/1 refunds a credit only once" do
+      user = user_fixture()
+
+      prediction =
+        prediction_fixture(%{
+          local_user_id: user.public_id,
+          status: :processing,
+          credit_refunded: false
+        })
+
+      {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
+      assert prediction.status == :failed
+      assert prediction.credit_refunded == true
+      assert Sticker.Accounts.get_user(user.id).credits == user.credits + 1
+
+      {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction)
+      assert prediction.credit_refunded == true
+      assert Sticker.Accounts.get_user(user.id).credits == user.credits + 1
     end
   end
 end

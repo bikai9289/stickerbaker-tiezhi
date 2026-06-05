@@ -632,6 +632,56 @@ html {
   text-decoration: none;
 }
 
+.saas-history-toolbar,
+.saas-history-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.saas-history-search,
+.saas-history-select {
+  min-height: 44px;
+  border: 1px solid var(--saas-line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #fff;
+  color: var(--saas-ink);
+  font-weight: 700;
+}
+
+.saas-history-search {
+  min-width: min(100%, 320px);
+}
+
+.saas-history-bulk {
+  border: 1px solid #ffd2b8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff6ef;
+}
+
+.saas-history-bulk button {
+  min-height: 34px;
+  border: 1px solid #d8e5ff;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #f5f9ff;
+  color: #1d57c7;
+  font-weight: 900;
+}
+
+.saas-history-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--saas-muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .saas-account-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
