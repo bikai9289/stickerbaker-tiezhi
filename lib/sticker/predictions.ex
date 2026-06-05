@@ -347,6 +347,16 @@ defmodule Sticker.Predictions do
     |> Repo.delete_all()
   end
 
+  def list_user_downloadable_predictions(ids, user_id) when is_list(ids) do
+    from(p in Prediction,
+      where:
+        p.local_user_id == ^user_id and p.id in ^ids and
+          not is_nil(p.sticker_output),
+      order_by: [desc: p.inserted_at]
+    )
+    |> Repo.all()
+  end
+
   def toggle_favorite(id, user_id) do
     prediction = get_user_prediction!(id, user_id)
     update_prediction(prediction, %{is_favorite: not prediction.is_favorite})

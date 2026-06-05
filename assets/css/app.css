@@ -663,7 +663,8 @@ html {
   background: #fff6ef;
 }
 
-.saas-history-bulk button {
+.saas-history-bulk button,
+.saas-history-bulk a {
   min-height: 34px;
   border: 1px solid #d8e5ff;
   border-radius: 8px;
@@ -671,6 +672,9 @@ html {
   background: #f5f9ff;
   color: #1d57c7;
   font-weight: 900;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .saas-history-check {

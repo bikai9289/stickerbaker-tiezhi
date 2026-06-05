@@ -85,4 +85,10 @@ defmodule StickerWeb.HistoryLive do
   end
 
   def selected?(selected_ids, id), do: MapSet.member?(selected_ids, id)
+
+  def selected_ids_param(selected_ids) do
+    selected_ids
+    |> MapSet.to_list()
+    |> Enum.join(",")
+  end
 end
