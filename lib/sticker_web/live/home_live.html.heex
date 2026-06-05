@@ -27,16 +27,14 @@
           phx-submit="save"
         >
           <div class="saas-prompt-row">
-            <input
+            <textarea
               id={@form[:prompt].id}
               name={@form[:prompt].name}
-              value={Phoenix.HTML.Form.normalize_value("text", @form[:prompt].value)}
-              type="text"
-              placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot..."
+              placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot...&#10;Add up to 5 prompts, one per line."
               required
               phx-mounted={JS.focus()}
               class="saas-prompt-input"
-            />
+            ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
             <button
               name="submit"
               value="generate"

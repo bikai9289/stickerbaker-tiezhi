@@ -1,20 +1,38 @@
-<div
-  id="history"
-  phx-hook="AssignUserId"
-  data-session-user-id={@local_user_id}
-  class=""
->
-  <p :if={is_nil(@local_user_id)}>Loading...</p>
-  <.header>My Stickers</.header>
-  <ul
-    :if={@local_user_id}
-    id="predictions"
-    phx-update="stream"
-    role="list"
-    class="grid grid-cols-2 mt-6 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-4 xl:gap-x-8"
-  >
-    <li :for={{id, prediction} <- @streams.predictions} id={id} class="relative">
-      <StickerWeb.Components.sticker id={id} prediction={prediction} />
-    </li>
-  </ul>
+<div id="history" phx-hook="AssignUserId" data-session-user-id={@local_user_id}>
+  <section class="saas-section">
+    <div class="saas-container">
+      <div class="saas-section-head">
+        <h2>Sticker History</h2>
+        <p class="saas-section-copy">
+          Download, save, regenerate, create variations, or remove stickers from your account.
+        </p>
+      </div>
+
+      <p :if={is_nil(@local_user_id)} class="saas-loading">
+        <img src="/images/loading.png" alt="loading" /> Loading your stickers...
+      </p>
+
+      <ul
+        :if={@local_user_id}
+        id="predictions"
+        phx-update="stream"
+        role="list"
+        class="saas-generated-grid"
+      >
+        <li :for={{id, prediction} <- @streams.predictions} id={id}>
+          <div class="saas-history-item">
+            <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
+            <div class="saas-history-actions">
+              <button phx-click="toggle-favorite" phx-value-id={prediction.id}>
+                <%= if prediction.is_favorite, do: "Saved", else: "Save" %>
+              </button>
+              <.link navigate={~p"/?prompt=#{prediction.prompt}"}>Regenerate</.link>
+              <.link navigate={~p"/?prompt=#{prediction.prompt <> " variation"}"}>Variation</.link>
+              <button phx-click="delete" phx-value-id={prediction.id}>Delete</button>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
 </div>

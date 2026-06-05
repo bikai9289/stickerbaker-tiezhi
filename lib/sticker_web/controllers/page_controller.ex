@@ -37,6 +37,7 @@ defmodule StickerWeb.PageController do
     paths = [
       "/",
       "/pricing",
+      "/account",
       "/contact",
       "/payment-and-credits",
       "/privacy-policy",

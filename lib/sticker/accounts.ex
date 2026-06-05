@@ -62,6 +62,29 @@ defmodule Sticker.Accounts do
 
   def spend_credit(_user), do: {:error, :not_signed_in}
 
+  def spend_credits(%User{id: user_id}, amount) when is_integer(amount) and amount > 0 do
+    {count, _} =
+      from(u in User, where: u.id == ^user_id and u.credits >= ^amount)
+      |> Repo.update_all(inc: [credits: -amount])
+
+    if count == 1 do
+      {:ok, get_user(user_id)}
+    else
+      {:error, :insufficient_credits}
+    end
+  end
+
+  def spend_credits(_user, _amount), do: {:error, :not_signed_in}
+
+  def refund_credits(%User{id: user_id}, amount) when is_integer(amount) and amount > 0 do
+    from(u in User, where: u.id == ^user_id)
+    |> Repo.update_all(inc: [credits: amount])
+
+    get_user(user_id)
+  end
+
+  def refund_credits(user, _amount), do: refund_credit(user)
+
   def refund_credit(%User{id: user_id}) do
     from(u in User, where: u.id == ^user_id)
     |> Repo.update_all(inc: [credits: 1])

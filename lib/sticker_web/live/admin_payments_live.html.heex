@@ -1,0 +1,41 @@
+<section class="admin-page">
+  <div class="admin-header">
+    <div>
+      <p class="admin-kicker">Admin</p>
+      <h1>Payment Records</h1>
+      <p>Review Stripe checkout events that added credits to user accounts.</p>
+    </div>
+    <div class="admin-header-actions">
+      <.link class="saas-button saas-button-ghost" navigate={~p"/admin/users"}>User Credits</.link>
+      <.link class="saas-button saas-button-ghost" navigate={~p"/admin"}>Back to Moderation</.link>
+    </div>
+  </div>
+
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Plan</th>
+          <th>Credits</th>
+          <th>Stripe Session</th>
+          <th>Stripe Event</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr :for={payment <- @payments}>
+          <td><%= if user = @users[payment.user_id], do: user.email, else: "Unknown user" %></td>
+          <td><%= payment.plan || "credits" %></td>
+          <td><span class="saas-credit-pill"><%= payment.credits %></span></td>
+          <td><code><%= payment.stripe_session_id %></code></td>
+          <td><code><%= payment.stripe_event_id %></code></td>
+          <td><%= Calendar.strftime(payment.inserted_at, "%Y-%m-%d %H:%M") %></td>
+        </tr>
+        <tr :if={@payments == []}>
+          <td colspan="6">No payment records yet.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

@@ -15,6 +15,26 @@ defmodule Sticker.Payments do
 
   def get_plan(id), do: Enum.find(plans(), &(&1.id == id))
 
+  def list_payment_events(limit \\ 100) do
+    import Ecto.Query
+
+    Repo.all(
+      from e in PaymentEvent,
+        order_by: [desc: e.inserted_at],
+        limit: ^limit
+    )
+  end
+
+  def list_user_payment_events(user_id) do
+    import Ecto.Query
+
+    Repo.all(
+      from e in PaymentEvent,
+        where: e.user_id == ^user_id,
+        order_by: [desc: e.inserted_at]
+    )
+  end
+
   def create_checkout_session(plan, user, success_url, cancel_url) do
     body = [
       {"mode", "payment"},

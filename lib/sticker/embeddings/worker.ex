@@ -36,6 +36,11 @@ defmodule Sticker.Embeddings.Worker do
     end
   end
 
+  defp create_text_embedding(nil) do
+    Logger.info("No prediction needs text embeddings")
+    nil
+  end
+
   defp create_text_embedding(prediction) do
     Logger.info("Creating text embeddings for #{prediction.id}")
 
@@ -52,7 +57,12 @@ defmodule Sticker.Embeddings.Worker do
     prediction
   end
 
-  defp create_image_embedding(%{id: id, no_bg_output: nil}) do
+  defp create_image_embedding(nil) do
+    Logger.info("No prediction needs image embeddings")
+    nil
+  end
+
+  defp create_image_embedding(%{id: id, sticker_output: nil}) do
     Logger.info("No url, skipping #{id}")
     nil
   end

@@ -4,13 +4,15 @@ defmodule StickerWeb.ShowLive do
 
   @num_results 21
 
-  def mount(%{"id" => id}, _session, socket) do
+  def mount(%{"id" => id}, session, socket) do
     prediction = Predictions.get_prediction!(id)
+    local_user_id = session["local_user_id"]
 
     {:ok,
      socket
      |> assign(
        prediction: prediction,
+       local_user_id: local_user_id,
        given_feedback: false,
        form: to_form(%{"prompt" => prediction.prompt})
      )
@@ -81,5 +83,23 @@ defmodule StickerWeb.ShowLive do
 
     {:noreply,
      socket |> assign(given_feedback: true) |> put_flash(:info, "Thanks for your rating!")}
+  end
+
+  def handle_event("toggle-favorite", %{"id" => id}, socket) do
+    if socket.assigns.local_user_id == socket.assigns.prediction.local_user_id do
+      {:ok, prediction} = Predictions.toggle_favorite(id, socket.assigns.local_user_id)
+      {:noreply, socket |> assign(prediction: prediction)}
+    else
+      {:noreply, put_flash(socket, :error, "Sign in to save stickers.")}
+    end
+  end
+
+  def handle_event("delete", %{"id" => id}, socket) do
+    if socket.assigns.local_user_id == socket.assigns.prediction.local_user_id do
+      {:ok, _prediction} = Predictions.delete_user_prediction(id, socket.assigns.local_user_id)
+      {:noreply, socket |> put_flash(:info, "Sticker deleted.") |> push_navigate(to: ~p"/stickers")}
+    else
+      {:noreply, put_flash(socket, :error, "You can only delete your own stickers.")}
+    end
   end
 end

@@ -19,4 +19,18 @@ defmodule StickerWeb.HistoryLive do
      |> assign(local_user_id: user_id)
      |> stream(:predictions, Predictions.list_user_predictions(user_id), reset: true)}
   end
+
+  def handle_event("toggle-favorite", %{"id" => id}, socket) do
+    {:ok, prediction} = Predictions.toggle_favorite(id, socket.assigns.local_user_id)
+    {:noreply, stream_insert(socket, :predictions, prediction)}
+  end
+
+  def handle_event("delete", %{"id" => id}, socket) do
+    {:ok, prediction} = Predictions.delete_user_prediction(id, socket.assigns.local_user_id)
+
+    {:noreply,
+     socket
+     |> stream_delete(:predictions, prediction)
+     |> put_flash(:info, "Sticker deleted.")}
+  end
 end

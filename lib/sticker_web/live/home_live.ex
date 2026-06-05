@@ -6,6 +6,7 @@ defmodule StickerWeb.HomeLive do
 
   @accepted ~w(.jpg .jpeg .png)
   @face_sticker_prompt "A cute, clean portrait sticker with a white border, expressive face, simple background, high quality"
+  @max_batch_prompts 5
 
   def mount(_params, session, socket) do
     page = 0
@@ -74,31 +75,31 @@ defmodule StickerWeb.HomeLive do
 
   def handle_event("save", %{"prompt" => prompt}, socket) do
     user_id = socket.assigns.local_user_id
+    prompts = batch_prompts(prompt)
 
-    with {:ok, current_user} <- Accounts.spend_credit(socket.assigns.current_user),
-         {:ok, prediction} <-
-           Predictions.create_prediction(%{
-             prompt: prompt,
-             local_user_id: user_id
-           }) do
-      send(self(), {:kick_off_sticker, prediction})
+    case start_text_predictions(socket.assigns.current_user, user_id, prompts) do
+      {:ok, current_user, predictions} ->
+        Enum.each(predictions, &send(self(), {:kick_off_sticker, &1}))
 
-      {
-        :noreply,
-        socket
-        |> assign(current_user: current_user)
-        |> assign(form: to_form(%{"prompt" => ""}))
-        |> stream_insert(:my_predictions, prediction, at: 0)
-      }
-    else
-      {:error, :insufficient_credits} ->
+        socket =
+          Enum.reduce(predictions, socket, fn prediction, acc ->
+            stream_insert(acc, :my_predictions, prediction, at: 0)
+          end)
+
         {:noreply,
          socket
-         |> put_flash(:error, "You have used your free credits. Visit Pricing to buy more credits.")}
+         |> assign(current_user: current_user)
+         |> assign(form: to_form(%{"prompt" => ""}))
+         |> put_flash(:info, generation_started_message(predictions))}
 
-      {:error, _changeset} ->
-        current_user = Accounts.refund_credit(socket.assigns.current_user)
+      {:error, :empty_prompt} ->
+        {:noreply, put_flash(socket, :error, "Add at least one sticker prompt.")}
 
+      {:error, :insufficient_credits} ->
+        {:noreply,
+         put_flash(socket, :error, "You have used your free credits. Visit Pricing to buy more credits.")}
+
+      {:error, :create_failed, current_user} ->
         {:noreply,
          socket
          |> assign(current_user: current_user)
@@ -148,13 +149,14 @@ defmodule StickerWeb.HomeLive do
   def handle_info({:prediction_loading, prediction}, socket) do
     {:noreply,
      socket
-     |> stream_insert(:my_predictions, prediction, at: 0)}
+     |> stream_insert(:my_predictions, prediction, at: 0)
+     |> put_flash(:info, "Sticker is processing. This can take a little while.")}
   end
 
   def handle_info({:prediction_failed, _prediction}, socket) do
     {:noreply,
      socket
-     |> put_flash(:error, "Uh oh, image generation failed. Likely NSFW input. Try again!")}
+     |> put_flash(:error, "Image generation failed or timed out. Try a simpler prompt or generate again.")}
   end
 
   def handle_info({:prediction_completed, prediction}, socket) do
@@ -172,6 +174,44 @@ defmodule StickerWeb.HomeLive do
     end
   end
 
+  defp batch_prompts(prompt) do
+    prompt
+    |> String.split(["\n", "\r"], trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.take(@max_batch_prompts)
+  end
+
+  defp start_text_predictions(_current_user, _user_id, []), do: {:error, :empty_prompt}
+
+  defp start_text_predictions(current_user, user_id, prompts) do
+    credit_count = length(prompts)
+
+    with {:ok, current_user} <- Accounts.spend_credits(current_user, credit_count) do
+      Enum.reduce_while(prompts, {:ok, []}, fn prompt, {:ok, predictions} ->
+        case Predictions.create_prediction(%{
+               prompt: prompt,
+               local_user_id: user_id,
+               status: :starting
+             }) do
+          {:ok, prediction} ->
+            {:cont, {:ok, [prediction | predictions]}}
+
+          {:error, _changeset} ->
+            current_user = Accounts.refund_credits(current_user, credit_count)
+            {:halt, {:error, :create_failed, current_user}}
+        end
+      end)
+      |> case do
+        {:ok, predictions} -> {:ok, current_user, Enum.reverse(predictions)}
+        error -> error
+      end
+    end
+  end
+
+  defp generation_started_message([_prediction]), do: "Sticker generation started."
+  defp generation_started_message(predictions), do: "#{length(predictions)} sticker generations started."
+
   defp generate_face_sticker_from_upload(%{assigns: %{current_user: nil}} = socket, entry) do
     discard_uploaded_entry(socket, entry)
 
@@ -185,11 +225,11 @@ defmodule StickerWeb.HomeLive do
 
     with {:ok, current_user} <- Accounts.spend_credit(socket.assigns.current_user),
          {:ok, prediction} <-
-           Predictions.create_prediction(%{
-             prompt: prompt,
-             local_user_id: user_id,
-             model: "face-to-sticker"
-           }) do
+             Predictions.create_prediction(%{
+               prompt: prompt,
+               local_user_id: user_id,
+               model: "face-to-sticker"
+             }) do
       image_uri = uploaded_entry_data_uri(socket, entry)
       send(self(), {:kick_off_face_to_sticker, prediction, image_uri})
 

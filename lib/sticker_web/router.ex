@@ -34,6 +34,7 @@ defmodule StickerWeb.Router do
 
     live "/", AdminLive, :index
     live "/users", AdminUsersLive, :index
+    live "/payments", AdminPaymentsLive, :index
     live_dashboard "/dashboard", metrics: StickerWeb.Telemetry
   end
 
@@ -41,6 +42,7 @@ defmodule StickerWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive, :index
+    live "/account", AccountLive, :index
     live "/sticker/:id", ShowLive, :show
     live "/stickers", HistoryLive, :index
     live "/search", SearchLive, :index

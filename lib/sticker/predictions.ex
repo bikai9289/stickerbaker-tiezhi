@@ -140,8 +140,7 @@ defmodule Sticker.Predictions do
     from(p in Prediction,
       where:
         p.local_user_id == ^user_id and
-          (p.status != :succeeded and
-             (p.moderation_score < 9 and p.status == :moderation_succeeded)),
+          p.status not in [:succeeded, :failed, :canceled],
       order_by: [desc: p.inserted_at]
     )
     |> Repo.all()
@@ -288,6 +287,50 @@ defmodule Sticker.Predictions do
         order_by: [desc: p.inserted_at],
         where: not is_nil(p.sticker_output)
     )
+  end
+
+  def list_user_recent_predictions(user_id, limit \\ 12) do
+    Repo.all(
+      from p in Prediction,
+        where: p.local_user_id == ^user_id,
+        order_by: [desc: p.inserted_at],
+        limit: ^limit
+    )
+  end
+
+  def list_user_favorite_predictions(user_id) do
+    Repo.all(
+      from p in Prediction,
+        where: p.local_user_id == ^user_id and p.is_favorite == true,
+        order_by: [desc: p.updated_at],
+        where: not is_nil(p.sticker_output)
+    )
+  end
+
+  def user_prediction_counts(user_id) do
+    query = from p in Prediction, where: p.local_user_id == ^user_id
+
+    %{
+      total: Repo.aggregate(query, :count),
+      completed: Repo.aggregate(from(p in query, where: p.status == :succeeded), :count),
+      failed: Repo.aggregate(from(p in query, where: p.status == :failed), :count),
+      favorites: Repo.aggregate(from(p in query, where: p.is_favorite == true), :count)
+    }
+  end
+
+  def get_user_prediction!(id, user_id) do
+    Repo.get_by!(Prediction, id: id, local_user_id: user_id)
+  end
+
+  def delete_user_prediction(id, user_id) do
+    id
+    |> get_user_prediction!(user_id)
+    |> delete_prediction()
+  end
+
+  def toggle_favorite(id, user_id) do
+    prediction = get_user_prediction!(id, user_id)
+    update_prediction(prediction, %{is_favorite: not prediction.is_favorite})
   end
 
   def transfer_user_predictions(from_user_id, to_user_id)

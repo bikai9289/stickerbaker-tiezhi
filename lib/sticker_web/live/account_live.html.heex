@@ -1,0 +1,100 @@
+<section class="saas-section">
+  <div class="saas-container">
+    <div class="saas-section-head">
+      <h2>Account</h2>
+      <p class="saas-section-copy">
+        Manage credits, generation history, saved stickers, and billing records.
+      </p>
+    </div>
+
+    <div class="saas-account-grid">
+      <article class="saas-tile">
+        <h3>Credits</h3>
+        <div class="saas-account-metric"><%= @current_user.credits %></div>
+        <.link class="saas-button saas-button-primary" navigate={~p"/pricing"}>Buy Credits</.link>
+      </article>
+      <article class="saas-tile">
+        <h3>Generated</h3>
+        <div class="saas-account-metric"><%= @counts.completed %></div>
+        <.link class="saas-button saas-button-ghost" navigate={~p"/stickers"}>View History</.link>
+      </article>
+      <article class="saas-tile">
+        <h3>Favorites</h3>
+        <div class="saas-account-metric"><%= @counts.favorites %></div>
+        <a class="saas-button saas-button-ghost" href="#favorites">Saved Stickers</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="saas-section saas-section-alt">
+  <div class="saas-container">
+    <div class="saas-section-head">
+      <h2>Recent Stickers</h2>
+      <p class="saas-section-copy">Track active, completed, and failed generations.</p>
+    </div>
+
+    <ul id="account-recent" phx-update="stream" class="saas-generated-grid" role="list">
+      <li :for={{id, prediction} <- @streams.recent_predictions} id={id}>
+        <div class="saas-history-item">
+          <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
+          <div class="saas-history-actions">
+            <button phx-click="toggle-favorite" phx-value-id={prediction.id}>
+              <%= if prediction.is_favorite, do: "Saved", else: "Save" %>
+            </button>
+            <.link navigate={~p"/?prompt=#{prediction.prompt}"}>Regenerate</.link>
+            <button phx-click="delete" phx-value-id={prediction.id}>Delete</button>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section id="favorites" class="saas-section">
+  <div class="saas-container">
+    <div class="saas-section-head">
+      <h2>Saved Stickers</h2>
+      <p class="saas-section-copy">Favorites stay here for quick download and reuse.</p>
+    </div>
+
+    <ul id="account-favorites" phx-update="stream" class="saas-generated-grid" role="list">
+      <li :for={{id, prediction} <- @streams.favorite_predictions} id={id}>
+        <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="saas-section saas-section-alt">
+  <div class="saas-container">
+    <div class="saas-section-head">
+      <h2>Payment Records</h2>
+      <p class="saas-section-copy">Completed checkout events that added credits to this account.</p>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Credits</th>
+            <th>Stripe Session</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr :for={payment <- @payments}>
+            <td><%= payment.plan || "credits" %></td>
+            <td><%= payment.credits %></td>
+            <td><code><%= payment.stripe_session_id %></code></td>
+            <td><%= Calendar.strftime(payment.inserted_at, "%Y-%m-%d") %></td>
+          </tr>
+          <tr :if={@payments == []}>
+            <td colspan="4">No paid credit purchases yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
