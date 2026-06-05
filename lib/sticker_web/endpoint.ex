@@ -46,10 +46,19 @@ defmodule StickerWeb.Endpoint do
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
-    json_decoder: Phoenix.json_library()
+    json_decoder: Phoenix.json_library(),
+    body_reader: {__MODULE__, :cache_body, []}
 
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
   plug StickerWeb.Router
+
+  def cache_body(conn, opts) do
+    case Plug.Conn.read_body(conn, opts) do
+      {:ok, body, conn} -> {:ok, body, Plug.Conn.put_private(conn, :raw_body, body)}
+      {:more, body, conn} -> {:more, body, Plug.Conn.put_private(conn, :raw_body, body)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 end

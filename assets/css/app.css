@@ -683,17 +683,13 @@ html {
 }
 
 .saas-legal-page {
-  padding: 54px 0 72px;
+  padding: 62px 0 78px;
   background: var(--saas-soft);
 }
 
+.saas-page-shell,
 .saas-legal-card {
   max-width: 860px;
-  border: 1px solid var(--saas-line);
-  border-radius: 8px;
-  padding: 38px;
-  background: #fff;
-  box-shadow: 0 16px 42px rgba(24, 32, 51, 0.06);
 }
 
 .saas-legal-kicker {
@@ -704,23 +700,58 @@ html {
   text-transform: uppercase;
 }
 
+.saas-page-hero {
+  margin-bottom: 24px;
+}
+
+.saas-page-hero h1,
 .saas-legal-card h1 {
   margin: 0 0 18px;
   font-size: clamp(32px, 5vw, 48px);
   letter-spacing: 0;
 }
 
+.saas-page-hero p,
+.saas-legal-card p {
+  margin: 0;
+  color: var(--saas-muted);
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.saas-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.saas-policy-list {
+  display: grid;
+  gap: 18px;
+}
+
+.saas-info-panel,
+.saas-legal-card {
+  border: 1px solid var(--saas-line);
+  border-radius: 8px;
+  padding: 26px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(24, 32, 51, 0.06);
+}
+
+.saas-info-panel h2,
 .saas-legal-card h2 {
-  margin: 28px 0 10px;
+  margin: 0 0 10px;
   font-size: 22px;
 }
 
-.saas-legal-card p {
-  margin: 0 0 16px;
+.saas-info-panel p {
+  margin: 0 0 18px;
   color: var(--saas-muted);
-  line-height: 1.75;
+  line-height: 1.7;
 }
 
+.saas-info-panel a:not(.saas-button),
 .saas-legal-card a {
   color: var(--saas-brand-2);
   font-weight: 800;
@@ -1007,6 +1038,7 @@ html {
   .saas-feature-grid,
   .saas-pricing-grid,
   .saas-buy-grid,
+  .saas-info-grid,
   .saas-static-sticker-grid,
   .saas-generated-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1031,6 +1063,7 @@ html {
   .saas-feature-grid,
   .saas-pricing-grid,
   .saas-buy-grid,
+  .saas-info-grid,
   .saas-static-sticker-grid,
   .saas-generated-grid {
     grid-template-columns: 1fr;
@@ -1060,6 +1093,7 @@ html {
     flex-direction: column;
   }
 
+  .saas-info-panel,
   .saas-legal-card {
     padding: 26px 20px;
   }

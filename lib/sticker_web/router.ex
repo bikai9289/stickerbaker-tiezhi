@@ -52,6 +52,7 @@ defmodule StickerWeb.Router do
     delete "/users/log-out", UserSessionController, :delete
 
     get "/pricing", PageController, :pricing
+    post "/checkout", CheckoutController, :create
     get "/contact", PageController, :contact
     get "/privacy-policy", PageController, :privacy_policy
     get "/terms-of-service", PageController, :terms_of_service
@@ -65,6 +66,7 @@ defmodule StickerWeb.Router do
 
   scope "/webhooks", StickerWeb do
     post "/replicate", ReplicateWebhookController, :handle
+    post "/stripe", StripeWebhookController, :handle
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

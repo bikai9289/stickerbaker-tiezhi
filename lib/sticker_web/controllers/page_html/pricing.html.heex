@@ -4,8 +4,8 @@
       <p class="saas-legal-kicker">Pricing</p>
       <h1>Buy AI Sticker Credits</h1>
       <p>
-        Start with 3 free credits. When you need more, contact us and we can add credits manually
-        after payment while the automated checkout is being prepared.
+        Start with 3 free credits. Add more credits with secure checkout, then keep generating
+        text and face stickers from the same account.
       </p>
     </div>
 
@@ -24,25 +24,30 @@
         <h2>Starter</h2>
         <div class="saas-buy-price">$4.99</div>
         <p>50 credits for testing prompts, social stickers, and small creative batches.</p>
-        <.link class="saas-button saas-button-primary" navigate={~p"/contact"}>
-          Contact to Buy
-        </.link>
+        <.form action={~p"/checkout"} method="post">
+          <input type="hidden" name="plan" value="starter" />
+          <button class="saas-button saas-button-primary saas-plan-button">
+            Buy 50 Credits
+          </button>
+        </.form>
       </article>
 
       <article class="saas-buy-card">
         <h2>Creator</h2>
         <div class="saas-buy-price">$9.99</div>
         <p>150 credits for frequent generation, variations, and content experiments.</p>
-        <.link class="saas-button saas-button-ghost" navigate={~p"/contact"}>
-          Contact to Buy
-        </.link>
+        <.form action={~p"/checkout"} method="post">
+          <input type="hidden" name="plan" value="creator" />
+          <button class="saas-button saas-button-ghost saas-plan-button">
+            Buy 150 Credits
+          </button>
+        </.form>
       </article>
     </div>
 
     <div class="saas-buy-note">
-      <strong>Manual credit fulfillment:</strong>
-      Send us your account email and selected plan. After payment confirmation, credits can be
-      added from the admin dashboard.
+      <strong>Account checkout:</strong>
+      Sign in before purchase so completed payments can add credits to the right account.
     </div>
   </div>
 </section>
