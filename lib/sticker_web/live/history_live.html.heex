@@ -30,7 +30,7 @@
         </select>
       </.form>
 
-      <div :if={@local_user_id and MapSet.size(@selected_ids) > 0} class="saas-history-bulk">
+      <div :if={not is_nil(@local_user_id) and MapSet.size(@selected_ids) > 0} class="saas-history-bulk">
         <strong><%= MapSet.size(@selected_ids) %> selected</strong>
         <.link href={~p"/stickers/download?ids=#{selected_ids_param(@selected_ids)}"}>
           Download ZIP
@@ -40,7 +40,7 @@
       </div>
 
       <ul
-        :if={@local_user_id}
+        :if={not is_nil(@local_user_id)}
         id="predictions"
         phx-update="stream"
         role="list"
