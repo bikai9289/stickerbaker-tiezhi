@@ -1,7 +1,7 @@
 defmodule StickerWeb.ShowLive do
   use StickerWeb, :live_view
   alias Sticker.Predictions
-  alias StickerWeb.SEO
+  alias StickerWeb.SEO, as: PageSEO
 
   @num_results 21
 
@@ -32,7 +32,7 @@ defmodule StickerWeb.ShowLive do
     {:noreply,
      SEO.assign(
        socket,
-       SEO.page("/sticker/#{prediction.id}",
+       PageSEO.page("/sticker/#{prediction.id}",
          title: "AI Sticker: #{prediction.prompt}",
          description:
            "View and download an AI generated sticker for #{prediction.prompt}. Use it as sticker inspiration or regenerate a variation.",

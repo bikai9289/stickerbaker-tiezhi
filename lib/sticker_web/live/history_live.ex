@@ -1,7 +1,7 @@
 defmodule StickerWeb.HistoryLive do
   use StickerWeb, :live_view
   alias Sticker.Predictions
-  alias StickerWeb.SEO
+  alias StickerWeb.SEO, as: PageSEO
 
   def mount(_params, session, socket) do
     local_user_id = session["local_user_id"]
@@ -10,7 +10,7 @@ defmodule StickerWeb.HistoryLive do
     {:ok,
      socket
      |> SEO.assign(
-       SEO.noindex("/stickers",
+       PageSEO.noindex("/stickers",
          title: "Sticker History",
          description: "View and manage your generated AI sticker history, saved stickers, and downloads."
        )

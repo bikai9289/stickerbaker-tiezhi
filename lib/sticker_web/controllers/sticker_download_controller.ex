@@ -2,7 +2,7 @@ defmodule StickerWeb.StickerDownloadController do
   use StickerWeb, :controller
 
   alias Sticker.Predictions
-  alias StickerWeb.SEO
+  alias StickerWeb.SEO, as: PageSEO
 
   def show(conn, %{"id" => id} = params) do
     prediction = Predictions.get_prediction!(id)
@@ -10,7 +10,7 @@ defmodule StickerWeb.StickerDownloadController do
     conn =
       SEO.assign(
         conn,
-        SEO.noindex("/sticker/#{prediction.id}/download",
+        PageSEO.noindex("/sticker/#{prediction.id}/download",
           title: "Sticker Download",
           description: "Download a generated AI sticker file."
         )

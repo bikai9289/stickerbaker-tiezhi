@@ -1,6 +1,6 @@
 defmodule StickerWeb.SearchLive do
   use StickerWeb, :live_view
-  alias StickerWeb.SEO
+  alias StickerWeb.SEO, as: PageSEO
 
   @num_results 50
 
@@ -22,7 +22,7 @@ defmodule StickerWeb.SearchLive do
      )
      |> stream(:results, [])
      |> SEO.assign(
-       SEO.page("/search",
+       PageSEO.page("/search",
          title: "AI Sticker Search - Find Sticker Ideas Online",
          description:
            "Search AI generated stickers for prompt ideas, cute sticker examples, mascot concepts, and reusable inspiration for your next sticker design.",

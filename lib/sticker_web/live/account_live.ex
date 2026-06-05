@@ -3,13 +3,13 @@ defmodule StickerWeb.AccountLive do
 
   alias Sticker.Payments
   alias Sticker.Predictions
-  alias StickerWeb.SEO
+  alias StickerWeb.SEO, as: PageSEO
 
   def mount(_params, _session, %{assigns: %{current_user: nil}} = socket) do
     {:ok,
      socket
      |> SEO.assign(
-       SEO.noindex("/account",
+       PageSEO.noindex("/account",
          title: "AI Sticker Maker Account",
          description: "Manage AI Sticker Maker credits, saved stickers, generation history, and billing records."
        )
@@ -25,7 +25,7 @@ defmodule StickerWeb.AccountLive do
     {:ok,
      socket
      |> SEO.assign(
-       SEO.noindex("/account",
+       PageSEO.noindex("/account",
          title: "AI Sticker Maker Account",
          description: "Manage AI Sticker Maker credits, saved stickers, generation history, and billing records."
        )

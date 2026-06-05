@@ -3,14 +3,14 @@ defmodule StickerWeb.UserRegistrationController do
 
   alias Sticker.Accounts
   alias StickerWeb.UserSessionController
-  alias StickerWeb.SEO
+  alias StickerWeb.SEO, as: PageSEO
 
   def new(conn, _params) do
     changeset = Accounts.change_user_registration()
 
     conn
     |> SEO.assign(
-      SEO.noindex("/users/register",
+      PageSEO.noindex("/users/register",
         title: "Create Account",
         description: "Create an AI Sticker Maker account to manage credits and sticker history."
       )
@@ -28,7 +28,7 @@ defmodule StickerWeb.UserRegistrationController do
       {:error, changeset} ->
         conn
         |> SEO.assign(
-          SEO.noindex("/users/register",
+          PageSEO.noindex("/users/register",
             title: "Create Account",
             description: "Create an AI Sticker Maker account to manage credits and sticker history."
           )

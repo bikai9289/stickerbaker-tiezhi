@@ -3,12 +3,12 @@ defmodule StickerWeb.UserSessionController do
 
   alias Sticker.Accounts
   alias Sticker.Predictions
-  alias StickerWeb.SEO
+  alias StickerWeb.SEO, as: PageSEO
 
   def new(conn, _params) do
     conn
     |> SEO.assign(
-      SEO.noindex("/users/log-in",
+      PageSEO.noindex("/users/log-in",
         title: "Sign In",
         description: "Sign in to AI Sticker Maker to manage credits, sticker history, and downloads."
       )
@@ -25,7 +25,7 @@ defmodule StickerWeb.UserSessionController do
         conn
         |> put_flash(:error, "Invalid email or password.")
         |> SEO.assign(
-          SEO.noindex("/users/log-in",
+          PageSEO.noindex("/users/log-in",
             title: "Sign In",
             description: "Sign in to AI Sticker Maker to manage credits, sticker history, and downloads."
           )
