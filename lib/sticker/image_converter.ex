@@ -29,14 +29,16 @@ defmodule Sticker.ImageConverter do
     input_path = Path.join(tmp_dir, "sticker-#{unique}.#{from_format}")
     output_path = Path.join(tmp_dir, "sticker-#{unique}.#{to_format}")
 
-    with :ok <- File.write(input_path, binary),
-         {:ok, command} <- imagemagick_command(),
-         {_output, 0} <- System.cmd(command, [input_path, output_path], stderr_to_stdout: true),
-         {:ok, converted} <- File.read(output_path) do
-      {:ok, converted}
-    else
-      {_output, _status} -> {:error, :conversion_failed}
-      error -> error
+    try do
+      with :ok <- File.write(input_path, binary),
+           {:ok, command} <- imagemagick_command(),
+           {_output, 0} <- System.cmd(command, [input_path, output_path], stderr_to_stdout: true),
+           {:ok, converted} <- File.read(output_path) do
+        {:ok, converted}
+      else
+        {_output, _status} -> {:error, :conversion_failed}
+        error -> error
+      end
     after
       File.rm(input_path)
       File.rm(output_path)
