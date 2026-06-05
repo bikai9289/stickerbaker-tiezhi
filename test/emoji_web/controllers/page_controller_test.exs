@@ -99,7 +99,7 @@ defmodule StickerWeb.PageControllerTest do
   test "registration requires captcha and email confirmation before free credits", %{conn: conn} do
     conn = get(conn, ~p"/users/register")
     body = html_response(conn, 200)
-    assert body =~ "Security check"
+    assert body =~ "Captcha security check"
 
     captcha_answer = get_session(conn, :captcha_answer)
 
