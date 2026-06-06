@@ -14,7 +14,13 @@ defmodule Sticker.OpenAIImage do
       tool_choice: %{type: "image_generation"}
     }
 
-    case Req.post(url: responses_url(), json: body, headers: headers()) do
+    case Req.post(
+           url: responses_url(),
+           json: body,
+           headers: headers(),
+           receive_timeout: timeout_ms(),
+           connect_options: [timeout: timeout_ms()]
+         ) do
       {:ok, %{status: status, body: body}} when status in 200..299 ->
         parse_response(body)
 
@@ -61,5 +67,11 @@ defmodule Sticker.OpenAIImage do
 
   defp model do
     System.get_env("OPENAI_IMAGE_MODEL", "gpt-image-2")
+  end
+
+  defp timeout_ms do
+    "180000"
+    |> then(&System.get_env("OPENAI_IMAGE_TIMEOUT_MS", &1))
+    |> String.to_integer()
   end
 end
