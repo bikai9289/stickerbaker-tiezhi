@@ -8,11 +8,9 @@ defmodule StickerWeb.HomeLive do
   @accepted ~w(.jpg .jpeg .png)
   @face_sticker_prompt "A cute, clean portrait sticker with a white border, expressive face, simple background, high quality"
   @max_batch_prompts 5
-  @showcase_limit 8
 
   def mount(_params, session, socket) do
     loading_predictions = Predictions.list_loading_predictions(session["local_user_id"])
-    showcase_predictions = Predictions.list_featured_showcase_predictions(@showcase_limit)
 
     {:ok,
      socket
@@ -25,7 +23,7 @@ defmodule StickerWeb.HomeLive do
      )
      |> assign(form: to_form(%{"prompt" => ""}))
      |> assign(local_user_id: session["local_user_id"])
-     |> assign(:showcase_items, showcase_items(showcase_predictions))
+     |> assign(:showcase_items, showcase_items())
      |> stream(:my_predictions, loading_predictions)
      |> allow_upload(:image,
        accept: @accepted,
@@ -380,74 +378,57 @@ defmodule StickerWeb.HomeLive do
   defp showcase_fallbacks do
     [
       %{
-        image: "/images/arnold.png",
-        alt: "Retro action hero portrait sticker example",
-        label: "Retro Action Hero",
+        image: "/images/showcase/red-haired-avatar.png",
+        alt: "Red-haired character avatar sticker example",
+        label: "Red-Haired Avatar",
         tag: "Avatar"
       },
       %{
-        image: "/images/chef.png",
-        alt: "Smiling chef character sticker example",
-        label: "Chef Character",
+        image: "/images/showcase/cute-girl-cats.png",
+        alt: "Cute girl with cats sticker example",
+        label: "Cute Girl & Cats",
         tag: "People"
       },
       %{
-        image: "/images/airplane.png",
-        alt: "Paper airplane travel sticker example",
-        label: "Paper Plane",
-        tag: "Travel"
+        image: "/images/showcase/stylish-couple.png",
+        alt: "Stylish couple sticker example",
+        label: "Stylish Couple",
+        tag: "Couple"
       },
       %{
-        image: "/images/thumbs-up.png",
-        alt: "Thumbs up sticker example",
-        label: "Thumbs Up",
-        tag: "Emoji"
+        image: "/images/showcase/hanfu-portrait.png",
+        alt: "Traditional outfit portrait sticker example",
+        label: "Hanfu Portrait",
+        tag: "Avatar"
       },
       %{
-        image: "/images/oven.png",
-        alt: "Oven sticker example",
-        label: "Baker Oven",
-        tag: "Object"
+        image: "/images/showcase/anime-boy-avatar.png",
+        alt: "Anime boy avatar sticker example",
+        label: "Anime Boy",
+        tag: "Avatar"
       },
       %{
-        image: "/images/save.png",
-        alt: "Save icon character sticker example",
-        label: "Helpful Save Bot",
-        tag: "Tool"
+        image: "/images/showcase/bearded-character.png",
+        alt: "Bearded character portrait sticker example",
+        label: "Bearded Character",
+        tag: "People"
       },
       %{
-        image: "/images/search.png",
-        alt: "Search character sticker example",
-        label: "Search Buddy",
-        tag: "Ideas"
+        image: "/images/showcase/banana-cat.png",
+        alt: "Cute cat holding a banana sticker example",
+        label: "Banana Cat",
+        tag: "Animal"
       },
       %{
-        image: "/images/new.png",
-        alt: "New badge sticker example",
-        label: "Fresh Drop Badge",
-        tag: "Trend"
+        image: "/images/showcase/calico-cat.png",
+        alt: "Calico cat portrait sticker example",
+        label: "Calico Cat",
+        tag: "Animal"
       }
     ]
   end
 
-  defp showcase_items(predictions) do
-    prediction_items =
-      Enum.map(predictions, fn prediction ->
-        %{
-          type: :prediction,
-          id: prediction.id,
-          image: prediction.sticker_output,
-          alt: prediction.prompt,
-          label: prediction.prompt,
-          tag: if(prediction.score > 0, do: "Hot", else: "New")
-        }
-      end)
-
-    fallback_items =
-      showcase_fallbacks()
-      |> Enum.take(@showcase_limit - length(prediction_items))
-      |> Enum.map(&Map.put(&1, :type, :fallback))
-
-    prediction_items ++ fallback_items
+  defp showcase_items do
+    Enum.map(showcase_fallbacks(), &Map.put(&1, :type, :fallback))
   end
 end
