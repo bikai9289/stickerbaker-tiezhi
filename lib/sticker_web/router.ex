@@ -85,6 +85,7 @@ defmodule StickerWeb.Router do
   scope "/webhooks", StickerWeb do
     post "/replicate", ReplicateWebhookController, :handle
     post "/stripe", StripeWebhookController, :handle
+    post "/creem", CreemWebhookController, :handle
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

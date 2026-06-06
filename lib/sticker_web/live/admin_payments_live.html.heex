@@ -3,7 +3,7 @@
     <div>
       <p class="admin-kicker">Admin</p>
       <h1>Payment Records</h1>
-      <p>Review Stripe checkout events that added credits to user accounts.</p>
+      <p>Review checkout events that added credits to user accounts.</p>
     </div>
     <div class="admin-header-actions">
       <.link class="saas-button saas-button-ghost" navigate={~p"/admin/users"}>User Credits</.link>
@@ -16,16 +16,18 @@
       <thead>
         <tr>
           <th>User</th>
+          <th>Provider</th>
           <th>Plan</th>
           <th>Credits</th>
-          <th>Stripe Session</th>
-          <th>Stripe Event</th>
+          <th>Checkout ID</th>
+          <th>Event ID</th>
           <th>Date</th>
         </tr>
       </thead>
       <tbody>
         <tr :for={payment <- @payments}>
           <td><%= if user = @users[payment.user_id], do: user.email, else: "Unknown user" %></td>
+          <td><%= payment.provider || "stripe" %></td>
           <td><%= payment.plan || "credits" %></td>
           <td><span class="saas-credit-pill"><%= payment.credits %></span></td>
           <td><code><%= payment.stripe_session_id %></code></td>
@@ -33,7 +35,7 @@
           <td><%= Calendar.strftime(payment.inserted_at, "%Y-%m-%d %H:%M") %></td>
         </tr>
         <tr :if={@payments == []}>
-          <td colspan="6">No payment records yet.</td>
+          <td colspan="7">No payment records yet.</td>
         </tr>
       </tbody>
     </table>

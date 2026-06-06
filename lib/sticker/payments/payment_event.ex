@@ -5,6 +5,7 @@ defmodule Sticker.Payments.PaymentEvent do
   schema "payment_events" do
     field :stripe_session_id, :string
     field :stripe_event_id, :string
+    field :provider, :string, default: "stripe"
     field :user_id, :integer
     field :credits, :integer
     field :plan, :string
@@ -14,8 +15,9 @@ defmodule Sticker.Payments.PaymentEvent do
 
   def changeset(payment_event, attrs) do
     payment_event
-    |> cast(attrs, [:stripe_session_id, :stripe_event_id, :user_id, :credits, :plan])
+    |> cast(attrs, [:stripe_session_id, :stripe_event_id, :provider, :user_id, :credits, :plan])
     |> validate_required([:stripe_session_id, :user_id, :credits])
+    |> validate_inclusion(:provider, ["stripe", "creem"])
     |> validate_number(:credits, greater_than: 0)
     |> unique_constraint(:stripe_session_id)
   end
