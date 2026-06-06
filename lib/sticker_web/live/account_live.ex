@@ -18,15 +18,6 @@ defmodule StickerWeb.AccountLive do
      |> push_navigate(to: ~p"/users/log-in")}
   end
 
-  def handle_params(%{"checkout" => "success"}, _uri, socket) do
-    {:noreply,
-     socket
-     |> refresh_account_data()
-     |> put_flash(:info, "Payment received. Credits may take a moment to appear.")}
-  end
-
-  def handle_params(_params, _uri, socket), do: {:noreply, socket}
-
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
     user_id = user.public_id
@@ -48,6 +39,15 @@ defmodule StickerWeb.AccountLive do
      |> stream(:recent_predictions, Predictions.list_user_recent_predictions(user_id, 12))
      |> stream(:favorite_predictions, Predictions.list_user_favorite_predictions(user_id))}
   end
+
+  def handle_params(%{"checkout" => "success"}, _uri, socket) do
+    {:noreply,
+     socket
+     |> refresh_account_data()
+     |> put_flash(:info, "Payment received. Credits may take a moment to appear.")}
+  end
+
+  def handle_params(_params, _uri, socket), do: {:noreply, socket}
 
   def handle_info({event, prediction}, socket)
       when event in [:prediction_loading, :prediction_completed, :prediction_failed] do
