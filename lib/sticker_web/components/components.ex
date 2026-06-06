@@ -52,12 +52,13 @@ defmodule StickerWeb.Components do
           <div class="saas-generated-placeholder">
             <div role="status" class="saas-card-status">
               <%= if @prediction.status in [:failed, nil] do %>
-                <strong><%= status_label(@prediction.status) %></strong>
-                <span><%= status_hint(@prediction.status) %></span>
+                <strong><%= status_label(@prediction) %></strong>
+                <span><%= status_hint(@prediction) %></span>
+                <span :if={credit_returned?(@prediction)} class="saas-status-pill">Credit returned</span>
               <% else %>
                 <span class="saas-card-spinner"></span>
-                <strong><%= status_label(@prediction.status) %></strong>
-                <span><%= status_hint(@prediction.status) %></span>
+                <strong><%= status_label(@prediction) %></strong>
+                <span><%= status_hint(@prediction) %></span>
               <% end %>
             </div>
           </div>
@@ -90,17 +91,20 @@ defmodule StickerWeb.Components do
     """
   end
 
-  defp status_label(:processing), do: "Processing"
-  defp status_label(:moderation_succeeded), do: "Queued"
-  defp status_label(:starting), do: "Starting"
-  defp status_label(:failed), do: "Failed"
-  defp status_label(nil), do: "Unavailable"
-  defp status_label(_status), do: "Generating"
+  defp status_label(%{status: :processing}), do: "Processing"
+  defp status_label(%{status: :moderation_succeeded}), do: "Queued"
+  defp status_label(%{status: :starting}), do: "Starting"
+  defp status_label(%{status: :failed}), do: "No result"
+  defp status_label(%{status: nil}), do: "Unavailable"
+  defp status_label(_prediction), do: "Generating"
 
-  defp status_hint(:processing), do: "The image service is still working. Check history later."
-  defp status_hint(:moderation_succeeded), do: "Queued for image generation."
-  defp status_hint(:starting), do: "Generation is being prepared."
-  defp status_hint(:failed), do: "Regenerate or try a simpler prompt."
-  defp status_hint(nil), do: "This older generation did not finish."
-  defp status_hint(_status), do: "Waiting for the generated image."
+  defp status_hint(%{status: :processing}), do: "The image service is still working."
+  defp status_hint(%{status: :moderation_succeeded}), do: "Queued for image generation."
+  defp status_hint(%{status: :starting}), do: "Generation is being prepared."
+  defp status_hint(%{status: :failed}), do: "Try again or use a clearer portrait."
+  defp status_hint(%{status: nil}), do: "This older generation did not finish."
+  defp status_hint(_prediction), do: "Waiting for the generated image."
+
+  defp credit_returned?(%{status: :failed, credit_refunded: true}), do: true
+  defp credit_returned?(_prediction), do: false
 end

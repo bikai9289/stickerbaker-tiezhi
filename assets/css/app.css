@@ -659,6 +659,21 @@ html {
   color: var(--saas-ink);
 }
 
+.saas-status-pill,
+.saas-refund-note {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid #bdeedb;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .saas-card-spinner {
   width: 28px;
   height: 28px;

@@ -5,16 +5,19 @@
         <%= if is_nil(@prediction.sticker_output) do %>
           <div class="saas-detail-loading">
             <span :if={@prediction.status != :failed} class="saas-card-spinner"></span>
-            <strong><%= @prediction.status || :starting %></strong>
+            <strong><%= if @prediction.status == :failed, do: "No sticker was created", else: @prediction.status || :starting %></strong>
             <p>
               <%= if @prediction.status == :failed do %>
-                Generation failed. The credit has been returned when the failure was detected.
+                The image service did not return a usable result this time.
               <% else %>
                 Generation can take a few minutes. This page updates automatically.
               <% end %>
             </p>
-            <p :if={@prediction.status == :failed and @prediction.failure_stage}>
-              <%= @prediction.failure_stage %>: <%= @prediction.failure_reason %>
+            <p :if={@prediction.status == :failed and @prediction.credit_refunded} class="saas-refund-note">
+              No credit was consumed. The credit has already been returned.
+            </p>
+            <p :if={@prediction.status == :failed} class="saas-section-copy">
+              Try regenerating, or upload a clearer front-facing portrait with good lighting.
             </p>
           </div>
         <% else %>
@@ -81,6 +84,13 @@
           <.link class="saas-button saas-button-ghost" navigate={~p"/?prompt=#{@prediction.prompt}"}>
             Regenerate
           </.link>
+          <.link
+            :if={@prediction.status == :failed and @prediction.model == "face-to-sticker"}
+            class="saas-button saas-button-ghost"
+            navigate={~p"/#upload"}
+          >
+            Upload Again
+          </.link>
           <.link class="saas-button saas-button-ghost" navigate={~p"/?prompt=#{@prediction.prompt <> " variation"}"}>
             Make Variation
           </.link>
@@ -99,6 +109,13 @@
           >
             Delete
           </button>
+          <a
+            :if={@prediction.status == :failed}
+            class="saas-button saas-button-ghost"
+            href="mailto:support@ai-sticker-maker.com"
+          >
+            Contact Support
+          </a>
         </div>
 
         <div class="saas-buy-note">

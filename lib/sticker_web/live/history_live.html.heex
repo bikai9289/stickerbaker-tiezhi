@@ -122,8 +122,11 @@
               </button>
               <.link navigate={~p"/?prompt=#{prediction.prompt}"}>Regenerate</.link>
               <.link navigate={~p"/?prompt=#{prediction.prompt <> " variation"}"}>Variation</.link>
-              <span :if={prediction.status == :failed and prediction.failure_stage}>
-                <%= prediction.failure_stage %>
+              <span :if={prediction.status == :failed and prediction.credit_refunded}>
+                Credit returned
+              </span>
+              <span :if={prediction.status == :failed and not prediction.credit_refunded}>
+                Needs review
               </span>
               <button phx-click="delete" phx-value-id={prediction.id}>Delete</button>
             </div>
