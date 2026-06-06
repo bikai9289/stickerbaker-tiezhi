@@ -64,16 +64,20 @@ defmodule Sticker.Embeddings do
     embedding_binary = find_or_create_embedding(query)
     embedding = Nx.from_binary(embedding_binary, :f32)
 
-    %{labels: labels, distances: distances} =
-      Sticker.Embeddings.Index.search_text(embedding, num_results)
+    case Sticker.Embeddings.Index.search_text(embedding, num_results) do
+      %{labels: labels, distances: distances} ->
+        ids = Nx.to_flat_list(labels)
+        distances = Nx.to_flat_list(distances)
 
-    ids = Nx.to_flat_list(labels)
-    distances = Nx.to_flat_list(distances)
+        Enum.zip_with(ids, distances, fn id, distance ->
+          prediction = Sticker.Predictions.get_prediction!(id)
+          {prediction, distance}
+        end)
+        |> Enum.sort_by(fn {_prediction, distance} -> distance end)
 
-    Enum.zip_with(ids, distances, fn id, distance ->
-      prediction = Sticker.Predictions.get_prediction!(id)
-      {prediction, distance}
-    end)
-    |> Enum.sort_by(fn {_prediction, distance} -> distance end)
+      {:error, reason} ->
+        Logger.warning("Sticker search unavailable: #{inspect(reason)}")
+        []
+    end
   end
 end

@@ -55,13 +55,23 @@ defmodule Sticker.Embeddings.Index do
   end
 
   def handle_call({:search_text, embedding, k}, _from, %{text_index: index} = index_dict) do
-    {:ok, labels, dists} = HNSWLib.Index.knn_query(index, embedding, k: k)
-    {:reply, %{labels: labels, distances: dists}, index_dict}
+    reply =
+      case HNSWLib.Index.knn_query(index, embedding, k: k) do
+        {:ok, labels, dists} -> %{labels: labels, distances: dists}
+        {:error, reason} -> {:error, reason}
+      end
+
+    {:reply, reply, index_dict}
   end
 
   def handle_call({:search_images, embedding, k}, _from, %{image_index: index} = index_dict) do
-    {:ok, labels, dists} = HNSWLib.Index.knn_query(index, embedding, k: k)
-    {:reply, %{labels: labels, distances: dists}, index_dict}
+    reply =
+      case HNSWLib.Index.knn_query(index, embedding, k: k) do
+        {:ok, labels, dists} -> %{labels: labels, distances: dists}
+        {:error, reason} -> {:error, reason}
+      end
+
+    {:reply, reply, index_dict}
   end
 
   def terminate(reason, _state) do
