@@ -201,104 +201,33 @@
         </p>
       </div>
 
-      <div :if={@page == 0} class="saas-static-sticker-grid">
-        <%= if @showcase_predictions == [] and @showcase_fallbacks != [] do %>
-          <article class="saas-sticker-card">
-            <div class="saas-sticker-art">
-              <span class="saas-sticker-visual">
-                <img src="/images/chef.png" alt="Chef sticker example" />
-              </span>
-            </div>
-            <div class="saas-sticker-meta">
-              <div class="saas-sticker-label">Chef Mascot</div>
-              <div class="saas-tag">Cute</div>
-            </div>
-          </article>
-          <article class="saas-sticker-card">
-            <div class="saas-sticker-art">
-              <span class="saas-sticker-visual">
-                <img src="/images/airplane.png" alt="Airplane sticker example" />
-              </span>
-            </div>
-            <div class="saas-sticker-meta">
-              <div class="saas-sticker-label">Rocket Sticker</div>
-              <div class="saas-tag">Travel</div>
-            </div>
-          </article>
-          <article class="saas-sticker-card">
-            <div class="saas-sticker-art">
-              <span class="saas-sticker-visual">
-                <img src="/images/thumbs-up.png" alt="Thumbs up sticker example" />
-              </span>
-            </div>
-            <div class="saas-sticker-meta">
-              <div class="saas-sticker-label">Thumbs Up</div>
-              <div class="saas-tag">Mascot</div>
-            </div>
-          </article>
-          <article class="saas-sticker-card">
-            <div class="saas-sticker-art">
-              <span class="saas-sticker-visual">
-                <img src="/images/oven.png" alt="Oven sticker example" />
-              </span>
-            </div>
-            <div class="saas-sticker-meta">
-              <div class="saas-sticker-label">Baker Oven</div>
-              <div class="saas-tag">Cozy</div>
-            </div>
-          </article>
-        <% else %>
-          <.link
-            :for={prediction <- @showcase_predictions}
-            navigate={~p"/sticker/#{prediction.id}"}
-            class="saas-sticker-card saas-real-sticker-card"
-          >
-            <div class="saas-sticker-art">
-              <img
-                src={prediction.sticker_output}
-                alt={prediction.prompt}
-                class="saas-showcase-image"
-              />
-            </div>
-            <div class="saas-sticker-meta">
-              <div class="saas-sticker-label"><%= prediction.prompt %></div>
-              <div class="saas-tag"><%= if prediction.score > 0, do: "Hot", else: "New" %></div>
-            </div>
-          </.link>
-
-          <article :for={fallback <- @showcase_fallbacks} class="saas-sticker-card">
-            <div class="saas-sticker-art">
-              <span class="saas-sticker-visual">
-                <img src={fallback.image} alt={fallback.alt} />
-              </span>
-            </div>
-            <div class="saas-sticker-meta">
-              <div class="saas-sticker-label"><%= fallback.label %></div>
-              <div class="saas-tag"><%= fallback.tag %></div>
-            </div>
-          </article>
+      <div class="saas-static-sticker-grid saas-showcase-grid">
+        <%= for item <- @showcase_items do %>
+          <%= if item.type == :prediction do %>
+            <.link
+              navigate={~p"/sticker/#{item.id}"}
+              class="saas-sticker-card saas-real-sticker-card"
+            >
+              <div class="saas-sticker-art">
+                <img src={item.image} alt={item.alt} class="saas-showcase-image" />
+              </div>
+              <div class="saas-sticker-meta">
+                <div class="saas-sticker-label"><%= item.label %></div>
+                <div class="saas-tag"><%= item.tag %></div>
+              </div>
+            </.link>
+          <% else %>
+            <article class="saas-sticker-card saas-fallback-sticker-card">
+              <div class="saas-sticker-art">
+                <img src={item.image} alt={item.alt} class="saas-showcase-image" />
+              </div>
+              <div class="saas-sticker-meta">
+                <div class="saas-sticker-label"><%= item.label %></div>
+                <div class="saas-tag"><%= item.tag %></div>
+              </div>
+            </article>
+          <% end %>
         <% end %>
-      </div>
-
-      <ul
-        id="latest-predictions"
-        phx-update="stream"
-        role="list"
-        class="saas-generated-grid saas-live-latest"
-      >
-        <li :for={{id, prediction} <- @streams.latest_predictions} id={id}>
-          <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
-        </li>
-      </ul>
-
-      <div
-        :if={@page + 1 < @max_pages}
-        id="latest-load-more"
-        class="saas-load-sentinel"
-        phx-viewport-bottom="load-more"
-      >
-        <span class="saas-card-spinner"></span>
-        <span>Loading more stickers...</span>
       </div>
     </div>
   </section>

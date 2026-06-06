@@ -265,7 +265,7 @@ defmodule Sticker.Predictions do
     |> Repo.all()
   end
 
-  def list_featured_showcase_predictions(limit \\ 4) do
+  def list_featured_showcase_predictions(limit \\ 8) do
     from(p in Prediction,
       where: not is_nil(p.sticker_output) and p.is_featured == true,
       order_by: [desc: p.score, desc: p.updated_at],

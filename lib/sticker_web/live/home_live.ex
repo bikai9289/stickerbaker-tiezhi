@@ -8,18 +8,11 @@ defmodule StickerWeb.HomeLive do
   @accepted ~w(.jpg .jpeg .png)
   @face_sticker_prompt "A cute, clean portrait sticker with a white border, expressive face, simple background, high quality"
   @max_batch_prompts 5
+  @showcase_limit 8
 
   def mount(_params, session, socket) do
-    page = 0
-    per_page = 20
-    max_pages = ceil(Predictions.number_moderated_predictions() / per_page)
-
     loading_predictions = Predictions.list_loading_predictions(session["local_user_id"])
-    showcase_predictions = Predictions.list_featured_showcase_predictions(4)
-
-    if connected?(socket) do
-      Phoenix.PubSub.subscribe(Sticker.PubSub, "safe-prediction-firehose")
-    end
+    showcase_predictions = Predictions.list_featured_showcase_predictions(@showcase_limit)
 
     {:ok,
      socket
@@ -32,13 +25,8 @@ defmodule StickerWeb.HomeLive do
      )
      |> assign(form: to_form(%{"prompt" => ""}))
      |> assign(local_user_id: session["local_user_id"])
-     |> assign(page: page)
-     |> assign(per_page: per_page)
-     |> assign(max_pages: max_pages)
-     |> assign(:showcase_predictions, showcase_predictions)
-     |> assign(:showcase_fallbacks, Enum.drop(showcase_fallbacks(), length(showcase_predictions)))
+     |> assign(:showcase_items, showcase_items(showcase_predictions))
      |> stream(:my_predictions, loading_predictions)
-     |> stream(:latest_predictions, Predictions.list_latest_safe_predictions(page, per_page))
      |> allow_upload(:image,
        accept: @accepted,
        max_entries: 1,
@@ -54,18 +42,6 @@ defmodule StickerWeb.HomeLive do
 
   def handle_params(_params, _, socket) do
     {:noreply, socket}
-  end
-
-  def handle_event("load-more", _, %{assigns: assigns} = socket) do
-    next_page = assigns.page + 1
-
-    latest_predictions =
-      Predictions.list_latest_safe_predictions(next_page, socket.assigns.per_page)
-
-    {:noreply,
-     socket
-     |> assign(page: next_page)
-     |> stream(:latest_predictions, latest_predictions)}
   end
 
   def handle_event("validate", %{"prompt" => prompt}, socket) do
@@ -132,10 +108,6 @@ defmodule StickerWeb.HomeLive do
          |> assign(current_user: current_user)
          |> put_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
     end
-  end
-
-  def handle_info({:new_prediction, prediction}, socket) do
-    {:noreply, socket |> stream_insert(:latest_predictions, prediction, at: 0)}
   end
 
   def handle_info({:kick_off_sticker, prediction}, socket) do
@@ -408,29 +380,75 @@ defmodule StickerWeb.HomeLive do
   defp showcase_fallbacks do
     [
       %{
+        image: "/images/arnold.png",
+        alt: "Retro action hero portrait sticker example",
+        label: "Retro Action Hero",
+        tag: "Avatar"
+      },
+      %{
         image: "/images/chef.png",
-        alt: "Chef sticker example",
-        label: "Chef Mascot",
-        tag: "Cute"
+        alt: "Smiling chef character sticker example",
+        label: "Chef Character",
+        tag: "People"
       },
       %{
         image: "/images/airplane.png",
-        alt: "Airplane sticker example",
-        label: "Rocket Sticker",
+        alt: "Paper airplane travel sticker example",
+        label: "Paper Plane",
         tag: "Travel"
       },
       %{
         image: "/images/thumbs-up.png",
         alt: "Thumbs up sticker example",
         label: "Thumbs Up",
-        tag: "Mascot"
+        tag: "Emoji"
       },
       %{
         image: "/images/oven.png",
         alt: "Oven sticker example",
         label: "Baker Oven",
-        tag: "Cozy"
+        tag: "Object"
+      },
+      %{
+        image: "/images/save.png",
+        alt: "Save icon character sticker example",
+        label: "Helpful Save Bot",
+        tag: "Tool"
+      },
+      %{
+        image: "/images/search.png",
+        alt: "Search character sticker example",
+        label: "Search Buddy",
+        tag: "Ideas"
+      },
+      %{
+        image: "/images/new.png",
+        alt: "New badge sticker example",
+        label: "Fresh Drop Badge",
+        tag: "Trend"
       }
     ]
+  end
+
+  defp showcase_items(predictions) do
+    prediction_items =
+      Enum.map(predictions, fn prediction ->
+        %{
+          type: :prediction,
+          id: prediction.id,
+          image: prediction.sticker_output,
+          alt: prediction.prompt,
+          label: prediction.prompt,
+          tag: if(prediction.score > 0, do: "Hot", else: "New")
+        }
+      end)
+
+    fallback_items =
+      showcase_fallbacks()
+      |> Enum.drop(length(prediction_items))
+      |> Enum.take(@showcase_limit - length(prediction_items))
+      |> Enum.map(&Map.put(&1, :type, :fallback))
+
+    prediction_items ++ fallback_items
   end
 end
