@@ -201,7 +201,7 @@ defmodule Sticker.Payments do
     refund_provider_checkout("creem", order_id, checkout_id, refund_event_id)
   end
 
-  defp fulfill_provider_checkout(provider, session_id, event_id, metadata, provider_order_id \\ nil) do
+  defp fulfill_provider_checkout(provider, session_id, event_id, metadata, provider_order_id) do
     with true <- is_binary(session_id) and session_id != "",
          %{"user_id" => user_id, "credits" => credits} <- metadata,
          {user_id, ""} <- Integer.parse(user_id),
