@@ -16,6 +16,7 @@ defmodule Sticker.PaymentsTest do
       "eventType" => "checkout.completed",
       "object" => %{
         "id" => "ch_creem_123",
+        "order" => "ord_creem_123",
         "metadata" => %{
           "user_id" => Integer.to_string(user.id),
           "credits" => "50",
@@ -29,9 +30,53 @@ defmodule Sticker.PaymentsTest do
 
     payment = Repo.get_by!(PaymentEvent, stripe_session_id: "ch_creem_123")
     assert payment.provider == "creem"
+    assert payment.provider_order_id == "ord_creem_123"
     assert payment.stripe_event_id == "evt_creem_123"
     assert payment.credits == 50
     assert payment.plan == "starter"
+  end
+
+  test "refund_creem_checkout/2 deducts original credits once without going below zero" do
+    user = user_fixture()
+
+    checkout_event = %{
+      "id" => "evt_creem_checkout",
+      "eventType" => "checkout.completed",
+      "object" => %{
+        "id" => "ch_creem_refund",
+        "order" => "ord_creem_refund",
+        "metadata" => %{
+          "user_id" => Integer.to_string(user.id),
+          "credits" => "50",
+          "plan" => "starter"
+        }
+      }
+    }
+
+    assert :ok = Payments.fulfill_creem_checkout(checkout_event, checkout_event["id"])
+    assert Accounts.get_user(user.id).credits == user.credits + 50
+
+    {:ok, user_after_spend} = Accounts.deduct_credits(user.id, user.credits + 30)
+    assert user_after_spend.credits == 20
+
+    refund_event = %{
+      "id" => "evt_creem_refund",
+      "eventType" => "refund.created",
+      "object" => %{
+        "id" => "ref_creem_123",
+        "order" => "ord_creem_refund"
+      }
+    }
+
+    assert :ok = Payments.refund_creem_checkout(refund_event, refund_event["id"])
+    assert Accounts.get_user(user.id).credits == 0
+
+    payment = Repo.get_by!(PaymentEvent, stripe_session_id: "ch_creem_refund")
+    assert payment.refund_event_id == "evt_creem_refund"
+    assert payment.refunded_at
+
+    assert :ok = Payments.refund_creem_checkout(refund_event, refund_event["id"])
+    assert Accounts.get_user(user.id).credits == 0
   end
 
   test "verify_creem_webhook/2 validates HMAC signature" do

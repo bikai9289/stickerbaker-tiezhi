@@ -188,11 +188,20 @@ defmodule Sticker.Payments do
     checkout = get_in(event, ["data", "object"]) || Map.get(event, "object", event)
     metadata = Map.get(checkout, "metadata", %{})
     session_id = checkout["id"] || checkout["checkout_id"] || creem_event_id
+    order_id = checkout["order"] || checkout["order_id"] || get_in(checkout, ["transaction", "order"])
 
-    fulfill_provider_checkout("creem", session_id, creem_event_id, metadata)
+    fulfill_provider_checkout("creem", session_id, creem_event_id, metadata, order_id)
   end
 
-  defp fulfill_provider_checkout(provider, session_id, event_id, metadata) do
+  def refund_creem_checkout(event, refund_event_id) do
+    refund = get_in(event, ["data", "object"]) || Map.get(event, "object", event)
+    order_id = refund["order"] || refund["order_id"] || get_in(refund, ["transaction", "order"])
+    checkout_id = refund["checkout"] || refund["checkout_id"]
+
+    refund_provider_checkout("creem", order_id, checkout_id, refund_event_id)
+  end
+
+  defp fulfill_provider_checkout(provider, session_id, event_id, metadata, provider_order_id \\ nil) do
     with true <- is_binary(session_id) and session_id != "",
          %{"user_id" => user_id, "credits" => credits} <- metadata,
          {user_id, ""} <- Integer.parse(user_id),
@@ -204,6 +213,7 @@ defmodule Sticker.Payments do
           stripe_session_id: session_id,
           stripe_event_id: event_id,
           provider: provider,
+          provider_order_id: provider_order_id,
           user_id: user_id,
           credits: credits,
           plan: metadata["plan"]
@@ -220,6 +230,64 @@ defmodule Sticker.Payments do
       end
     else
       _error -> {:error, :invalid_checkout_metadata}
+    end
+  end
+
+  defp refund_provider_checkout(provider, order_id, checkout_id, refund_event_id)
+       when is_binary(refund_event_id) and refund_event_id != "" do
+    if blank?(order_id) and blank?(checkout_id) do
+      {:error, :invalid_refund_metadata}
+    else
+      do_refund_provider_checkout(provider, order_id, checkout_id, refund_event_id)
+    end
+  end
+
+  defp refund_provider_checkout(_provider, _order_id, _checkout_id, _refund_event_id),
+    do: {:error, :invalid_refund_metadata}
+
+  defp do_refund_provider_checkout(provider, order_id, checkout_id, refund_event_id) do
+    Multi.new()
+    |> Multi.run(:payment_event, fn repo, _changes ->
+      import Ecto.Query
+
+      query =
+        from e in PaymentEvent,
+          where: e.provider == ^provider,
+          where: is_nil(e.refunded_at),
+          limit: 1
+
+      query =
+        cond do
+          is_binary(order_id) and order_id != "" ->
+            from e in query, where: e.provider_order_id == ^order_id
+
+          is_binary(checkout_id) and checkout_id != "" ->
+            from e in query, where: e.stripe_session_id == ^checkout_id
+
+          true ->
+            query
+        end
+
+      case repo.one(query) do
+        %PaymentEvent{} = payment -> {:ok, payment}
+        nil -> {:error, :payment_not_found}
+      end
+    end)
+    |> Multi.run(:credits, fn _repo, %{payment_event: payment} ->
+      Accounts.deduct_credits(payment.user_id, payment.credits)
+    end)
+    |> Multi.update(:refund, fn %{payment_event: payment} ->
+      PaymentEvent.changeset(payment, %{
+        refunded_at: DateTime.utc_now() |> DateTime.truncate(:second),
+        refund_event_id: refund_event_id
+      })
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _changes} -> :ok
+      {:error, :payment_event, :payment_not_found, _changes} -> :ok
+      {:error, :refund, %Ecto.Changeset{}, _changes} -> :ok
+      {:error, _step, reason, _changes} -> {:error, reason}
     end
   end
 
@@ -288,6 +356,8 @@ defmodule Sticker.Payments do
     do: String.replace_prefix(url, "https://creem.io/", "https://www.creem.io/")
 
   defp normalize_creem_checkout_url(url), do: url
+
+  defp blank?(value), do: not is_binary(value) or value == ""
 
   defp parse_signature(signature) do
     signature

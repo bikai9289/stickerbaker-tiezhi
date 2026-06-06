@@ -156,6 +156,18 @@ defmodule Sticker.Accounts do
 
   def add_credits(_user_id, _amount), do: {:error, :invalid_amount}
 
+  def deduct_credits(user_id, amount) when is_integer(user_id) and is_integer(amount) and amount > 0 do
+    from(u in User,
+      where: u.id == ^user_id,
+      update: [set: [credits: fragment("GREATEST(? - ?, 0)", u.credits, ^amount)]]
+    )
+    |> Repo.update_all([])
+
+    {:ok, get_user(user_id)}
+  end
+
+  def deduct_credits(_user_id, _amount), do: {:error, :invalid_amount}
+
   def count_signups_since_ip(ip, since) when is_binary(ip) do
     from(u in User, where: u.signup_ip == ^ip and u.inserted_at >= ^since)
     |> Repo.aggregate(:count)

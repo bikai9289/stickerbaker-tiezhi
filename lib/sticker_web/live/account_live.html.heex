@@ -80,6 +80,7 @@
             <th>Plan</th>
             <th>Provider</th>
             <th>Credits</th>
+            <th>Status</th>
             <th>Checkout ID</th>
             <th>Date</th>
           </tr>
@@ -89,11 +90,12 @@
             <td><%= payment.plan || "credits" %></td>
             <td><%= payment.provider || "stripe" %></td>
             <td><%= payment.credits %></td>
+            <td><%= if payment.refunded_at, do: "Refunded", else: "Paid" %></td>
             <td><code><%= payment.stripe_session_id %></code></td>
             <td><%= Calendar.strftime(payment.inserted_at, "%Y-%m-%d") %></td>
           </tr>
           <tr :if={@payments == []}>
-            <td colspan="5">No paid credit purchases yet.</td>
+            <td colspan="6">No paid credit purchases yet.</td>
           </tr>
         </tbody>
       </table>

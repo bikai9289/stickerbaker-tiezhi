@@ -19,6 +19,9 @@ defmodule StickerWeb.CreemWebhookController do
       type when type in ["checkout.completed", "checkout.session.completed"] ->
         Payments.fulfill_creem_checkout(event, event["id"])
 
+      "refund.created" ->
+        Payments.refund_creem_checkout(event, event["id"])
+
       _type ->
         :ok
     end
