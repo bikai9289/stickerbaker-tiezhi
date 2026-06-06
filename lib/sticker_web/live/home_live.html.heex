@@ -283,7 +283,6 @@
       <ul
         id="latest-predictions"
         phx-update="stream"
-        phx-viewport-bottom="load-more"
         role="list"
         class="saas-generated-grid saas-live-latest"
       >
@@ -292,9 +291,15 @@
         </li>
       </ul>
 
-      <p :if={@page < @max_pages} class="saas-loading">
-        <img src="/images/loading.png" alt="loading" /> Loading more stickers...
-      </p>
+      <div
+        :if={@page + 1 < @max_pages}
+        id="latest-load-more"
+        class="saas-load-sentinel"
+        phx-viewport-bottom="load-more"
+      >
+        <span class="saas-card-spinner"></span>
+        <span>Loading more stickers...</span>
+      </div>
     </div>
   </section>
 

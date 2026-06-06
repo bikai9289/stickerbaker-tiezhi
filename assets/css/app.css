@@ -959,6 +959,18 @@ html {
   margin: 0 auto 12px;
 }
 
+.saas-load-sentinel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 72px;
+  margin-top: 26px;
+  color: var(--saas-muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .saas-faq {
   display: grid;
   gap: 12px;

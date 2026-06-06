@@ -12,7 +12,7 @@ defmodule StickerWeb.HomeLive do
   def mount(_params, session, socket) do
     page = 0
     per_page = 20
-    max_pages = Predictions.number_moderated_predictions() / per_page
+    max_pages = ceil(Predictions.number_moderated_predictions() / per_page)
 
     loading_predictions = Predictions.list_loading_predictions(session["local_user_id"])
     showcase_predictions = Predictions.list_featured_showcase_predictions(4)
@@ -60,7 +60,7 @@ defmodule StickerWeb.HomeLive do
     next_page = assigns.page + 1
 
     latest_predictions =
-      Predictions.list_latest_safe_predictions(assigns.page, socket.assigns.per_page)
+      Predictions.list_latest_safe_predictions(next_page, socket.assigns.per_page)
 
     {:noreply,
      socket
