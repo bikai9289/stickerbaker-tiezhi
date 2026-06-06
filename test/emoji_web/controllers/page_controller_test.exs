@@ -110,7 +110,7 @@ defmodule StickerWeb.PageControllerTest do
 
     media =
       build_conn()
-      |> get(~p"/media/prediction-#{prediction.id}-sticker.png")
+      |> get("/media/prediction-#{prediction.id}-sticker.png")
 
     assert response(media, 404) == "not found"
   end
