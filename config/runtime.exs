@@ -103,6 +103,10 @@ if config_env() == :prod do
 
   case System.get_env("SMTP_RELAY") do
     smtp_relay when is_binary(smtp_relay) and smtp_relay != "" ->
+      smtp_cacertfile =
+        System.get_env("SMTP_CACERTFILE", "/etc/ssl/certs/ca-certificates.crt")
+        |> String.to_charlist()
+
       config :sticker, Sticker.Mailer,
         adapter: Swoosh.Adapters.SMTP,
         relay: smtp_relay,
@@ -111,6 +115,8 @@ if config_env() == :prod do
         port: String.to_integer(System.get_env("SMTP_PORT") || "587"),
         ssl: System.get_env("SMTP_SSL") in ~w(true 1),
         tls: :if_available,
+        tls_options: [cacertfile: smtp_cacertfile],
+        ssl_options: [cacertfile: smtp_cacertfile],
         auth: :if_available,
         retries: 2,
         no_mx_lookups: true
