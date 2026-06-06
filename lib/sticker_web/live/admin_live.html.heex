@@ -66,6 +66,7 @@
           <th>Stage</th>
           <th>Reason</th>
           <th>Updated</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -75,9 +76,14 @@
           <td><%= prediction.failure_stage || "unknown" %></td>
           <td><%= prediction.failure_reason || "No reason recorded" %></td>
           <td><%= Calendar.strftime(prediction.updated_at, "%Y-%m-%d %H:%M") %></td>
+          <td>
+            <button class="saas-button saas-button-ghost" phx-click="delete" phx-value-id={prediction.id}>
+              Delete
+            </button>
+          </td>
         </tr>
         <tr :if={@recent_failed_predictions == []}>
-          <td colspan="5">No failed generations yet.</td>
+          <td colspan="6">No failed generations yet.</td>
         </tr>
       </tbody>
     </table>
@@ -161,6 +167,13 @@
             class={"#{if prediction.is_featured, do: "bg-green-600 text-white", else: "text-green-600 bg-white"} border px-2 py-2"}
           >
             ✅<span class="hidden sm:inline-flex">ALLOW</span>
+          </button>
+          <button
+            phx-value-id={prediction.id}
+            phx-click="delete"
+            class="border px-2 py-2 bg-white text-slate-900"
+          >
+            DELETE
           </button>
         </div>
       </li>

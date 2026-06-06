@@ -102,7 +102,7 @@
             <%= if @prediction.is_favorite, do: "Saved", else: "Save" %>
           </button>
           <button
-            :if={@local_user_id == @prediction.local_user_id}
+            :if={owns_prediction?(@current_user, @prediction)}
             class="saas-button saas-button-ghost"
             phx-click="delete"
             phx-value-id={@prediction.id}

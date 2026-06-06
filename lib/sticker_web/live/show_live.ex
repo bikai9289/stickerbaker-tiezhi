@@ -115,11 +115,18 @@ defmodule StickerWeb.ShowLive do
   end
 
   def handle_event("delete", %{"id" => id}, socket) do
-    if socket.assigns.local_user_id == socket.assigns.prediction.local_user_id do
+    if owns_prediction?(socket) do
       {:ok, _prediction} = Predictions.delete_user_prediction(id, socket.assigns.local_user_id)
       {:noreply, socket |> put_flash(:info, "Sticker deleted.") |> push_navigate(to: ~p"/stickers")}
     else
       {:noreply, put_flash(socket, :error, "You can only delete your own stickers.")}
     end
   end
+
+  def owns_prediction?(socket) do
+    owns_prediction?(socket.assigns[:current_user], socket.assigns.prediction)
+  end
+
+  def owns_prediction?(%{public_id: public_id}, %{local_user_id: public_id}), do: true
+  def owns_prediction?(_user, _prediction), do: false
 end

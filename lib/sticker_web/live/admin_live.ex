@@ -135,6 +135,16 @@ defmodule StickerWeb.AdminLive do
     {:noreply, socket |> stream_insert(:latest_predictions, prediction)}
   end
 
+  def handle_event("delete", %{"id" => id}, socket) do
+    {:ok, prediction} = Predictions.delete_prediction_by_id(id)
+
+    {:noreply,
+     socket
+     |> stream_delete(:latest_predictions, prediction)
+     |> refresh_counts()
+     |> put_flash(:info, "Sticker deleted.")}
+  end
+
   def handle_event("validate", %{"prompt" => _prompt}, socket) do
     {:noreply, socket}
   end
@@ -151,5 +161,15 @@ defmodule StickerWeb.AdminLive do
 
   defp autoplay_state do
     if Process.whereis(Sticker.Autoplay), do: Sticker.Autoplay.get_state(), else: false
+  end
+
+  defp refresh_counts(socket) do
+    socket
+    |> assign(number_predictions: Predictions.number_predictions())
+    |> assign(total_unmoderated_predictions: Predictions.number_unmoderated_predictions())
+    |> assign(total_moderated_predictions: Predictions.number_moderated_predictions())
+    |> assign(failed_predictions: Predictions.number_failed_predictions())
+    |> assign(active_predictions: Predictions.number_active_predictions())
+    |> assign(recent_failed_predictions: Predictions.list_recent_failed_predictions())
   end
 end

@@ -30,6 +30,28 @@ defmodule Sticker.Utils do
     save_r2_binary(file_name, image_binary, content_type || content_type_for(file_name))
   end
 
+  def delete_r2_media(nil), do: :ok
+
+  def delete_r2_media(url) when is_binary(url) do
+    bucket = System.fetch_env!("BUCKET_NAME")
+
+    with {:ok, key} <- media_key(url) do
+      bucket
+      |> ExAws.S3.delete_object(key)
+      |> ExAws.request()
+      |> case do
+        {:ok, _response} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.warning("Could not delete media #{key}: #{inspect(reason)}")
+          {:error, reason}
+      end
+    else
+      :error -> :ok
+    end
+  end
+
   def output_format(file_name) do
     file_name
     |> Path.extname()
@@ -67,6 +89,15 @@ defmodule Sticker.Utils do
 
   def media_url(file_name) do
     "#{get_host()}/media/#{URI.encode(file_name, &URI.char_unreserved?/1)}"
+  end
+
+  defp media_key(url) do
+    uri = URI.parse(url)
+
+    case uri.path do
+      "/media/" <> key -> {:ok, URI.decode(key)}
+      _path -> :error
+    end
   end
 
   defp header_content_type(headers) do

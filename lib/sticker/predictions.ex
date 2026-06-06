@@ -265,6 +265,13 @@ defmodule Sticker.Predictions do
     |> Repo.all()
   end
 
+  def private_generated_face_stickers do
+    from(p in Prediction,
+      where: p.model == "face-to-sticker" and p.is_featured == true
+    )
+    |> Repo.update_all(set: [is_featured: nil])
+  end
+
   def number_predictions() do
     from(p in Prediction,
       where: not is_nil(p.sticker_output),
@@ -428,6 +435,12 @@ defmodule Sticker.Predictions do
   def delete_user_prediction(id, user_id) do
     id
     |> get_user_prediction!(user_id)
+    |> delete_prediction()
+  end
+
+  def delete_prediction_by_id(id) do
+    id
+    |> get_prediction!()
     |> delete_prediction()
   end
 
@@ -711,7 +724,14 @@ defmodule Sticker.Predictions do
 
   """
   def delete_prediction(%Prediction{} = prediction) do
-    Repo.delete(prediction)
+    case Repo.delete(prediction) do
+      {:ok, prediction} = ok ->
+        delete_prediction_media(prediction)
+        ok
+
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -733,6 +753,13 @@ defmodule Sticker.Predictions do
   end
 
   defp get_prediction_for_update(%Prediction{id: id}), do: get_prediction!(id)
+
+  defp delete_prediction_media(%Prediction{} = prediction) do
+    prediction.sticker_output |> Sticker.Utils.delete_r2_media()
+    prediction.no_bg_output |> Sticker.Utils.delete_r2_media()
+    prediction.source_image_url |> Sticker.Utils.delete_r2_media()
+    :ok
+  end
 
   defp broadcast(user_id, message),
     do: Phoenix.PubSub.broadcast(Sticker.PubSub, "user:#{user_id}", message)

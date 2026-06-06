@@ -157,7 +157,7 @@ defmodule StickerWeb.ReplicateWebhookController do
           sticker_output: r2_url,
           output_format: Sticker.Utils.output_format(file_name),
           output_content_type: content_type,
-          is_featured: true,
+          is_featured: featured_value(prediction),
           status: :succeeded,
           failure_reason: nil,
           failure_stage: nil
@@ -165,11 +165,7 @@ defmodule StickerWeb.ReplicateWebhookController do
 
       broadcast(user_id, {:prediction_completed, prediction})
 
-      Phoenix.PubSub.broadcast(
-        Sticker.PubSub,
-        "safe-prediction-firehose",
-        {:new_prediction, prediction}
-      )
+      broadcast_if_public(prediction)
     else
       {:error, :missing_output_url} ->
         {:ok, prediction} =
@@ -217,4 +213,17 @@ defmodule StickerWeb.ReplicateWebhookController do
   end
 
   defp find_output_url(_output), do: nil
+
+  defp featured_value(%{model: "face-to-sticker"}), do: nil
+  defp featured_value(_prediction), do: true
+
+  defp broadcast_if_public(%{is_featured: true} = prediction) do
+    Phoenix.PubSub.broadcast(
+      Sticker.PubSub,
+      "safe-prediction-firehose",
+      {:new_prediction, prediction}
+    )
+  end
+
+  defp broadcast_if_public(_prediction), do: :ok
 end

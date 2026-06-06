@@ -180,6 +180,29 @@ defmodule Sticker.PredictionsTest do
       assert [^public] = Predictions.list_latest_safe_predictions(0, 20)
     end
 
+    test "face to sticker results can be made private in bulk" do
+      public_face =
+        prediction_fixture(%{
+          sticker_output: "https://example.com/face.png",
+          model: "face-to-sticker",
+          is_featured: true,
+          status: :succeeded
+        })
+
+      public_text =
+        prediction_fixture(%{
+          sticker_output: "https://example.com/text.webp",
+          model: "sticker-maker",
+          is_featured: true,
+          status: :succeeded
+        })
+
+      assert {1, nil} = Predictions.private_generated_face_stickers()
+
+      assert is_nil(Predictions.get_prediction!(public_face.id).is_featured)
+      assert Predictions.get_prediction!(public_text.id).is_featured == true
+    end
+
     test "list_user_batches/1 returns batch status counts" do
       user = user_fixture()
 
