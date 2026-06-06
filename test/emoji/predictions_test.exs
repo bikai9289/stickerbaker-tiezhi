@@ -205,6 +205,34 @@ defmodule Sticker.PredictionsTest do
       assert [^public] = Predictions.list_latest_safe_predictions(0, 20)
     end
 
+    test "list_featured_showcase_predictions/1 returns public stickers by popularity" do
+      older =
+        prediction_fixture(%{
+          sticker_output: "https://example.com/older.webp",
+          is_featured: true,
+          score: 1,
+          status: :succeeded
+        })
+
+      popular =
+        prediction_fixture(%{
+          sticker_output: "https://example.com/popular.webp",
+          is_featured: true,
+          score: 9,
+          status: :succeeded
+        })
+
+      _private =
+        prediction_fixture(%{
+          sticker_output: "https://example.com/private.webp",
+          is_featured: nil,
+          score: 99,
+          status: :succeeded
+        })
+
+      assert [^popular, ^older] = Predictions.list_featured_showcase_predictions(4)
+    end
+
     test "face to sticker results can be made private in bulk" do
       public_face =
         prediction_fixture(%{

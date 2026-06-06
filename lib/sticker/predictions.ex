@@ -265,6 +265,15 @@ defmodule Sticker.Predictions do
     |> Repo.all()
   end
 
+  def list_featured_showcase_predictions(limit \\ 4) do
+    from(p in Prediction,
+      where: not is_nil(p.sticker_output) and p.is_featured == true,
+      order_by: [desc: p.score, desc: p.updated_at],
+      limit: ^limit
+    )
+    |> Repo.all()
+  end
+
   def private_generated_face_stickers do
     from(p in Prediction,
       where: p.model == "face-to-sticker" and p.is_featured == true

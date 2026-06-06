@@ -202,50 +202,70 @@
       </div>
 
       <div :if={@page == 0} class="saas-static-sticker-grid">
-        <article class="saas-sticker-card">
-          <div class="saas-sticker-art">
-            <span class="saas-sticker-visual">
-              <img src="/images/chef.png" alt="Chef sticker example" />
-            </span>
-          </div>
-          <div class="saas-sticker-meta">
-            <div class="saas-sticker-label">Chef Mascot</div>
-            <div class="saas-tag">Cute</div>
-          </div>
-        </article>
-        <article class="saas-sticker-card">
-          <div class="saas-sticker-art">
-            <span class="saas-sticker-visual">
-              <img src="/images/airplane.png" alt="Airplane sticker example" />
-            </span>
-          </div>
-          <div class="saas-sticker-meta">
-            <div class="saas-sticker-label">Rocket Sticker</div>
-            <div class="saas-tag">Travel</div>
-          </div>
-        </article>
-        <article class="saas-sticker-card">
-          <div class="saas-sticker-art">
-            <span class="saas-sticker-visual">
-              <img src="/images/thumbs-up.png" alt="Thumbs up sticker example" />
-            </span>
-          </div>
-          <div class="saas-sticker-meta">
-            <div class="saas-sticker-label">Thumbs Up</div>
-            <div class="saas-tag">Mascot</div>
-          </div>
-        </article>
-        <article class="saas-sticker-card">
-          <div class="saas-sticker-art">
-            <span class="saas-sticker-visual">
-              <img src="/images/oven.png" alt="Oven sticker example" />
-            </span>
-          </div>
-          <div class="saas-sticker-meta">
-            <div class="saas-sticker-label">Baker Oven</div>
-            <div class="saas-tag">Cozy</div>
-          </div>
-        </article>
+        <%= if @showcase_predictions == [] do %>
+          <article class="saas-sticker-card">
+            <div class="saas-sticker-art">
+              <span class="saas-sticker-visual">
+                <img src="/images/chef.png" alt="Chef sticker example" />
+              </span>
+            </div>
+            <div class="saas-sticker-meta">
+              <div class="saas-sticker-label">Chef Mascot</div>
+              <div class="saas-tag">Cute</div>
+            </div>
+          </article>
+          <article class="saas-sticker-card">
+            <div class="saas-sticker-art">
+              <span class="saas-sticker-visual">
+                <img src="/images/airplane.png" alt="Airplane sticker example" />
+              </span>
+            </div>
+            <div class="saas-sticker-meta">
+              <div class="saas-sticker-label">Rocket Sticker</div>
+              <div class="saas-tag">Travel</div>
+            </div>
+          </article>
+          <article class="saas-sticker-card">
+            <div class="saas-sticker-art">
+              <span class="saas-sticker-visual">
+                <img src="/images/thumbs-up.png" alt="Thumbs up sticker example" />
+              </span>
+            </div>
+            <div class="saas-sticker-meta">
+              <div class="saas-sticker-label">Thumbs Up</div>
+              <div class="saas-tag">Mascot</div>
+            </div>
+          </article>
+          <article class="saas-sticker-card">
+            <div class="saas-sticker-art">
+              <span class="saas-sticker-visual">
+                <img src="/images/oven.png" alt="Oven sticker example" />
+              </span>
+            </div>
+            <div class="saas-sticker-meta">
+              <div class="saas-sticker-label">Baker Oven</div>
+              <div class="saas-tag">Cozy</div>
+            </div>
+          </article>
+        <% else %>
+          <.link
+            :for={prediction <- @showcase_predictions}
+            navigate={~p"/sticker/#{prediction.id}"}
+            class="saas-sticker-card saas-real-sticker-card"
+          >
+            <div class="saas-sticker-art">
+              <img
+                src={prediction.sticker_output}
+                alt={prediction.prompt}
+                class="saas-showcase-image"
+              />
+            </div>
+            <div class="saas-sticker-meta">
+              <div class="saas-sticker-label"><%= prediction.prompt %></div>
+              <div class="saas-tag"><%= if prediction.score > 0, do: "Hot", else: "New" %></div>
+            </div>
+          </.link>
+        <% end %>
       </div>
 
       <ul

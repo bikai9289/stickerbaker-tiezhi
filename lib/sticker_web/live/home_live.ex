@@ -34,6 +34,7 @@ defmodule StickerWeb.HomeLive do
      |> assign(page: page)
      |> assign(per_page: per_page)
      |> assign(max_pages: max_pages)
+     |> assign(:showcase_predictions, Predictions.list_featured_showcase_predictions(4))
      |> stream(:my_predictions, loading_predictions)
      |> stream(:latest_predictions, Predictions.list_latest_safe_predictions(page, per_page))
      |> allow_upload(:image,
