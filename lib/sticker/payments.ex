@@ -102,7 +102,7 @@ defmodule Sticker.Payments do
 
       case Req.post(url: "#{creem_api_base()}/v1/checkouts", json: body, headers: headers) do
         {:ok, %{status: status, body: %{"checkout_url" => url}}} when status in 200..299 ->
-          {:ok, url}
+          {:ok, normalize_creem_checkout_url(url)}
 
         {:ok, %{status: status, body: body}} ->
           {:error, {:creem_error, status, body}}
@@ -283,6 +283,11 @@ defmodule Sticker.Payments do
       _value -> @creem_test_api
     end
   end
+
+  defp normalize_creem_checkout_url("https://creem.io/" <> path),
+    do: "https://www.creem.io/" <> path
+
+  defp normalize_creem_checkout_url(url), do: url
 
   defp parse_signature(signature) do
     signature
