@@ -101,18 +101,22 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 
-  if smtp_relay = System.get_env("SMTP_RELAY") do
-    config :sticker, Sticker.Mailer,
-      adapter: Swoosh.Adapters.SMTP,
-      relay: smtp_relay,
-      username: System.get_env("SMTP_USERNAME"),
-      password: System.get_env("SMTP_PASSWORD"),
-      port: String.to_integer(System.get_env("SMTP_PORT") || "587"),
-      ssl: System.get_env("SMTP_SSL") in ~w(true 1),
-      tls: :if_available,
-      auth: :if_available,
-      retries: 2,
-      no_mx_lookups: true
+  case System.get_env("SMTP_RELAY") do
+    smtp_relay when is_binary(smtp_relay) and smtp_relay != "" ->
+      config :sticker, Sticker.Mailer,
+        adapter: Swoosh.Adapters.SMTP,
+        relay: smtp_relay,
+        username: System.get_env("SMTP_USERNAME"),
+        password: System.get_env("SMTP_PASSWORD"),
+        port: String.to_integer(System.get_env("SMTP_PORT") || "587"),
+        ssl: System.get_env("SMTP_SSL") in ~w(true 1),
+        tls: :if_available,
+        auth: :if_available,
+        retries: 2,
+        no_mx_lookups: true
+
+    _relay ->
+      :ok
   end
 
   # ## SSL Support
