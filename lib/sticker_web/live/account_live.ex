@@ -18,6 +18,15 @@ defmodule StickerWeb.AccountLive do
      |> push_navigate(to: ~p"/users/log-in")}
   end
 
+  def handle_params(%{"checkout" => "success"}, _uri, socket) do
+    {:noreply,
+     socket
+     |> refresh_account_data()
+     |> put_flash(:info, "Payment received. Credits may take a moment to appear.")}
+  end
+
+  def handle_params(_params, _uri, socket), do: {:noreply, socket}
+
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
     user_id = user.public_id
@@ -70,5 +79,25 @@ defmodule StickerWeb.AccountLive do
      |> stream_delete(:recent_predictions, prediction)
      |> stream_delete(:favorite_predictions, prediction)
      |> put_flash(:info, "Sticker deleted.")}
+  end
+
+  defp refresh_account_data(socket) do
+    current_user = socket.assigns[:current_user]
+    user = current_user && Sticker.Accounts.get_user(current_user.id)
+
+    if is_nil(user) do
+      socket
+    else
+      refresh_account_data(socket, user)
+    end
+  end
+
+  defp refresh_account_data(socket, user) do
+    user_id = user.public_id
+
+    socket
+    |> assign(:current_user, user)
+    |> assign(:counts, Predictions.user_prediction_counts(user_id))
+    |> assign(:payments, Payments.list_user_payment_events(user.id))
   end
 end

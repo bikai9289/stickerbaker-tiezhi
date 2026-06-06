@@ -10,7 +10,7 @@ defmodule StickerWeb.CheckoutController do
            Payments.create_checkout_session(
              plan,
              user,
-             url(~p"/pricing?checkout=success"),
+             url(~p"/account?checkout=success"),
              url(~p"/pricing?checkout=canceled")
            ) do
       redirect(conn, external: url)

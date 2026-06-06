@@ -7,6 +7,7 @@ defmodule Sticker.Payments do
   @stripe_api "https://api.stripe.com/v1"
   @creem_live_api "https://api.creem.io"
   @creem_test_api "https://test-api.creem.io"
+  @creem_checkout_url "https://checkout.creem.io"
 
   def plans do
     [
@@ -284,10 +285,20 @@ defmodule Sticker.Payments do
     end
   end
 
-  defp normalize_creem_checkout_url("https://creem.io/" <> path),
-    do: "https://www.creem.io/" <> path
+  defp normalize_creem_checkout_url("https://creem.io/" <> _path = url),
+    do: normalize_legacy_creem_checkout_url(url)
+
+  defp normalize_creem_checkout_url("https://www.creem.io/" <> _path = url),
+    do: normalize_legacy_creem_checkout_url(url)
 
   defp normalize_creem_checkout_url(url), do: url
+
+  defp normalize_legacy_creem_checkout_url(url) do
+    case Regex.run(~r{/checkout/[^/]+/(ch_[A-Za-z0-9]+)}, url) do
+      [_, checkout_id] -> "#{@creem_checkout_url}/#{checkout_id}"
+      _match -> String.replace_prefix(url, "https://creem.io/", "https://www.creem.io/")
+    end
+  end
 
   defp parse_signature(signature) do
     signature
