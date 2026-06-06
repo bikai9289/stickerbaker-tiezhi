@@ -445,7 +445,6 @@ defmodule StickerWeb.HomeLive do
 
     fallback_items =
       showcase_fallbacks()
-      |> Enum.drop(length(prediction_items))
       |> Enum.take(@showcase_limit - length(prediction_items))
       |> Enum.map(&Map.put(&1, :type, :fallback))
 
