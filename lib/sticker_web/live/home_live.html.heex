@@ -202,7 +202,7 @@
       </div>
 
       <div :if={@page == 0} class="saas-static-sticker-grid">
-        <%= if @showcase_predictions == [] do %>
+        <%= if @showcase_predictions == [] and @showcase_fallbacks != [] do %>
           <article class="saas-sticker-card">
             <div class="saas-sticker-art">
               <span class="saas-sticker-visual">
@@ -265,6 +265,18 @@
               <div class="saas-tag"><%= if prediction.score > 0, do: "Hot", else: "New" %></div>
             </div>
           </.link>
+
+          <article :for={fallback <- @showcase_fallbacks} class="saas-sticker-card">
+            <div class="saas-sticker-art">
+              <span class="saas-sticker-visual">
+                <img src={fallback.image} alt={fallback.alt} />
+              </span>
+            </div>
+            <div class="saas-sticker-meta">
+              <div class="saas-sticker-label"><%= fallback.label %></div>
+              <div class="saas-tag"><%= fallback.tag %></div>
+            </div>
+          </article>
         <% end %>
       </div>
 

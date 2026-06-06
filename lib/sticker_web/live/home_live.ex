@@ -15,6 +15,7 @@ defmodule StickerWeb.HomeLive do
     max_pages = Predictions.number_moderated_predictions() / per_page
 
     loading_predictions = Predictions.list_loading_predictions(session["local_user_id"])
+    showcase_predictions = Predictions.list_featured_showcase_predictions(4)
 
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Sticker.PubSub, "safe-prediction-firehose")
@@ -34,7 +35,8 @@ defmodule StickerWeb.HomeLive do
      |> assign(page: page)
      |> assign(per_page: per_page)
      |> assign(max_pages: max_pages)
-     |> assign(:showcase_predictions, Predictions.list_featured_showcase_predictions(4))
+     |> assign(:showcase_predictions, showcase_predictions)
+     |> assign(:showcase_fallbacks, Enum.drop(showcase_fallbacks(), length(showcase_predictions)))
      |> stream(:my_predictions, loading_predictions)
      |> stream(:latest_predictions, Predictions.list_latest_safe_predictions(page, per_page))
      |> allow_upload(:image,
@@ -402,4 +404,33 @@ defmodule StickerWeb.HomeLive do
 
   def error_to_string(:too_large), do: "Too large"
   def error_to_string(:not_accepted), do: "Sorry, we only accept #{@accepted}"
+
+  defp showcase_fallbacks do
+    [
+      %{
+        image: "/images/chef.png",
+        alt: "Chef sticker example",
+        label: "Chef Mascot",
+        tag: "Cute"
+      },
+      %{
+        image: "/images/airplane.png",
+        alt: "Airplane sticker example",
+        label: "Rocket Sticker",
+        tag: "Travel"
+      },
+      %{
+        image: "/images/thumbs-up.png",
+        alt: "Thumbs up sticker example",
+        label: "Thumbs Up",
+        tag: "Mascot"
+      },
+      %{
+        image: "/images/oven.png",
+        alt: "Oven sticker example",
+        label: "Baker Oven",
+        tag: "Cozy"
+      }
+    ]
+  end
 end
