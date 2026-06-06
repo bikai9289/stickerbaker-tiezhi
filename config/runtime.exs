@@ -111,8 +111,6 @@ if config_env() == :prod do
         port: String.to_integer(System.get_env("SMTP_PORT") || "587"),
         ssl: System.get_env("SMTP_SSL") in ~w(true 1),
         tls: :if_available,
-        tls_options: [cacerts: :public_key.cacerts_get()],
-        ssl_options: [cacerts: :public_key.cacerts_get()],
         auth: :if_available,
         retries: 2,
         no_mx_lookups: true
