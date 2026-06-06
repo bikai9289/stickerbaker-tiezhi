@@ -107,6 +107,17 @@ if config_env() == :prod do
         System.get_env("SMTP_CACERTFILE", "/etc/ssl/certs/ca-certificates.crt")
         |> String.to_charlist()
 
+      smtp_relay_charlist = String.to_charlist(smtp_relay)
+
+      smtp_tls_options = [
+        cacertfile: smtp_cacertfile,
+        depth: 10,
+        server_name_indication: smtp_relay_charlist,
+        customize_hostname_check: [
+          match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+        ]
+      ]
+
       config :sticker, Sticker.Mailer,
         adapter: Swoosh.Adapters.SMTP,
         relay: smtp_relay,
@@ -115,8 +126,8 @@ if config_env() == :prod do
         port: String.to_integer(System.get_env("SMTP_PORT") || "587"),
         ssl: System.get_env("SMTP_SSL") in ~w(true 1),
         tls: :if_available,
-        tls_options: [cacertfile: smtp_cacertfile],
-        ssl_options: [cacertfile: smtp_cacertfile],
+        tls_options: smtp_tls_options,
+        ssl_options: smtp_tls_options,
         auth: :if_available,
         retries: 2,
         no_mx_lookups: true
