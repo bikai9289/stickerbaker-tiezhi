@@ -4,9 +4,18 @@
       <div class="saas-detail-art">
         <%= if is_nil(@prediction.sticker_output) do %>
           <div class="saas-detail-loading">
-            <span class="saas-card-spinner"></span>
+            <span :if={@prediction.status != :failed} class="saas-card-spinner"></span>
             <strong><%= @prediction.status || :starting %></strong>
-            <p>Generation can take a few minutes. You can return to your history later.</p>
+            <p>
+              <%= if @prediction.status == :failed do %>
+                Generation failed. The credit has been returned when the failure was detected.
+              <% else %>
+                Generation can take a few minutes. This page updates automatically.
+              <% end %>
+            </p>
+            <p :if={@prediction.status == :failed and @prediction.failure_stage}>
+              <%= @prediction.failure_stage %>: <%= @prediction.failure_reason %>
+            </p>
           </div>
         <% else %>
           <img src={@prediction.sticker_output} alt={@prediction.prompt} />

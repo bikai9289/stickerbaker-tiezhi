@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AI Sticker Maker icon">
+  <rect width="64" height="64" rx="14" fill="#fff6ef"/>
+  <rect x="15" y="14" width="36" height="36" rx="9" fill="#ffe0c9"/>
+  <path d="M19 10h18l10 10v18c0 5-4 9-9 9H19c-5 0-9-4-9-9V19c0-5 4-9 9-9Z" fill="#fff" stroke="#182033" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M37 10v10h10" fill="#ffe0c9" stroke="#182033" stroke-width="4" stroke-linejoin="round"/>
+  <path d="m28 18 3.1 7.2 7.9 1.1-5.8 5.3 1.4 7.7-6.6-3.8-6.6 3.8 1.4-7.7-5.8-5.3 7.9-1.1L28 18Z" fill="#ff6b1a"/>
+</svg>

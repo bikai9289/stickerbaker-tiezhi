@@ -9,6 +9,10 @@ defmodule StickerWeb.ShowLive do
     prediction = Predictions.get_prediction!(id)
     local_user_id = session["local_user_id"]
 
+    if connected?(socket) and is_binary(local_user_id) and local_user_id == prediction.local_user_id do
+      Phoenix.PubSub.subscribe(Sticker.PubSub, "user:#{local_user_id}")
+    end
+
     {:ok,
      socket
      |> assign(
@@ -24,6 +28,15 @@ defmodule StickerWeb.ShowLive do
           %{similar_stickers: Sticker.Embeddings.search_stickers(prediction.prompt, @num_results)}}
        end
      ), temporary_assigns: [{SEO.key(), nil}]}
+  end
+
+  def handle_info({event, %{id: id} = prediction}, socket)
+      when event in [:prediction_loading, :prediction_completed, :prediction_failed] do
+    if id == socket.assigns.prediction.id do
+      {:noreply, assign(socket, prediction: prediction)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_params(_params, _url, socket) do

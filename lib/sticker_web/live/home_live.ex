@@ -136,17 +136,22 @@ defmodule StickerWeb.HomeLive do
   end
 
   def handle_info({:kick_off_sticker, prediction}, socket) do
-    Predictions.moderate(prediction.prompt, prediction.local_user_id, prediction.id)
+    safe_start_prediction(prediction, :moderation_start, fn ->
+      Predictions.moderate(prediction.prompt, prediction.local_user_id, prediction.id)
+    end)
+
     {:noreply, socket}
   end
 
   def handle_info({:kick_off_face_to_sticker, prediction, image_uri}, socket) do
-    Predictions.gen_face_to_sticker(
-      prediction.prompt,
-      image_uri,
-      prediction.local_user_id,
-      prediction.id
-    )
+    safe_start_prediction(prediction, :generation_start, fn ->
+      Predictions.gen_face_to_sticker(
+        prediction.prompt,
+        image_uri,
+        prediction.local_user_id,
+        prediction.id
+      )
+    end)
 
     {:noreply, socket}
   end
@@ -177,9 +182,10 @@ defmodule StickerWeb.HomeLive do
      |> put_flash(:info, "Sticker is processing. This can take a little while.")}
   end
 
-  def handle_info({:prediction_failed, _prediction}, socket) do
+  def handle_info({:prediction_failed, prediction}, socket) do
     {:noreply,
      socket
+     |> stream_insert(:my_predictions, prediction, at: 0)
      |> put_flash(
        :error,
        "Image generation failed or timed out. Try a simpler prompt or generate again."
@@ -337,6 +343,25 @@ defmodule StickerWeb.HomeLive do
          |> assign(current_user: current_user)
          |> put_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
     end
+  end
+
+  defp safe_start_prediction(prediction, failure_stage, fun) do
+    case fun.() do
+      {:error, reason} ->
+        fail_start_and_broadcast(prediction, failure_stage, reason)
+
+      _response ->
+        :ok
+    end
+  rescue
+    reason ->
+      fail_start_and_broadcast(prediction, failure_stage, reason)
+  end
+
+  defp fail_start_and_broadcast(prediction, failure_stage, reason) do
+    {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction, failure_stage, reason)
+    PubSub.broadcast(Sticker.PubSub, "user:#{prediction.local_user_id}", {:prediction_failed, prediction})
+    :ok
   end
 
   defp uploaded_entry_data(socket, entry) do
