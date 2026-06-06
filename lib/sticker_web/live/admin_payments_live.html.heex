@@ -32,7 +32,7 @@
           <td><%= payment.provider || "stripe" %></td>
           <td><%= payment.plan || "credits" %></td>
           <td><span class="saas-credit-pill"><%= payment.credits %></span></td>
-          <td><%= if payment.refunded_at, do: "Refunded", else: "Paid" %></td>
+          <td><%= payment_status(payment) %></td>
           <td><code><%= payment.stripe_session_id %></code></td>
           <td><code><%= payment.provider_order_id || "-" %></code></td>
           <td><code><%= payment.stripe_event_id %></code></td>

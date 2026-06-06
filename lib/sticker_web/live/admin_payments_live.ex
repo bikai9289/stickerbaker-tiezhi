@@ -12,4 +12,8 @@ defmodule StickerWeb.AdminPaymentsLive do
      |> assign(:payments, Payments.list_payment_events(200))
      |> assign(:users, users)}
   end
+
+  defp payment_status(%{refund_status: "refunded"}), do: "Refunded"
+  defp payment_status(%{refund_status: "review_required"}), do: "Review required"
+  defp payment_status(_payment), do: "Paid"
 end

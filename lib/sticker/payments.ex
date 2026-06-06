@@ -253,7 +253,7 @@ defmodule Sticker.Payments do
       query =
         from e in PaymentEvent,
           where: e.provider == ^provider,
-          where: is_nil(e.refunded_at),
+          where: e.refund_status == "none",
           limit: 1
 
       query =
@@ -273,13 +273,35 @@ defmodule Sticker.Payments do
         nil -> {:error, :payment_not_found}
       end
     end)
-    |> Multi.run(:credits, fn _repo, %{payment_event: payment} ->
-      Accounts.deduct_credits(payment.user_id, payment.credits)
+    |> Multi.run(:refund_decision, fn repo, %{payment_event: payment} ->
+      import Ecto.Query
+
+      user =
+        Accounts.User
+        |> where([u], u.id == ^payment.user_id)
+        |> lock("FOR UPDATE")
+        |> repo.one()
+
+      cond do
+        is_nil(user) ->
+          {:error, :user_not_found}
+
+        user.credits >= payment.credits ->
+          {1, _} =
+            from(u in Accounts.User, where: u.id == ^user.id)
+            |> repo.update_all(inc: [credits: -payment.credits])
+
+          {:ok, :refunded}
+
+        true ->
+          {:ok, :review_required}
+      end
     end)
-    |> Multi.update(:refund, fn %{payment_event: payment} ->
+    |> Multi.update(:refund, fn %{payment_event: payment, refund_decision: refund_status} ->
       PaymentEvent.changeset(payment, %{
         refunded_at: DateTime.utc_now() |> DateTime.truncate(:second),
-        refund_event_id: refund_event_id
+        refund_event_id: refund_event_id,
+        refund_status: Atom.to_string(refund_status)
       })
     end)
     |> Repo.transaction()

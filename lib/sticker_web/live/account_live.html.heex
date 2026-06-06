@@ -90,7 +90,7 @@
             <td><%= payment.plan || "credits" %></td>
             <td><%= payment.provider || "stripe" %></td>
             <td><%= payment.credits %></td>
-            <td><%= if payment.refunded_at, do: "Refunded", else: "Paid" %></td>
+            <td><%= payment_status(payment) %></td>
             <td><code><%= payment.stripe_session_id %></code></td>
             <td><%= Calendar.strftime(payment.inserted_at, "%Y-%m-%d") %></td>
           </tr>

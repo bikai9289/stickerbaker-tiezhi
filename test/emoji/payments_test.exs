@@ -36,7 +36,7 @@ defmodule Sticker.PaymentsTest do
     assert payment.plan == "starter"
   end
 
-  test "refund_creem_checkout/2 deducts original credits once without going below zero" do
+  test "refund_creem_checkout/2 deducts original credits when balance can cover refund" do
     user = user_fixture()
 
     checkout_event = %{
@@ -56,9 +56,6 @@ defmodule Sticker.PaymentsTest do
     assert :ok = Payments.fulfill_creem_checkout(checkout_event, checkout_event["id"])
     assert Accounts.get_user(user.id).credits == user.credits + 50
 
-    {:ok, user_after_spend} = Accounts.deduct_credits(user.id, user.credits + 30)
-    assert user_after_spend.credits == 20
-
     refund_event = %{
       "id" => "evt_creem_refund",
       "eventType" => "refund.created",
@@ -69,14 +66,55 @@ defmodule Sticker.PaymentsTest do
     }
 
     assert :ok = Payments.refund_creem_checkout(refund_event, refund_event["id"])
-    assert Accounts.get_user(user.id).credits == 0
+    assert Accounts.get_user(user.id).credits == user.credits
 
     payment = Repo.get_by!(PaymentEvent, stripe_session_id: "ch_creem_refund")
     assert payment.refund_event_id == "evt_creem_refund"
     assert payment.refunded_at
+    assert payment.refund_status == "refunded"
 
     assert :ok = Payments.refund_creem_checkout(refund_event, refund_event["id"])
-    assert Accounts.get_user(user.id).credits == 0
+    assert Accounts.get_user(user.id).credits == user.credits
+  end
+
+  test "refund_creem_checkout/2 marks review required when balance is too low" do
+    user = user_fixture()
+
+    checkout_event = %{
+      "id" => "evt_creem_low_balance_checkout",
+      "eventType" => "checkout.completed",
+      "object" => %{
+        "id" => "ch_creem_low_balance",
+        "order" => "ord_creem_low_balance",
+        "metadata" => %{
+          "user_id" => Integer.to_string(user.id),
+          "credits" => "50",
+          "plan" => "starter"
+        }
+      }
+    }
+
+    assert :ok = Payments.fulfill_creem_checkout(checkout_event, checkout_event["id"])
+
+    {:ok, user_after_spend} = Accounts.deduct_credits(user.id, user.credits + 30)
+    assert user_after_spend.credits == 20
+
+    refund_event = %{
+      "id" => "evt_creem_low_balance_refund",
+      "eventType" => "refund.created",
+      "object" => %{
+        "id" => "ref_creem_low_balance",
+        "transaction" => %{"order" => "ord_creem_low_balance"}
+      }
+    }
+
+    assert :ok = Payments.refund_creem_checkout(refund_event, refund_event["id"])
+    assert Accounts.get_user(user.id).credits == 20
+
+    payment = Repo.get_by!(PaymentEvent, stripe_session_id: "ch_creem_low_balance")
+    assert payment.refund_event_id == "evt_creem_low_balance_refund"
+    assert payment.refunded_at
+    assert payment.refund_status == "review_required"
   end
 
   test "verify_creem_webhook/2 validates HMAC signature" do

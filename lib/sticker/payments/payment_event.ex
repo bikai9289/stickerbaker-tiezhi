@@ -12,6 +12,7 @@ defmodule Sticker.Payments.PaymentEvent do
     field :plan, :string
     field :refunded_at, :utc_datetime
     field :refund_event_id, :string
+    field :refund_status, :string, default: "none"
 
     timestamps()
   end
@@ -27,10 +28,12 @@ defmodule Sticker.Payments.PaymentEvent do
       :credits,
       :plan,
       :refunded_at,
-      :refund_event_id
+      :refund_event_id,
+      :refund_status
     ])
     |> validate_required([:stripe_session_id, :user_id, :credits])
     |> validate_inclusion(:provider, ["stripe", "creem"])
+    |> validate_inclusion(:refund_status, ["none", "refunded", "review_required"])
     |> validate_number(:credits, greater_than: 0)
     |> unique_constraint(:stripe_session_id)
     |> unique_constraint(:refund_event_id)

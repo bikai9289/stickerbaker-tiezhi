@@ -100,4 +100,8 @@ defmodule StickerWeb.AccountLive do
     |> assign(:counts, Predictions.user_prediction_counts(user_id))
     |> assign(:payments, Payments.list_user_payment_events(user.id))
   end
+
+  defp payment_status(%{refund_status: "refunded"}), do: "Refunded"
+  defp payment_status(%{refund_status: "review_required"}), do: "Review required"
+  defp payment_status(_payment), do: "Paid"
 end
