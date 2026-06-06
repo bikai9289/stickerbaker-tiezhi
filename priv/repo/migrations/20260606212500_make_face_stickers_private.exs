@@ -5,7 +5,7 @@ defmodule Sticker.Repo.Migrations.MakeFaceStickersPrivate do
     execute("""
     UPDATE predictions
     SET is_featured = NULL
-    WHERE model = 'face-to-sticker' AND is_featured = TRUE
+    WHERE model = 'face-to-sticker' AND is_featured = 'true'
     """)
   end
 
