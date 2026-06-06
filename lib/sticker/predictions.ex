@@ -459,6 +459,37 @@ defmodule Sticker.Predictions do
     |> Repo.all()
   end
 
+  def viewable_by?(%Prediction{is_featured: true}, _current_user, _local_user_id), do: true
+
+  def viewable_by?(%Prediction{local_user_id: owner_id}, %{public_id: public_id}, _local_user_id)
+      when is_binary(owner_id) and owner_id == public_id,
+      do: true
+
+  def viewable_by?(%Prediction{local_user_id: owner_id}, _current_user, local_user_id)
+      when is_binary(owner_id) and owner_id == local_user_id,
+      do: true
+
+  def viewable_by?(_prediction, _current_user, _local_user_id), do: false
+
+  def get_viewable_prediction(id, current_user, local_user_id) do
+    prediction = get_prediction!(id)
+
+    if viewable_by?(prediction, current_user, local_user_id) do
+      {:ok, prediction}
+    else
+      {:error, :private}
+    end
+  end
+
+  def get_prediction_by_media_key(key) when is_binary(key) do
+    case prediction_from_generated_key(key) do
+      %Prediction{} = prediction -> prediction
+      nil -> prediction_from_media_url(key)
+    end
+  end
+
+  def get_prediction_by_media_key(_key), do: nil
+
   def count_user_predictions_since(user_id, since) do
     Prediction
     |> where([p], p.local_user_id == ^user_id and p.inserted_at >= ^since)
@@ -753,6 +784,25 @@ defmodule Sticker.Predictions do
   end
 
   defp get_prediction_for_update(%Prediction{id: id}), do: get_prediction!(id)
+
+  defp prediction_from_generated_key(key) do
+    case Regex.run(~r/^prediction-(\d+)-/, key) do
+      [_, id] -> Repo.get(Prediction, id)
+      _match -> nil
+    end
+  end
+
+  defp prediction_from_media_url(key) do
+    media_url = Sticker.Utils.media_url(key)
+
+    from(p in Prediction,
+      where:
+        p.sticker_output == ^media_url or p.no_bg_output == ^media_url or
+          p.source_image_url == ^media_url,
+      limit: 1
+    )
+    |> Repo.one()
+  end
 
   defp delete_prediction_media(%Prediction{} = prediction) do
     prediction.sticker_output |> Sticker.Utils.delete_r2_media()

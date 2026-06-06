@@ -1,8 +1,21 @@
 defmodule StickerWeb.MediaController do
   use StickerWeb, :controller
 
+  alias Sticker.Predictions
+
   def show(conn, %{"key" => key_parts}) when is_list(key_parts) do
     key = Path.join(key_parts)
+
+    with %{} = prediction <- Predictions.get_prediction_by_media_key(key),
+         false <- Predictions.viewable_by?(prediction, conn.assigns[:current_user], get_session(conn, :local_user_id)) do
+      send_resp(conn, 404, "not found")
+    else
+      _allowed ->
+        send_media(conn, key)
+    end
+  end
+
+  defp send_media(conn, key) do
     bucket = System.fetch_env!("BUCKET_NAME")
 
     case ExAws.S3.get_object(bucket, key) |> ExAws.request() do

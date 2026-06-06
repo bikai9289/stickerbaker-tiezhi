@@ -66,6 +66,31 @@ defmodule Sticker.PredictionsTest do
       assert_raise Ecto.NoResultsError, fn -> Predictions.get_prediction!(prediction.id) end
     end
 
+    test "viewable_by?/3 allows public stickers and protects private stickers" do
+      user = user_fixture()
+
+      public_prediction =
+        prediction_fixture(%{local_user_id: "another-user", is_featured: true})
+
+      private_prediction =
+        prediction_fixture(%{local_user_id: user.public_id, is_featured: nil})
+
+      assert Predictions.viewable_by?(public_prediction, nil, nil)
+      refute Predictions.viewable_by?(private_prediction, nil, nil)
+      assert Predictions.viewable_by?(private_prediction, user, nil)
+      assert Predictions.viewable_by?(private_prediction, nil, user.public_id)
+    end
+
+    test "get_prediction_by_media_key/1 finds generated prediction media by id key" do
+      prediction =
+        prediction_fixture(%{
+          sticker_output: "https://example.com/media/prediction-123-sticker.png"
+        })
+
+      assert Predictions.get_prediction_by_media_key("prediction-#{prediction.id}-sticker.png").id ==
+               prediction.id
+    end
+
     test "change_prediction/1 returns a prediction changeset" do
       prediction = prediction_fixture()
       assert %Ecto.Changeset{} = Predictions.change_prediction(prediction)

@@ -6,28 +6,36 @@ defmodule StickerWeb.ShowLive do
   @num_results 21
 
   def mount(%{"id" => id}, session, socket) do
-    prediction = Predictions.get_prediction!(id)
     local_user_id = session["local_user_id"]
 
-    if connected?(socket) and is_binary(local_user_id) and local_user_id == prediction.local_user_id do
-      Phoenix.PubSub.subscribe(Sticker.PubSub, "user:#{local_user_id}")
-    end
+    case Predictions.get_viewable_prediction(id, socket.assigns[:current_user], local_user_id) do
+      {:ok, prediction} ->
+        if connected?(socket) and is_binary(local_user_id) and local_user_id == prediction.local_user_id do
+          Phoenix.PubSub.subscribe(Sticker.PubSub, "user:#{local_user_id}")
+        end
 
-    {:ok,
-     socket
-     |> assign(
-       prediction: prediction,
-       local_user_id: local_user_id,
-       given_feedback: false,
-       form: to_form(%{"prompt" => prediction.prompt})
-     )
-     |> assign_async(
-       :similar_stickers,
-       fn ->
-         {:ok,
-          %{similar_stickers: Sticker.Embeddings.search_stickers(prediction.prompt, @num_results)}}
-       end
-     ), temporary_assigns: [{SEO.key(), nil}]}
+        {:ok,
+         socket
+         |> assign(
+           prediction: prediction,
+           local_user_id: local_user_id,
+           given_feedback: false,
+           form: to_form(%{"prompt" => prediction.prompt})
+         )
+         |> assign_async(
+           :similar_stickers,
+           fn ->
+             {:ok,
+              %{similar_stickers: Sticker.Embeddings.search_stickers(prediction.prompt, @num_results)}}
+           end
+         ), temporary_assigns: [{SEO.key(), nil}]}
+
+      {:error, :private} ->
+        {:ok,
+         socket
+         |> put_flash(:error, "This sticker is private.")
+         |> redirect(to: ~p"/")}
+    end
   end
 
   def handle_info({event, %{id: id} = prediction}, socket)
@@ -124,9 +132,22 @@ defmodule StickerWeb.ShowLive do
   end
 
   def owns_prediction?(socket) do
-    owns_prediction?(socket.assigns[:current_user], socket.assigns.prediction)
+    owns_prediction?(
+      socket.assigns[:current_user],
+      socket.assigns[:local_user_id],
+      socket.assigns.prediction
+    )
   end
 
-  def owns_prediction?(%{public_id: public_id}, %{local_user_id: public_id}), do: true
-  def owns_prediction?(_user, _prediction), do: false
+  def owns_prediction?(current_user, prediction), do: owns_prediction?(current_user, nil, prediction)
+
+  def owns_prediction?(%{public_id: public_id}, _local_user_id, %{local_user_id: owner_id})
+      when is_binary(owner_id) and owner_id == public_id,
+    do: true
+
+  def owns_prediction?(_current_user, local_user_id, %{local_user_id: owner_id})
+      when is_binary(owner_id) and owner_id == local_user_id,
+      do: true
+
+  def owns_prediction?(_user, _local_user_id, _prediction), do: false
 end

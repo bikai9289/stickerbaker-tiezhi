@@ -5,8 +5,18 @@ defmodule StickerWeb.StickerDownloadController do
   alias StickerWeb.SEO, as: PageSEO
 
   def show(conn, %{"id" => id} = params) do
-    prediction = Predictions.get_prediction!(id)
+    case Predictions.get_viewable_prediction(id, conn.assigns[:current_user], get_session(conn, :local_user_id)) do
+      {:ok, prediction} ->
+        download(conn, params, prediction)
 
+      {:error, :private} ->
+        conn
+        |> put_flash(:error, "This sticker is private.")
+        |> redirect(to: ~p"/")
+    end
+  end
+
+  defp download(conn, params, prediction) do
     conn =
       SEO.assign(
         conn,

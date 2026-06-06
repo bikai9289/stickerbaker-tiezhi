@@ -74,6 +74,47 @@ defmodule StickerWeb.PageControllerTest do
     assert redirected_to(conn, 302) == ~p"/stickers"
   end
 
+  test "private sticker detail requires the owner session", %{conn: conn} do
+    user = user_fixture()
+
+    prediction =
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        is_featured: nil,
+        sticker_output: "https://example.com/media/prediction-private-sticker.png"
+      })
+
+    assert {:error, {:redirect, %{to: "/"}}} = live(conn, ~p"/sticker/#{prediction.id}")
+
+    owner_conn =
+      conn
+      |> Plug.Test.init_test_session(%{user_id: user.id, local_user_id: user.public_id})
+
+    assert {:ok, _view, html} = live(owner_conn, ~p"/sticker/#{prediction.id}")
+    assert html =~ prediction.prompt
+    assert html =~ "Delete"
+  end
+
+  test "private sticker download and media require the owner session", %{conn: conn} do
+    user = user_fixture()
+
+    prediction =
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        is_featured: nil,
+        sticker_output: "https://example.com/media/prediction-private-download.png"
+      })
+
+    conn = get(conn, ~p"/sticker/#{prediction.id}/download")
+    assert redirected_to(conn, 302) == ~p"/"
+
+    media =
+      build_conn()
+      |> get(~p"/media/prediction-#{prediction.id}-sticker.png")
+
+    assert response(media, 404) == "not found"
+  end
+
   test "checkout redirects with a friendly message when Stripe is not configured", %{conn: conn} do
     user = user_fixture()
     stripe_secret_key = System.get_env("STRIPE_SECRET_KEY")
