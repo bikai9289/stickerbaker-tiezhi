@@ -9,6 +9,11 @@
       </p>
     </div>
 
+    <div :if={@checkout == "canceled"} class="saas-buy-note">
+      <strong>Checkout canceled:</strong>
+      You were not charged. Choose a credit pack when you are ready.
+    </div>
+
     <div class="saas-buy-grid">
       <article class="saas-buy-card">
         <h2>Free</h2>

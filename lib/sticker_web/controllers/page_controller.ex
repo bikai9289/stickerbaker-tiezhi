@@ -27,7 +27,7 @@ defmodule StickerWeb.PageController do
     |> render(:contact)
   end
 
-  def pricing(conn, _params) do
+  def pricing(conn, params) do
     conn
     |> SEO.assign(
       PageSEO.page("/pricing",
@@ -36,6 +36,7 @@ defmodule StickerWeb.PageController do
           "View AI Sticker Maker pricing, free starter credits, and paid credit packs for text-to-sticker and face-to-sticker generation."
       )
     )
+    |> assign(:checkout, params["checkout"])
     |> render(:pricing)
   end
 
@@ -285,30 +286,34 @@ defmodule StickerWeb.PageController do
 
   def sitemap_xml(conn, _params) do
     base_url = "https://ai-sticker-maker.com"
+    lastmod = "2026-06-13"
 
     paths = [
-      "/",
-      "/pricing",
-      "/face-to-sticker",
-      "/custom-sticker-maker",
-      "/cute-sticker-ideas",
-      "/sticker-maker-online",
-      "/ai-avatar-sticker",
-      "/kawaii-sticker-maker",
-      "/transparent-sticker-maker",
-      "/contact",
-      "/payment-and-credits",
-      "/privacy-policy",
-      "/refund-policy",
-      "/terms-of-service",
-      "/search"
+      {"/", "1.0"},
+      {"/pricing", "0.8"},
+      {"/face-to-sticker", "0.9"},
+      {"/custom-sticker-maker", "0.9"},
+      {"/cute-sticker-ideas", "0.8"},
+      {"/sticker-maker-online", "0.9"},
+      {"/ai-avatar-sticker", "0.8"},
+      {"/kawaii-sticker-maker", "0.8"},
+      {"/transparent-sticker-maker", "0.8"},
+      {"/search", "0.7"},
+      {"/contact", "0.5"},
+      {"/payment-and-credits", "0.5"},
+      {"/privacy-policy", "0.4"},
+      {"/refund-policy", "0.5"},
+      {"/terms-of-service", "0.4"},
+      {"/sitemap", "0.3"}
     ]
 
     urls =
-      Enum.map(paths, fn path ->
+      Enum.map(paths, fn {path, priority} ->
         """
         <url>
           <loc>#{base_url}#{path}</loc>
+          <lastmod>#{lastmod}</lastmod>
+          <priority>#{priority}</priority>
         </url>
         """
       end)

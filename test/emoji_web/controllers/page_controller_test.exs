@@ -65,7 +65,20 @@ defmodule StickerWeb.PageControllerTest do
     assert body =~ "/ai-avatar-sticker"
     assert body =~ "/kawaii-sticker-maker"
     assert body =~ "/transparent-sticker-maker"
+    assert body =~ "/sitemap"
+    assert body =~ "<lastmod>2026-06-13</lastmod>"
+    assert body =~ "<priority>1.0</priority>"
     refute body =~ "/account"
+    refute body =~ "/users/log-in"
+    refute body =~ "/stickers"
+  end
+
+  test "pricing page shows canceled checkout feedback", %{conn: conn} do
+    conn = get(conn, ~p"/pricing?checkout=canceled")
+    body = html_response(conn, 200)
+
+    assert body =~ "Checkout canceled"
+    assert body =~ "You were not charged"
   end
 
   test "batch download without selection redirects to history", %{conn: conn} do

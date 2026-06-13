@@ -4,6 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
+    <meta
+      name="google-site-verification"
+      content="S3gOkTI8T5JG5sKQ68CgBLnunzV-q0OrnvN39nkvnFY"
+    />
 
     <SEO.juice conn={@conn} config={StickerWeb.SEO.config()} page_title={assigns[:page_title]} />
     <%= for schema <- List.wrap(assigns[:structured_data] || []) do %>
@@ -26,14 +30,14 @@
       rel="stylesheet"
     />
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-QXSQ83CKPJ">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5RKZJSQZ59">
     </script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      gtag('config', 'G-QXSQ83CKPJ');
+      gtag('config', 'G-5RKZJSQZ59');
     </script>
   </head>
   <body class="bg-white antialiased">

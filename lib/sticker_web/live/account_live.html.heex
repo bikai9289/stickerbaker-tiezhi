@@ -70,7 +70,35 @@
   <div class="saas-container">
     <div class="saas-section-head">
       <h2>Payment Records</h2>
-      <p class="saas-section-copy">Completed checkout events that added credits to this account.</p>
+      <p class="saas-section-copy">Checkout activity and completed credit purchases for this account.</p>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Provider</th>
+            <th>Credits</th>
+            <th>Status</th>
+            <th>Checkout ID</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr :for={attempt <- @payment_attempts}>
+            <td><%= attempt.plan || "credits" %></td>
+            <td><%= attempt.provider || "stripe" %></td>
+            <td><%= attempt.credits %></td>
+            <td><%= checkout_status(attempt) %></td>
+            <td><code><%= attempt.stripe_session_id || "-" %></code></td>
+            <td><%= Calendar.strftime(attempt.inserted_at, "%Y-%m-%d") %></td>
+          </tr>
+          <tr :if={@payment_attempts == []}>
+            <td colspan="6">No checkout attempts yet.</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="admin-table-wrap">
