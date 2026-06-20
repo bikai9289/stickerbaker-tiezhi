@@ -2,7 +2,9 @@
   <div class="saas-container">
     <div class="saas-section-head">
       <p class="saas-legal-kicker">Sticker Ideas</p>
+
       <h1>AI Sticker Search</h1>
+
       <p class="saas-section-copy">
         Search AI generated stickers for prompt ideas, cute examples, mascot concepts, and
         reusable inspiration.
@@ -10,7 +12,14 @@
     </div>
 
     <div class="saas-tool-shell saas-search-tool">
-      <.form for={@form} name="sticker-search" id="sticker-search" phx-submit="search">
+      <.form
+        for={@form}
+        name="sticker-search"
+        id="sticker-search"
+        phx-submit="search"
+        data-analytics-event="search_submit"
+        data-analytics-context="search_page"
+      >
         <div class="saas-prompt-row">
           <input
             type="text"
@@ -40,9 +49,11 @@
   <div class="saas-container">
     <div class="saas-section-head">
       <h2>Sticker Search Results</h2>
+
       <p :if={not is_nil(@elapsed_time) and not @loading} class="saas-section-copy">
         Searched <%= @number_searchable_stickers %> stickers in <%= @elapsed_time / 1000.0 %> seconds.
       </p>
+
       <p :if={is_nil(@elapsed_time) and not @loading} class="saas-section-copy">
         Enter a topic above to find matching AI sticker ideas.
       </p>
@@ -60,7 +71,11 @@
       class="saas-generated-grid"
     >
       <li :for={{id, {prediction, _distance}} <- @streams.results} id={id}>
-        <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
+        <StickerWeb.Components.sticker
+          id={id}
+          prediction={prediction}
+          class="saas-generated-item"
+        />
       </li>
     </ul>
   </div>

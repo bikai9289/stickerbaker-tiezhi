@@ -58,6 +58,7 @@ defmodule StickerWeb.PageControllerTest do
     conn = get(conn, ~p"/sitemap.xml")
     body = response(conn, 200)
 
+    assert response_content_type(conn, :xml) =~ "charset=utf-8"
     assert body =~ "/face-to-sticker"
     assert body =~ "/custom-sticker-maker"
     assert body =~ "/cute-sticker-ideas"
@@ -66,6 +67,84 @@ defmodule StickerWeb.PageControllerTest do
     assert body =~ "/kawaii-sticker-maker"
     assert body =~ "/transparent-sticker-maker"
     refute body =~ "/account"
+    refute body =~ "/admin"
+    refute body =~ "/users/register"
+    refute body =~ "/users/log-in"
+    refute body =~ "/webhooks"
+    refute body =~ "/stickers/download"
+  end
+
+  test "robots references canonical sitemap", %{conn: conn} do
+    conn = get(conn, ~p"/robots.txt")
+    body = response(conn, 200)
+
+    assert body =~ "Sitemap: https://ai-sticker-maker.com/sitemap.xml"
+    refute Regex.match?(~r/^Disallow:\s*\//m, body)
+  end
+
+  test "core public pages render unique SEO metadata and one h1", %{conn: _conn} do
+    pages = [
+      {~p"/", "AI Sticker Maker - Free AI Sticker Generator Online",
+       "https://ai-sticker-maker.com/"},
+      {~p"/pricing", "AI Sticker Maker Pricing - Buy Sticker Credits",
+       "https://ai-sticker-maker.com/pricing"},
+      {~p"/search", "AI Sticker Search - Find Sticker Ideas Online",
+       "https://ai-sticker-maker.com/search"},
+      {~p"/face-to-sticker", "Face to Sticker AI Generator",
+       "https://ai-sticker-maker.com/face-to-sticker"},
+      {~p"/custom-sticker-maker", "Custom Sticker Maker Online",
+       "https://ai-sticker-maker.com/custom-sticker-maker"},
+      {~p"/sticker-maker-online", "Sticker Maker Online - Create AI Stickers",
+       "https://ai-sticker-maker.com/sticker-maker-online"}
+    ]
+
+    for {path, expected_title, canonical} <- pages do
+      conn = get(build_conn(), path)
+      body = html_response(conn, 200)
+      {:ok, document} = Floki.parse_document(body)
+
+      assert Floki.find(document, "title") |> Floki.text() == expected_title
+      assert [%{"href" => ^canonical}] = meta_attrs(document, "link[rel=\"canonical\"]")
+      assert [%{"content" => description}] = meta_attrs(document, "meta[name=\"description\"]")
+      assert String.length(description) > 40
+
+      assert [%{"content" => ^expected_title}] =
+               meta_attrs(document, "meta[property=\"og:title\"]")
+
+      assert [%{"content" => _}] = meta_attrs(document, "meta[property=\"og:description\"]")
+
+      assert [%{"content" => ^expected_title}] =
+               meta_attrs(document, "meta[name=\"twitter:title\"]")
+
+      assert length(Floki.find(document, "h1")) == 1
+    end
+  end
+
+  test "status chrome is marked as non-snippet content", %{conn: conn} do
+    conn = get(conn, ~p"/")
+    body = html_response(conn, 200)
+    {:ok, document} = Floki.parse_document(body)
+
+    assert [%{"id" => "disconnected", "data-nosnippet" => "true"}] =
+             meta_attrs(document, "#disconnected")
+  end
+
+  test "public conversion actions expose analytics hook attributes", %{conn: conn} do
+    conn = get(conn, ~p"/")
+    body = html_response(conn, 200)
+    {:ok, document} = Floki.parse_document(body)
+
+    assert [%{"phx-hook" => "LaunchAnalytics"}] = meta_attrs(document, "#home")
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"text_generation_attempt\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"face_upload_attempt\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"registration_cta_click\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"login_cta_click\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"pricing_cta_click\"]")
+
+    conn = get(build_conn(), ~p"/search")
+    body = html_response(conn, 200)
+    {:ok, document} = Floki.parse_document(body)
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"search_submit\"]")
   end
 
   test "batch download without selection redirects to history", %{conn: conn} do
@@ -226,4 +305,10 @@ defmodule StickerWeb.PageControllerTest do
 
   defp restore_env(key, nil), do: System.delete_env(key)
   defp restore_env(key, value), do: System.put_env(key, value)
+
+  defp meta_attrs(document, selector) do
+    document
+    |> Floki.find(selector)
+    |> Enum.map(fn {_tag, attrs, _children} -> Map.new(attrs) end)
+  end
 end

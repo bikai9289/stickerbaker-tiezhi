@@ -1,15 +1,12 @@
 <header class="saas-nav">
   <div class="saas-container saas-nav-inner">
     <.link class="saas-brand" navigate={~p"/"}>
-      <span class="saas-logo-sticker"><span>*</span></span>
-      <span>AI Sticker Maker</span>
+      <span class="saas-logo-sticker"><span>*</span></span> <span>AI Sticker Maker</span>
     </.link>
 
     <nav class="saas-nav-links" aria-label="Primary navigation">
-      <a href="/#generator">Generator</a>
-      <a href="/#upload">Upload</a>
-      <a href="/#latest">Latest</a>
-      <.link navigate={~p"/pricing"}>Pricing</.link>
+      <a href="/#generator">Generator</a> <a href="/#upload">Upload</a>
+      <a href="/#latest">Latest</a> <.link navigate={~p"/pricing"}>Pricing</.link>
       <a href="/#faq">FAQ</a>
     </nav>
 
@@ -23,7 +20,12 @@
         </.link>
       <% else %>
         <.link class="saas-button saas-button-ghost" navigate={~p"/users/log-in"}>Sign In</.link>
-        <.link class="saas-button saas-button-primary" navigate={~p"/users/register"}>
+        <.link
+          class="saas-button saas-button-primary"
+          navigate={~p"/users/register"}
+          data-analytics-event="registration_cta_click"
+          data-analytics-context="nav"
+        >
           Start Free
         </.link>
       <% end %>
@@ -32,52 +34,65 @@
 </header>
 
 <main>
-  <.flash_group flash={@flash} />
-  <%= @inner_content %>
+  <.flash_group flash={@flash} /> <%= @inner_content %>
 </main>
 
 <footer class="saas-footer">
   <div class="saas-container saas-footer-grid">
     <div class="saas-footer-about">
       <.link class="saas-footer-brand" navigate={~p"/"}>
-        <span class="saas-logo-sticker"><span>*</span></span>
-        <span>AI Sticker Maker</span>
+        <span class="saas-logo-sticker"><span>*</span></span> <span>AI Sticker Maker</span>
       </.link>
+
       <p>
         Create custom AI stickers from prompts and portraits. Built for simple sticker generation,
         search traffic, and future credit-based plans.
       </p>
-      <.link class="saas-footer-badge" navigate={~p"/pricing"}>Buy Credits</.link>
+
+      <.link
+        class="saas-footer-badge"
+        navigate={~p"/pricing"}
+        data-analytics-event="pricing_cta_click"
+        data-analytics-context="footer_badge"
+      >
+        Buy Credits
+      </.link>
     </div>
 
     <div>
       <h3>Product</h3>
+
       <div class="saas-footer-links">
-        <a href="/#generator">AI Sticker Generator</a>
-        <a href="/#upload">Face to Sticker</a>
+        <a href="/#generator">AI Sticker Generator</a> <a href="/#upload">Face to Sticker</a>
         <.link navigate={~p"/custom-sticker-maker"}>Custom Sticker Maker</.link>
         <.link navigate={~p"/cute-sticker-ideas"}>Cute Sticker Ideas</.link>
         <.link navigate={~p"/sticker-maker-online"}>Sticker Maker Online</.link>
         <.link navigate={~p"/ai-avatar-sticker"}>AI Avatar Sticker</.link>
         <.link navigate={~p"/kawaii-sticker-maker"}>Kawaii Sticker Maker</.link>
         <.link navigate={~p"/transparent-sticker-maker"}>Transparent Sticker Maker</.link>
-        <a href="/#latest">Latest Stickers</a>
-        <.link navigate={~p"/account"}>Account</.link>
-        <.link navigate={~p"/pricing"}>Buy Credits</.link>
+        <a href="/#latest">Latest Stickers</a> <.link navigate={~p"/account"}>Account</.link>
+        <.link
+          navigate={~p"/pricing"}
+          data-analytics-event="pricing_cta_click"
+          data-analytics-context="footer_product"
+        >
+          Buy Credits
+        </.link>
       </div>
     </div>
 
     <div>
       <h3>Resources</h3>
+
       <div class="saas-footer-links">
-        <a href="/#faq">FAQ</a>
-        <a href="/search">Prompt Ideas</a>
+        <a href="/#faq">FAQ</a> <a href="/search">Prompt Ideas</a>
         <a href="/search">Sticker Examples</a>
       </div>
     </div>
 
     <div>
       <h3>Company</h3>
+
       <div class="saas-footer-links">
         <a href="mailto:support@ai-sticker-maker.com">support@ai-sticker-maker.com</a>
         <.link navigate={~p"/contact"}>Contact</.link>

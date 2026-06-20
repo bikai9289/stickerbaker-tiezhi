@@ -2,7 +2,9 @@
   <div class="saas-container saas-page-shell">
     <div class="saas-page-hero">
       <p class="saas-legal-kicker">Company</p>
+
       <h1>Contact AI Sticker Maker</h1>
+
       <p>
         Get help with credits, sticker generation, account access, billing, or business requests.
       </p>
@@ -11,7 +13,9 @@
     <div class="saas-info-grid">
       <article class="saas-info-panel">
         <h2>Email support</h2>
+
         <p>Use this inbox for support, abuse reports, partnership questions, and billing help.</p>
+
         <a class="saas-button saas-button-primary" href="mailto:support@ai-sticker-maker.com">
           Email Support
         </a>
@@ -19,8 +23,17 @@
 
       <article class="saas-info-panel">
         <h2>Credits and payments</h2>
-        <p>Sign in before buying credits so completed checkout sessions can update your account.</p>
-        <.link class="saas-button saas-button-ghost" navigate={~p"/pricing"}>
+
+        <p>
+          Sign in before buying credits so completed checkout sessions can update your account.
+        </p>
+
+        <.link
+          class="saas-button saas-button-ghost"
+          navigate={~p"/pricing"}
+          data-analytics-event="pricing_cta_click"
+          data-analytics-context="contact_payment_panel"
+        >
           View Pricing
         </.link>
       </article>

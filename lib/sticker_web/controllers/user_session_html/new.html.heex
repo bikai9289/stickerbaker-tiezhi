@@ -1,7 +1,9 @@
 <section class="saas-auth-page">
   <div class="saas-auth-card">
     <p class="saas-legal-kicker">Account</p>
+
     <h1>Sign in to AI Sticker Maker</h1>
+
     <p class="saas-auth-copy">
       Manage your credits, sticker history, and downloads with one account.
     </p>
@@ -30,12 +32,24 @@
         />
       </label>
 
-      <button class="saas-button saas-button-primary saas-auth-submit">Sign In</button>
+      <button
+        class="saas-button saas-button-primary saas-auth-submit"
+        data-analytics-event="login_confirm_attempt"
+        data-analytics-context="login_form"
+      >
+        Sign In
+      </button>
     </.form>
 
     <p class="saas-auth-switch">
       New here?
-      <.link navigate={~p"/users/register"}>Create an account</.link>
+      <.link
+        navigate={~p"/users/register"}
+        data-analytics-event="registration_cta_click"
+        data-analytics-context="login_page"
+      >
+        Create an account
+      </.link>
     </p>
   </div>
 </section>

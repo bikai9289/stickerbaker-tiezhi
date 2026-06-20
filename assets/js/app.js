@@ -23,6 +23,7 @@ import { LiveSocket } from "phoenix_live_view";
 import topbar from "../vendor/topbar";
 import FileSaver from "../vendor/file-saver";
 import Hammer from "../vendor/hammer.js";
+import { safeTrack } from "./launch_analytics.mjs";
 
 let Hooks = {};
 
@@ -44,6 +45,37 @@ Hooks.AssignUserId = {
     });
   },
 };
+
+Hooks.LaunchAnalytics = {
+  mounted() {
+    Hooks.AssignUserId.mounted.call(this);
+
+    safeTrack("generator_view", {
+      context: "home",
+      authState: this.el.dataset.sessionUserId ? "known" : "anonymous",
+    });
+
+    this.el.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-analytics-event]");
+      if (!target) return;
+      if (target.tagName === "FORM") return;
+
+      safeTrack(target.dataset.analyticsEvent, {
+        context: target.dataset.analyticsContext,
+        authState: this.el.dataset.sessionUserId ? "known" : "anonymous",
+      });
+    });
+  },
+};
+
+document.addEventListener("submit", (event) => {
+  const target = event.target.closest("[data-analytics-event]");
+  if (!target) return;
+
+  safeTrack(target.dataset.analyticsEvent, {
+    context: target.dataset.analyticsContext,
+  });
+});
 
 Hooks.DownloadImage = {
   mounted() {

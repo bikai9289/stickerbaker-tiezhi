@@ -287,28 +287,31 @@ defmodule StickerWeb.PageController do
     base_url = "https://ai-sticker-maker.com"
 
     paths = [
-      "/",
-      "/pricing",
-      "/face-to-sticker",
-      "/custom-sticker-maker",
-      "/cute-sticker-ideas",
-      "/sticker-maker-online",
-      "/ai-avatar-sticker",
-      "/kawaii-sticker-maker",
-      "/transparent-sticker-maker",
-      "/contact",
-      "/payment-and-credits",
-      "/privacy-policy",
-      "/refund-policy",
-      "/terms-of-service",
-      "/search"
+      {"/", "2026-06-13", "1.0"},
+      {"/pricing", "2026-06-13", "0.8"},
+      {"/face-to-sticker", "2026-06-13", "0.9"},
+      {"/custom-sticker-maker", "2026-06-13", "0.9"},
+      {"/cute-sticker-ideas", "2026-06-13", "0.8"},
+      {"/sticker-maker-online", "2026-06-13", "0.9"},
+      {"/ai-avatar-sticker", "2026-06-13", "0.8"},
+      {"/kawaii-sticker-maker", "2026-06-13", "0.8"},
+      {"/transparent-sticker-maker", "2026-06-13", "0.8"},
+      {"/search", "2026-06-13", "0.7"},
+      {"/contact", "2026-06-13", "0.5"},
+      {"/payment-and-credits", "2026-06-13", "0.5"},
+      {"/privacy-policy", "2026-06-13", "0.4"},
+      {"/refund-policy", "2026-06-13", "0.5"},
+      {"/terms-of-service", "2026-06-13", "0.4"},
+      {"/sitemap", "2026-06-13", "0.3"}
     ]
 
     urls =
-      Enum.map(paths, fn path ->
+      Enum.map(paths, fn {path, lastmod, priority} ->
         """
         <url>
           <loc>#{base_url}#{path}</loc>
+          <lastmod>#{lastmod}</lastmod>
+          <priority>#{priority}</priority>
         </url>
         """
       end)
