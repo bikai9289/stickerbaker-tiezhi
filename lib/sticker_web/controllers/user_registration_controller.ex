@@ -3,6 +3,7 @@ defmodule StickerWeb.UserRegistrationController do
 
   alias Sticker.Accounts
   alias StickerWeb.AbuseProtection
+  alias StickerWeb.PendingPromptIntent
   alias StickerWeb.UserSessionController
   alias StickerWeb.SEO, as: PageSEO
 
@@ -21,6 +22,7 @@ defmodule StickerWeb.UserRegistrationController do
     |> render(:new,
       changeset: changeset,
       captcha_question: captcha.question,
+      pending_prompt?: PendingPromptIntent.pending?(conn),
       page_title: "Create Account"
     )
   end
@@ -32,6 +34,8 @@ defmodule StickerWeb.UserRegistrationController do
 
       case Accounts.register_user(user_params) do
         {:ok, user} ->
+          {conn, redirect_opts} = PendingPromptIntent.login_redirect_opts(conn)
+
           Accounts.send_confirmation_email(user, fn token ->
             url(~p"/users/confirm/#{token}")
           end)
@@ -39,7 +43,7 @@ defmodule StickerWeb.UserRegistrationController do
           conn
           |> delete_session(:captcha_answer)
           |> put_flash(:info, "Account created. Confirm your email to unlock 3 free credits.")
-          |> UserSessionController.log_in_user(user)
+          |> UserSessionController.log_in_user(user, redirect_opts)
 
         {:error, changeset} ->
           render_new(conn, changeset)
@@ -83,6 +87,7 @@ defmodule StickerWeb.UserRegistrationController do
     |> render(:new,
       changeset: changeset,
       captcha_question: captcha.question,
+      pending_prompt?: PendingPromptIntent.pending?(conn),
       page_title: "Create Account"
     )
   end

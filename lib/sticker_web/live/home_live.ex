@@ -22,6 +22,7 @@ defmodule StickerWeb.HomeLive do
        )
      )
      |> assign(form: to_form(%{"prompt" => ""}))
+     |> assign(:prompt_restored?, false)
      |> assign(local_user_id: session["local_user_id"])
      |> assign(:showcase_items, showcase_items())
      |> stream(:my_predictions, loading_predictions)
@@ -35,7 +36,7 @@ defmodule StickerWeb.HomeLive do
   end
 
   def handle_params(%{"prompt" => prompt}, _, socket) do
-    {:noreply, socket |> assign(form: to_form(%{"prompt" => prompt}))}
+    {:noreply, socket |> assign(form: to_form(%{"prompt" => prompt})) |> assign(:prompt_restored?, true)}
   end
 
   def handle_params(_params, _, socket) do
@@ -52,10 +53,11 @@ defmodule StickerWeb.HomeLive do
     {:noreply, socket |> assign(local_user_id: user_id)}
   end
 
-  def handle_event("save", %{"prompt" => _prompt}, %{assigns: %{current_user: nil}} = socket) do
+  def handle_event("save", %{"prompt" => prompt}, %{assigns: %{current_user: nil}} = socket) do
     {:noreply,
      socket
-     |> put_flash(:error, "Please sign in to use your 3 free sticker credits.")}
+     |> assign(form: to_form(%{"prompt" => prompt}))
+     |> put_flash(:error, "Please create an account to use your 3 free sticker credits.")}
   end
 
   def handle_event("save", %{"prompt" => prompt}, socket) do
@@ -374,6 +376,118 @@ defmodule StickerWeb.HomeLive do
 
   def error_to_string(:too_large), do: "Too large"
   def error_to_string(:not_accepted), do: "Sorry, we only accept #{@accepted}"
+
+  attr :current_user, :any, required: true
+  attr :uploads, :map, required: true
+
+  def face_upload_panel(assigns) do
+    ~H"""
+    <div id="upload" class="saas-upload-panel">
+      <div class="saas-upload-box">
+        <p class="saas-mini-title">Upload a face</p>
+
+        <p class="saas-mini-copy">
+          Choose a portrait to start face sticker generation automatically.
+        </p>
+
+        <section class="saas-face-upload" phx-drop-target={@uploads.image.ref}>
+          <div :if={is_nil(@current_user)}>
+            <.link
+              navigate={~p"/users/register"}
+              class="saas-face-demo"
+              data-analytics-event="registration_cta_click"
+              data-analytics-context="home_upload_auth_gate"
+            >
+              <span>
+                <span class="saas-face-demo-figure">
+                  <img src="/images/arnold_before.png" alt="Portrait before sticker generation" />
+                </span>
+                <span class="saas-face-demo-caption">Before</span>
+              </span>
+              <span class="saas-face-demo-arrow">-&gt;</span>
+              <span>
+                <span class="saas-face-demo-figure">
+                  <img src="/images/arnold.png" alt="Sticker result after generation" />
+                </span>
+                <span class="saas-face-demo-caption">After</span>
+              </span>
+
+              <span class="saas-button saas-button-ghost">
+                Create Account to Upload
+              </span>
+            </.link>
+          </div>
+
+          <div :if={@current_user && @uploads.image.entries == []}>
+            <label for={@uploads.image.ref} class="saas-face-demo">
+              <span>
+                <span class="saas-face-demo-figure">
+                  <img src="/images/arnold_before.png" alt="Portrait before sticker generation" />
+                </span>
+                <span class="saas-face-demo-caption">Before</span>
+              </span>
+              <span class="saas-face-demo-arrow">-&gt;</span>
+              <span>
+                <span class="saas-face-demo-figure">
+                  <img src="/images/arnold.png" alt="Sticker result after generation" />
+                </span>
+                <span class="saas-face-demo-caption">After</span>
+              </span>
+
+              <span
+                class="saas-button saas-button-ghost"
+                data-analytics-event="face_upload_attempt"
+                data-analytics-context="home_upload"
+              >
+                Upload & Generate
+              </span>
+            </label>
+          </div>
+
+          <.live_file_input :if={@current_user} upload={@uploads.image} class="sr-only" />
+
+          <%= for entry <- @uploads.image.entries do %>
+            <article class="saas-upload-preview">
+              <figure>
+                <.live_img_preview entry={entry} class="saas-upload-preview-img" />
+              </figure>
+
+              <%= for err <- upload_errors(@uploads.image, entry) do %>
+                <p class="saas-upload-error"><%= error_to_string(err) %></p>
+              <% end %>
+
+              <p :if={!entry.done?} class="saas-mini-copy">
+                Uploading...
+              </p>
+
+              <%= if upload_errors(@uploads.image, entry) != [] do %>
+                <.link navigate={~p"/"} class="saas-button saas-button-ghost">
+                  Try another upload
+                </.link>
+              <% end %>
+            </article>
+          <% end %>
+
+          <%= for err <- upload_errors(@uploads.image) do %>
+            <p class="saas-upload-error"><%= error_to_string(err) %></p>
+          <% end %>
+        </section>
+      </div>
+
+      <div class="saas-search-box">
+        <p class="saas-mini-title">Search sticker ideas</p>
+
+        <p class="saas-mini-copy">
+          Browse generated stickers after your library starts filling with results.
+        </p>
+
+        <.link class="saas-button saas-button-ghost" navigate={~p"/search"}>
+          Open Search
+        </.link>
+      </div>
+    </div>
+    """
+  end
 
   defp showcase_fallbacks do
     [

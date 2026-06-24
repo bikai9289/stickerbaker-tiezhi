@@ -54,6 +54,7 @@ defmodule StickerWeb.Router do
     get "/users/register", UserRegistrationController, :new
     post "/users/register", UserRegistrationController, :create
     get "/users/confirm/:token", UserRegistrationController, :confirm
+    post "/users/pending-prompt", SessionController, :pending_prompt
     get "/users/log-in", UserSessionController, :new
     post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete

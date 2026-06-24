@@ -16,7 +16,13 @@
           <.link class="saas-mode-tab" navigate={~p"/search"}>Search</.link>
         </div>
 
-        <.form for={@form} id="prediction-form" phx-change="validate" phx-submit="save">
+        <.form
+          :if={@current_user}
+          for={@form}
+          id="prediction-form"
+          phx-change="validate"
+          phx-submit="save"
+        >
           <div class="saas-prompt-row">
             <textarea
               id={@form[:prompt].id}
@@ -33,7 +39,55 @@
               phx-disable-with="Baking..."
               class="saas-button saas-button-primary"
               data-analytics-event="text_generation_attempt"
-              data-analytics-context="hero_generator"
+              data-analytics-context={
+                if @prompt_restored?, do: "hero_generator_restored_prompt", else: "hero_generator"
+              }
+            >
+              Bake Sticker
+            </button>
+          </div>
+
+          <div class="saas-hint-row" aria-label="Prompt examples">
+            <span class="saas-chip">cute panda eating cookie</span>
+            <span class="saas-chip">kawaii flower sticker</span>
+            <span class="saas-chip">3D robot mascot</span>
+            <span class="saas-chip">happy coffee cup</span>
+          </div>
+
+          <div class="saas-auth-note">
+            <p>
+              <strong>Account ready.</strong>
+              Each sticker generation uses 1 credit.
+            </p>
+
+            <span class="saas-credit-pill">Credits: <%= @current_user.credits %></span>
+          </div>
+
+          <.face_upload_panel current_user={@current_user} uploads={@uploads} />
+        </.form>
+
+        <.form
+          :if={is_nil(@current_user)}
+          for={@form}
+          id="prediction-form"
+          action={~p"/users/pending-prompt"}
+          method="post"
+        >
+          <div class="saas-prompt-row">
+            <textarea
+              id={@form[:prompt].id}
+              name={@form[:prompt].name}
+              placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot...&#10;Add up to 5 prompts, one per line."
+              required
+              class="saas-prompt-input"
+              data-analytics-input="prompt"
+            ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
+            <button
+              name="submit"
+              value="generate"
+              class="saas-button saas-button-primary"
+              data-analytics-event="text_generation_attempt"
+              data-analytics-context="hero_generator_anonymous"
             >
               Bake Sticker
             </button>
@@ -52,98 +106,17 @@
               New users get 3 free credits. Each sticker generation uses 1 credit.
             </p>
 
-            <%= if @current_user do %>
-              <span class="saas-credit-pill">Credits: <%= @current_user.credits %></span>
-            <% else %>
-              <.link
-                class="saas-button saas-button-ghost"
-                navigate={~p"/users/log-in"}
-                data-analytics-event="login_cta_click"
-                data-analytics-context="generator_auth_note"
-              >
-                Sign In
-              </.link>
-            <% end %>
+            <.link
+              class="saas-button saas-button-ghost"
+              navigate={~p"/users/log-in"}
+              data-analytics-event="login_cta_click"
+              data-analytics-context="generator_auth_note"
+            >
+              Sign In
+            </.link>
           </div>
 
-          <div id="upload" class="saas-upload-panel">
-            <div class="saas-upload-box">
-              <p class="saas-mini-title">Upload a face</p>
-
-              <p class="saas-mini-copy">
-                Choose a portrait to start face sticker generation automatically.
-              </p>
-
-              <section class="saas-face-upload" phx-drop-target={@uploads.image.ref}>
-                <div :if={@uploads.image.entries == []}>
-                  <label for={@uploads.image.ref} class="saas-face-demo">
-                    <span>
-                      <span class="saas-face-demo-figure">
-                        <img
-                          src="/images/arnold_before.png"
-                          alt="Portrait before sticker generation"
-                        />
-                      </span>
-                      <span class="saas-face-demo-caption">Before</span>
-                    </span>
-                    <span class="saas-face-demo-arrow">-&gt;</span>
-                    <span>
-                      <span class="saas-face-demo-figure">
-                        <img src="/images/arnold.png" alt="Sticker result after generation" />
-                      </span>
-                      <span class="saas-face-demo-caption">After</span>
-                    </span>
-
-                    <span
-                      class="saas-button saas-button-ghost"
-                      data-analytics-event="face_upload_attempt"
-                      data-analytics-context="home_upload"
-                    >
-                      Upload & Generate
-                    </span>
-                  </label>
-                </div>
-                <.live_file_input upload={@uploads.image} class="sr-only" />
-                <%= for entry <- @uploads.image.entries do %>
-                  <article class="saas-upload-preview">
-                    <figure>
-                      <.live_img_preview entry={entry} class="saas-upload-preview-img" />
-                    </figure>
-
-                    <%= for err <- upload_errors(@uploads.image, entry) do %>
-                      <p class="saas-upload-error"><%= error_to_string(err) %></p>
-                    <% end %>
-
-                    <p :if={!entry.done?} class="saas-mini-copy">
-                      Uploading...
-                    </p>
-
-                    <%= if upload_errors(@uploads.image, entry) != [] do %>
-                      <.link navigate={~p"/"} class="saas-button saas-button-ghost">
-                        Try another upload
-                      </.link>
-                    <% end %>
-                  </article>
-                <% end %>
-
-                <%= for err <- upload_errors(@uploads.image) do %>
-                  <p class="saas-upload-error"><%= error_to_string(err) %></p>
-                <% end %>
-              </section>
-            </div>
-
-            <div class="saas-search-box">
-              <p class="saas-mini-title">Search sticker ideas</p>
-
-              <p class="saas-mini-copy">
-                Browse generated stickers after your library starts filling with results.
-              </p>
-
-              <.link class="saas-button saas-button-ghost" navigate={~p"/search"}>
-                Open Search
-              </.link>
-            </div>
-          </div>
+          <.face_upload_panel current_user={@current_user} uploads={@uploads} />
         </.form>
       </div>
     </div>

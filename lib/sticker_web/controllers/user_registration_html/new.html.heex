@@ -60,7 +60,9 @@
       <button
         class="saas-button saas-button-primary saas-auth-submit"
         data-analytics-event="registration_confirm_attempt"
-        data-analytics-context="registration_form"
+        data-analytics-context={
+          if assigns[:pending_prompt?], do: "registration_from_prompt", else: "registration_form"
+        }
       >
         Create Account
       </button>
