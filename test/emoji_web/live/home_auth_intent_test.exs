@@ -27,7 +27,9 @@ defmodule StickerWeb.HomeAuthIntentTest do
     refute get_session(conn, :pending_prompt)
   end
 
-  test "anonymous oversized prompt stays on homepage and does not store pending prompt", %{conn: conn} do
+  test "anonymous oversized prompt stays on homepage and does not store pending prompt", %{
+    conn: conn
+  } do
     conn = post(conn, ~p"/users/pending-prompt", %{"prompt" => @long_prompt})
 
     assert redirected_to(conn, 302) == ~p"/"
@@ -86,7 +88,9 @@ defmodule StickerWeb.HomeAuthIntentTest do
     refute get_session(conn, :pending_prompt)
   end
 
-  test "restored prompt prefills homepage without creating prediction or spending credits", %{conn: conn} do
+  test "restored prompt prefills homepage without creating prediction or spending credits", %{
+    conn: conn
+  } do
     user = user_fixture()
 
     before_count = Predictions.list_loading_predictions(user.public_id) |> length()
@@ -118,7 +122,9 @@ defmodule StickerWeb.HomeAuthIntentTest do
     assert html_response(conn, 200) =~ "registration_from_prompt"
   end
 
-  test "direct registration without pending prompt keeps existing redirect behavior", %{conn: conn} do
+  test "direct registration without pending prompt keeps existing redirect behavior", %{
+    conn: conn
+  } do
     conn =
       conn
       |> Plug.Test.init_test_session(%{captcha_answer: "9"})

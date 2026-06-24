@@ -36,7 +36,8 @@ defmodule StickerWeb.HomeLive do
   end
 
   def handle_params(%{"prompt" => prompt}, _, socket) do
-    {:noreply, socket |> assign(form: to_form(%{"prompt" => prompt})) |> assign(:prompt_restored?, true)}
+    {:noreply,
+     socket |> assign(form: to_form(%{"prompt" => prompt})) |> assign(:prompt_restored?, true)}
   end
 
   def handle_params(_params, _, socket) do
@@ -307,8 +308,7 @@ defmodule StickerWeb.HomeLive do
         {:noreply, put_flash(socket, :error, "Image safety review failed. Try again later.")}
 
       {:error, :source_image_upload_failed} ->
-        {:noreply,
-         put_flash(socket, :error, "Could not upload that portrait. Please try again.")}
+        {:noreply, put_flash(socket, :error, "Could not upload that portrait. Please try again.")}
 
       {:error, _changeset} ->
         current_user = Accounts.refund_credit(socket.assigns.current_user)
@@ -335,7 +335,13 @@ defmodule StickerWeb.HomeLive do
 
   defp fail_start_and_broadcast(prediction, failure_stage, reason) do
     {:ok, prediction} = Predictions.fail_prediction_and_refund(prediction, failure_stage, reason)
-    PubSub.broadcast(Sticker.PubSub, "user:#{prediction.local_user_id}", {:prediction_failed, prediction})
+
+    PubSub.broadcast(
+      Sticker.PubSub,
+      "user:#{prediction.local_user_id}",
+      {:prediction_failed, prediction}
+    )
+
     :ok
   end
 

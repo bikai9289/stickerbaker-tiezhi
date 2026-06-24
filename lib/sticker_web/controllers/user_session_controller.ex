@@ -11,7 +11,8 @@ defmodule StickerWeb.UserSessionController do
     |> SEO.assign(
       PageSEO.noindex("/users/log-in",
         title: "Sign In",
-        description: "Sign in to AI Sticker Maker to manage credits, sticker history, and downloads."
+        description:
+          "Sign in to AI Sticker Maker to manage credits, sticker history, and downloads."
       )
     )
     |> render(:new, page_title: "Sign In")
@@ -29,7 +30,8 @@ defmodule StickerWeb.UserSessionController do
         |> SEO.assign(
           PageSEO.noindex("/users/log-in",
             title: "Sign In",
-            description: "Sign in to AI Sticker Maker to manage credits, sticker history, and downloads."
+            description:
+              "Sign in to AI Sticker Maker to manage credits, sticker history, and downloads."
           )
         )
         |> render(:new, page_title: "Sign In", email: email)
