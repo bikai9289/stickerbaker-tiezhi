@@ -23,7 +23,7 @@ import { LiveSocket } from "phoenix_live_view";
 import topbar from "../vendor/topbar";
 import FileSaver from "../vendor/file-saver";
 import Hammer from "../vendor/hammer.js";
-import { safeTrack } from "./launch_analytics.mjs";
+import { safeTrack, trackReturnState } from "./launch_analytics.mjs";
 
 let Hooks = {};
 
@@ -63,6 +63,7 @@ Hooks.LaunchAnalytics = {
       safeTrack(target.dataset.analyticsEvent, {
         context: target.dataset.analyticsContext,
         authState: this.el.dataset.sessionUserId ? "known" : "anonymous",
+        plan: target.dataset.analyticsPlan,
       });
     });
   },
@@ -74,8 +75,11 @@ document.addEventListener("submit", (event) => {
 
   safeTrack(target.dataset.analyticsEvent, {
     context: target.dataset.analyticsContext,
+    plan: target.dataset.analyticsPlan,
   });
 });
+
+trackReturnState();
 
 Hooks.DownloadImage = {
   mounted() {

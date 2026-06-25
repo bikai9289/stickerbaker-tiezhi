@@ -84,6 +84,49 @@ To start your Phoenix server:
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
+## Stripe payments
+
+Credit purchases use Stripe Checkout by default. Create two one-time Stripe prices in the Stripe Dashboard and configure these environment variables:
+
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_STARTER_PRICE_ID` for the Starter plan: 50 credits, USD 4.99
+- `STRIPE_CREATOR_PRICE_ID` for the Creator plan: 150 credits, USD 9.99
+- `PAYMENT_PROVIDER=stripe` is optional because Stripe is the default provider.
+
+Add a Stripe webhook endpoint:
+
+- URL: `https://ai-sticker-maker.com/webhooks/stripe`
+- Events: `checkout.session.completed`, `charge.refunded`
+
+For local webhook testing, run the Stripe CLI and forward events to the Phoenix server:
+
+```bash
+stripe listen --forward-to localhost:4000/webhooks/stripe
+```
+
+Use the signing secret printed by the Stripe CLI as `STRIPE_WEBHOOK_SECRET`.
+
+### Production payment checklist
+
+Before enabling public paid traffic:
+
+1. Confirm Stripe live mode has these webhook events enabled:
+   - `checkout.session.completed`
+   - `charge.refunded`
+2. Run a live minimum-value purchase from the deployed domain.
+3. Confirm `/account` shows the checkout attempt and the credited payment.
+4. Refund that live payment from Stripe Dashboard.
+5. Confirm `/account` and `/admin/payments` show the refund state.
+6. Rotate any live Stripe secret key that was copied into chat, tickets, logs, or screenshots.
+7. Update the deployed `STRIPE_SECRET_KEY` after rotation and restart the app.
+
+Refund policy in code:
+
+- Full refunds automatically remove the original purchased credits if the account balance can cover them.
+- Low-balance refunds are marked `review_required`.
+- Partial refunds are marked `partial_refund_review`; credits are not automatically changed.
+
 ## Prod
 
 Update the `url` and `check_origin` origin in `prod.exs`

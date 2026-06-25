@@ -3,12 +3,42 @@
     <div>
       <p class="admin-kicker">Admin</p>
       <h1>Payment Records</h1>
-      <p>Review checkout events that added credits to user accounts.</p>
+      <p>Review checkout attempts, paid credit events, and refund cases.</p>
     </div>
     <div class="admin-header-actions">
       <.link class="saas-button saas-button-ghost" navigate={~p"/admin/users"}>User Credits</.link>
       <.link class="saas-button saas-button-ghost" navigate={~p"/admin"}>Back to Moderation</.link>
     </div>
+  </div>
+
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Plan</th>
+          <th>Credits</th>
+          <th>Status</th>
+          <th>Checkout ID</th>
+          <th>Failure</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr :for={attempt <- @attempts}>
+          <td><%= if user = @users[attempt.user_id], do: user.email, else: "Unknown user" %></td>
+          <td><%= attempt.plan %></td>
+          <td><span class="saas-credit-pill"><%= attempt.credits %></span></td>
+          <td><%= attempt.status %></td>
+          <td><code><%= attempt.stripe_session_id || "-" %></code></td>
+          <td><%= attempt.failure_reason || "-" %></td>
+          <td><%= Calendar.strftime(attempt.inserted_at, "%Y-%m-%d %H:%M") %></td>
+        </tr>
+        <tr :if={@attempts == []}>
+          <td colspan="7">No checkout attempts yet.</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="admin-table-wrap">

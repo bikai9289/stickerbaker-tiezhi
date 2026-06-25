@@ -64,7 +64,7 @@ defmodule StickerWeb.UserRegistrationController do
       {:ok, user} ->
         conn
         |> put_flash(:info, "Email confirmed. Your 3 free credits are ready.")
-        |> UserSessionController.log_in_user(user)
+        |> UserSessionController.log_in_user(user, redirect_to: ~p"/?registration=confirmed")
 
       {:error, :not_found} ->
         conn

@@ -2,23 +2,23 @@
   <div class="saas-container">
     <div class="saas-pricing-hero">
       <p class="saas-legal-kicker">Pricing</p>
-
       <h1>Buy AI Sticker Credits</h1>
-
       <p>
         Start with 3 free credits. Add more credits with secure checkout, then keep generating
         text and face stickers from the same account.
       </p>
     </div>
 
+    <div :if={@checkout == "canceled"} class="saas-buy-note">
+      <strong>Checkout canceled:</strong>
+      You were not charged. Choose a credit pack when you are ready.
+    </div>
+
     <div class="saas-buy-grid">
       <article class="saas-buy-card">
         <h2>Free</h2>
-
         <div class="saas-buy-price">$0</div>
-
         <p>3 credits for every new account.</p>
-
         <.link
           class="saas-button saas-button-ghost"
           navigate={~p"/users/register"}
@@ -31,19 +31,23 @@
 
       <article class="saas-buy-card featured">
         <div class="saas-plan-badge">Popular</div>
-
         <h2>Starter</h2>
-
         <div class="saas-buy-price">$4.99</div>
-
         <p>50 credits for testing prompts, social stickers, and small creative batches.</p>
-
-        <.form for={%{}} action={~p"/checkout"} method="post">
+        <.form
+          for={%{}}
+          action={~p"/checkout"}
+          method="post"
+          data-analytics-event="checkout_start"
+          data-analytics-context="pricing_starter_plan"
+          data-analytics-plan="starter"
+        >
           <input type="hidden" name="plan" value="starter" />
           <button
             class="saas-button saas-button-primary saas-plan-button"
             data-analytics-event="buy_credit_cta_click"
             data-analytics-context="pricing_starter_plan"
+            data-analytics-plan="starter"
           >
             Buy 50 Credits
           </button>
@@ -52,17 +56,22 @@
 
       <article class="saas-buy-card">
         <h2>Creator</h2>
-
         <div class="saas-buy-price">$9.99</div>
-
         <p>150 credits for frequent generation, variations, and content experiments.</p>
-
-        <.form for={%{}} action={~p"/checkout"} method="post">
+        <.form
+          for={%{}}
+          action={~p"/checkout"}
+          method="post"
+          data-analytics-event="checkout_start"
+          data-analytics-context="pricing_creator_plan"
+          data-analytics-plan="creator"
+        >
           <input type="hidden" name="plan" value="creator" />
           <button
             class="saas-button saas-button-ghost saas-plan-button"
             data-analytics-event="buy_credit_cta_click"
             data-analytics-context="pricing_creator_plan"
+            data-analytics-plan="creator"
           >
             Buy 150 Credits
           </button>

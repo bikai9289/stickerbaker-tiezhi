@@ -35,6 +35,7 @@ defmodule StickerWeb.AccountLive do
        )
      )
      |> assign(:counts, Predictions.user_prediction_counts(user_id))
+     |> assign(:payment_attempts, Payments.list_user_payment_attempts(user.id))
      |> assign(:payments, Payments.list_user_payment_events(user.id))
      |> stream(:recent_predictions, Predictions.list_user_recent_predictions(user_id, 12))
      |> stream(:favorite_predictions, Predictions.list_user_favorite_predictions(user_id))}
@@ -98,10 +99,21 @@ defmodule StickerWeb.AccountLive do
     socket
     |> assign(:current_user, user)
     |> assign(:counts, Predictions.user_prediction_counts(user_id))
+    |> assign(:payment_attempts, Payments.list_user_payment_attempts(user.id))
     |> assign(:payments, Payments.list_user_payment_events(user.id))
   end
 
   defp payment_status(%{refund_status: "refunded"}), do: "Refunded"
   defp payment_status(%{refund_status: "review_required"}), do: "Review required"
+  defp payment_status(%{refund_status: "partial_refund_review"}), do: "Partial refund review"
   defp payment_status(_payment), do: "Paid"
+
+  defp checkout_status(%{status: "created"}), do: "Checkout started"
+  defp checkout_status(%{status: "open"}), do: "Checkout open"
+  defp checkout_status(%{status: "completed"}), do: "Payment received"
+  defp checkout_status(%{status: "credited"}), do: "Credits added"
+  defp checkout_status(%{status: "canceled"}), do: "Canceled"
+  defp checkout_status(%{status: "expired"}), do: "Expired"
+  defp checkout_status(%{status: "failed"}), do: "Failed"
+  defp checkout_status(_attempt), do: "Checkout started"
 end

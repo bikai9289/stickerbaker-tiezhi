@@ -147,6 +147,14 @@ defmodule StickerWeb.PageControllerTest do
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"search_submit\"]")
   end
 
+  test "pricing page shows canceled checkout feedback", %{conn: conn} do
+    conn = get(conn, ~p"/pricing?checkout=canceled")
+    body = html_response(conn, 200)
+
+    assert body =~ "Checkout canceled"
+    assert body =~ "You were not charged"
+  end
+
   test "batch download without selection redirects to history", %{conn: conn} do
     conn = get(conn, ~p"/stickers/download")
 
@@ -234,7 +242,10 @@ defmodule StickerWeb.PageControllerTest do
     assert user.credits == 0
     assert is_binary(user.confirmation_token)
 
-    {:ok, user} = Sticker.Accounts.confirm_user(user.confirmation_token)
+    conn = get(build_conn(), ~p"/users/confirm/#{user.confirmation_token}")
+    assert redirected_to(conn, 302) == ~p"/?registration=confirmed"
+
+    user = Sticker.Accounts.get_user_by_email("new-user@example.com")
     assert user.credits == 3
   end
 
