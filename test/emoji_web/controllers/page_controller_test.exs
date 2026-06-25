@@ -136,7 +136,13 @@ defmodule StickerWeb.PageControllerTest do
 
     assert [%{"phx-hook" => "LaunchAnalytics"}] = meta_attrs(document, "#home")
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"text_generation_attempt\"]")
-    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"face_upload_attempt\"]")
+
+    assert [_ | _] =
+             Floki.find(
+               document,
+               "[data-analytics-event=\"registration_cta_click\"][data-analytics-context=\"home_upload_auth_gate\"]"
+             )
+
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"registration_cta_click\"]")
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"login_cta_click\"]")
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"pricing_cta_click\"]")

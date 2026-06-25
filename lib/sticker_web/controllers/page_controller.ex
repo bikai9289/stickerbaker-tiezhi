@@ -27,7 +27,7 @@ defmodule StickerWeb.PageController do
     |> render(:contact)
   end
 
-  def pricing(conn, _params) do
+  def pricing(conn, params) do
     conn
     |> SEO.assign(
       PageSEO.page("/pricing",
@@ -36,6 +36,7 @@ defmodule StickerWeb.PageController do
           "View AI Sticker Maker pricing, free starter credits, and paid credit packs for text-to-sticker and face-to-sticker generation."
       )
     )
+    |> assign(:checkout, params["checkout"])
     |> render(:pricing)
   end
 
