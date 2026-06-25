@@ -80,6 +80,34 @@ defmodule StickerWeb.PageController do
     |> render(:face_to_sticker)
   end
 
+  def photo_to_sticker(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/photo-to-sticker",
+        title: "Photo to Sticker AI Generator",
+        description:
+          "Turn a photo or portrait into a sticker-style image. Learn photo tips, prompt examples, credit use, and PNG or WebP download options."
+      )
+    )
+    |> assign_structured_data("/photo-to-sticker", "Photo to Sticker AI Generator",
+      steps: [
+        "Sign in so the app can check free or paid credits before generation.",
+        "Choose a clear photo with one main subject, good lighting, and minimal blur.",
+        "Add a short sticker prompt such as clean border, cute avatar, or reaction sticker.",
+        "Generate the sticker, then download PNG or WebP from history."
+      ],
+      faqs: [
+        {"What kind of photo works best?",
+         "A clear portrait or subject-focused photo with simple lighting and one main subject works best."},
+        {"Can I turn any photo into a sticker?",
+         "The generator is strongest for portraits, characters, pets, and simple subjects rather than crowded scenes."},
+        {"Where do photo sticker results go?",
+         "Completed photo stickers appear in sticker history with retry, favorite, and download options."}
+      ]
+    )
+    |> render(:photo_to_sticker)
+  end
+
   def custom_sticker_maker(conn, _params) do
     conn
     |> SEO.assign(
@@ -106,6 +134,34 @@ defmodule StickerWeb.PageController do
       ]
     )
     |> render(:custom_sticker_maker)
+  end
+
+  def reaction_sticker_maker(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/reaction-sticker-maker",
+        title: "Reaction Sticker Maker for Chat Stickers",
+        description:
+          "Make reaction stickers from prompts or portraits. Create expressive happy, sad, surprised, angry, and cozy sticker ideas for chats."
+      )
+    )
+    |> assign_structured_data("/reaction-sticker-maker", "Reaction Sticker Maker",
+      steps: [
+        "Pick one emotion or chat reaction, such as excited, sleepy, surprised, or frustrated.",
+        "Describe the subject and sticker style with a clean border and readable expression.",
+        "Generate one reaction sticker or add multiple prompts for a small reaction set.",
+        "Review completed results in history and download PNG or WebP files."
+      ],
+      faqs: [
+        {"What is a reaction sticker?",
+         "A reaction sticker is a small expressive image for chats, comments, communities, or social posts."},
+        {"Can I make a reaction sticker set?",
+         "Yes. Add one emotion prompt per line to generate a small set with consistent style."},
+        {"Does this upload stickers to chat apps?",
+         "No. The app generates downloadable sticker files; platform upload and pack setup happen outside the app."}
+      ]
+    )
+    |> render(:reaction_sticker_maker)
   end
 
   def cute_sticker_ideas(conn, _params) do
@@ -190,6 +246,34 @@ defmodule StickerWeb.PageController do
       ]
     )
     |> render(:ai_avatar_sticker)
+  end
+
+  def anime_avatar_sticker(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/anime-avatar-sticker",
+        title: "Anime Avatar Sticker Generator",
+        description:
+          "Create anime avatar stickers from character prompts or portraits. Try profile-ready anime sticker ideas, prompt examples, and downloads."
+      )
+    )
+    |> assign_structured_data("/anime-avatar-sticker", "Anime Avatar Sticker Generator",
+      steps: [
+        "Choose a portrait or write a character prompt for an anime-style avatar sticker.",
+        "Add readable style details such as expressive face, clean outline, and simple background.",
+        "Generate variations until the avatar works at profile or chat size.",
+        "Save favorites in history and download PNG or WebP files."
+      ],
+      faqs: [
+        {"What is an anime avatar sticker?",
+         "It is an avatar-style sticker with anime-inspired character styling, readable expression, and a clean sticker frame."},
+        {"Can I create anime avatar stickers from text?",
+         "Yes. Character prompts work well for fictional avatars, creator icons, gaming profiles, and mascot stickers."},
+        {"Can I use a portrait for an anime avatar?",
+         "You can upload a clear portrait and add an anime avatar prompt to guide the sticker style."}
+      ]
+    )
+    |> render(:anime_avatar_sticker)
   end
 
   def kawaii_sticker_maker(conn, _params) do
@@ -291,10 +375,13 @@ defmodule StickerWeb.PageController do
       {"/", "2026-06-13", "1.0"},
       {"/pricing", "2026-06-13", "0.8"},
       {"/face-to-sticker", "2026-06-13", "0.9"},
+      {"/photo-to-sticker", "2026-06-25", "0.9"},
       {"/custom-sticker-maker", "2026-06-13", "0.9"},
+      {"/reaction-sticker-maker", "2026-06-25", "0.8"},
       {"/cute-sticker-ideas", "2026-06-13", "0.8"},
       {"/sticker-maker-online", "2026-06-13", "0.9"},
       {"/ai-avatar-sticker", "2026-06-13", "0.8"},
+      {"/anime-avatar-sticker", "2026-06-25", "0.8"},
       {"/kawaii-sticker-maker", "2026-06-13", "0.8"},
       {"/transparent-sticker-maker", "2026-06-13", "0.8"},
       {"/search", "2026-06-13", "0.7"},

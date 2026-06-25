@@ -19,12 +19,32 @@ defmodule StickerWeb.PageControllerTest do
     assert body =~ "FAQPage"
     assert body =~ "HowTo"
     assert body =~ "BreadcrumbList"
+    assert body =~ "/photo-to-sticker"
+
+    conn = get(build_conn(), ~p"/photo-to-sticker")
+    body = html_response(conn, 200)
+    assert body =~ "Photo to Sticker AI Generator"
+    assert body =~ "How to turn a photo into a sticker"
+    assert body =~ "Photo sticker prompt examples"
+    assert body =~ "/ai-avatar-sticker"
+    assert body =~ "FAQPage"
+    assert body =~ "HowTo"
 
     conn = get(build_conn(), ~p"/custom-sticker-maker")
     body = html_response(conn, 200)
     assert body =~ "How do I write a custom sticker prompt?"
     assert body =~ "Custom sticker prompt templates"
     assert body =~ "/sticker-maker-online"
+    assert body =~ "/reaction-sticker-maker"
+
+    conn = get(build_conn(), ~p"/reaction-sticker-maker")
+    body = html_response(conn, 200)
+    assert body =~ "Reaction Sticker Maker"
+    assert body =~ "Reaction sticker prompt examples"
+    assert body =~ "Does this upload stickers to chat apps?"
+    assert body =~ "/custom-sticker-maker"
+    assert body =~ "FAQPage"
+    assert body =~ "HowTo"
 
     conn = get(build_conn(), ~p"/cute-sticker-ideas")
     body = html_response(conn, 200)
@@ -42,6 +62,16 @@ defmodule StickerWeb.PageControllerTest do
     body = html_response(conn, 200)
     assert body =~ "AI Avatar Sticker Generator"
     assert body =~ "Avatar sticker prompt examples"
+    assert body =~ "/anime-avatar-sticker"
+
+    conn = get(build_conn(), ~p"/anime-avatar-sticker")
+    body = html_response(conn, 200)
+    assert body =~ "Anime Avatar Sticker Generator"
+    assert body =~ "Anime avatar prompt examples"
+    assert body =~ "Can I create anime avatar stickers from text?"
+    assert body =~ "/kawaii-sticker-maker"
+    assert body =~ "FAQPage"
+    assert body =~ "HowTo"
 
     conn = get(build_conn(), ~p"/kawaii-sticker-maker")
     body = html_response(conn, 200)
@@ -60,10 +90,13 @@ defmodule StickerWeb.PageControllerTest do
 
     assert response_content_type(conn, :xml) =~ "charset=utf-8"
     assert body =~ "/face-to-sticker"
+    assert body =~ "/photo-to-sticker"
     assert body =~ "/custom-sticker-maker"
+    assert body =~ "/reaction-sticker-maker"
     assert body =~ "/cute-sticker-ideas"
     assert body =~ "/sticker-maker-online"
     assert body =~ "/ai-avatar-sticker"
+    assert body =~ "/anime-avatar-sticker"
     assert body =~ "/kawaii-sticker-maker"
     assert body =~ "/transparent-sticker-maker"
     refute body =~ "/account"
@@ -92,10 +125,16 @@ defmodule StickerWeb.PageControllerTest do
        "https://ai-sticker-maker.com/search"},
       {~p"/face-to-sticker", "Face to Sticker AI Generator",
        "https://ai-sticker-maker.com/face-to-sticker"},
+      {~p"/photo-to-sticker", "Photo to Sticker AI Generator",
+       "https://ai-sticker-maker.com/photo-to-sticker"},
       {~p"/custom-sticker-maker", "Custom Sticker Maker Online",
        "https://ai-sticker-maker.com/custom-sticker-maker"},
+      {~p"/reaction-sticker-maker", "Reaction Sticker Maker for Chat Stickers",
+       "https://ai-sticker-maker.com/reaction-sticker-maker"},
       {~p"/sticker-maker-online", "Sticker Maker Online - Create AI Stickers",
-       "https://ai-sticker-maker.com/sticker-maker-online"}
+       "https://ai-sticker-maker.com/sticker-maker-online"},
+      {~p"/anime-avatar-sticker", "Anime Avatar Sticker Generator",
+       "https://ai-sticker-maker.com/anime-avatar-sticker"}
     ]
 
     for {path, expected_title, canonical} <- pages do

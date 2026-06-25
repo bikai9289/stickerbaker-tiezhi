@@ -62,10 +62,13 @@ defmodule StickerWeb.Router do
     get "/pricing", PageController, :pricing
     post "/checkout", CheckoutController, :create
     get "/face-to-sticker", PageController, :face_to_sticker
+    get "/photo-to-sticker", PageController, :photo_to_sticker
     get "/custom-sticker-maker", PageController, :custom_sticker_maker
+    get "/reaction-sticker-maker", PageController, :reaction_sticker_maker
     get "/cute-sticker-ideas", PageController, :cute_sticker_ideas
     get "/sticker-maker-online", PageController, :sticker_maker_online
     get "/ai-avatar-sticker", PageController, :ai_avatar_sticker
+    get "/anime-avatar-sticker", PageController, :anime_avatar_sticker
     get "/kawaii-sticker-maker", PageController, :kawaii_sticker_maker
     get "/transparent-sticker-maker", PageController, :transparent_sticker_maker
     get "/contact", PageController, :contact
