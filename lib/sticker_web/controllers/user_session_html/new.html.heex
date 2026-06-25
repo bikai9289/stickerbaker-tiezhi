@@ -8,7 +8,15 @@
       Manage your credits, sticker history, and downloads with one account.
     </p>
 
-    <.form :let={f} for={%{}} as={:user} action={~p"/users/log-in"} class="saas-auth-form">
+    <.form
+      :let={f}
+      for={%{}}
+      as={:user}
+      action={~p"/users/log-in"}
+      class="saas-auth-form"
+      data-analytics-event="login_confirm_attempt"
+      data-analytics-context="login_form"
+    >
       <label>
         <span>Email</span>
         <input
@@ -32,11 +40,7 @@
         />
       </label>
 
-      <button
-        class="saas-button saas-button-primary saas-auth-submit"
-        data-analytics-event="login_confirm_attempt"
-        data-analytics-context="login_form"
-      >
+      <button class="saas-button saas-button-primary saas-auth-submit">
         Sign In
       </button>
     </.form>

@@ -14,6 +14,10 @@
       as={:user}
       action={~p"/users/register"}
       class="saas-auth-form"
+      data-analytics-event="registration_confirm_attempt"
+      data-analytics-context={
+        if assigns[:pending_prompt?], do: "registration_from_prompt", else: "registration_form"
+      }
     >
       <label>
         <span>Email</span>
@@ -57,13 +61,7 @@
         Confirm your email after signup to unlock the 3 free sticker credits.
       </p>
 
-      <button
-        class="saas-button saas-button-primary saas-auth-submit"
-        data-analytics-event="registration_confirm_attempt"
-        data-analytics-context={
-          if assigns[:pending_prompt?], do: "registration_from_prompt", else: "registration_form"
-        }
-      >
+      <button class="saas-button saas-button-primary saas-auth-submit">
         Create Account
       </button>
     </.form>

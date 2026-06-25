@@ -64,7 +64,13 @@
         >
           WebP
         </button>
-        <.link href={~p"/stickers/download?ids=#{selected_ids_param(@selected_ids)}&format=#{download_format_param(@download_format)}"}>
+        <.link
+          href={~p"/stickers/download?ids=#{selected_ids_param(@selected_ids)}&format=#{download_format_param(@download_format)}"}
+          data-analytics-event="download_click"
+          data-analytics-context="history_bulk"
+          data-analytics-download-type="batch_zip"
+          data-analytics-format={download_format_param(@download_format)}
+        >
           Download ZIP
         </.link>
         <button phx-click="delete-selected">Delete Selected</button>
@@ -103,7 +109,14 @@
               <button phx-click="toggle-favorite" phx-value-id={prediction.id}>
                 <%= if prediction.is_favorite, do: "Saved", else: "Save" %>
               </button>
-              <.link :if={prediction.sticker_output} href={~p"/sticker/#{prediction.id}/download"}>
+              <.link
+                :if={prediction.sticker_output}
+                href={~p"/sticker/#{prediction.id}/download"}
+                data-analytics-event="download_click"
+                data-analytics-context="history_item"
+                data-analytics-download-type="single"
+                data-analytics-format="original"
+              >
                 Download
               </.link>
               <button

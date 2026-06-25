@@ -54,32 +54,113 @@ Hooks.LaunchAnalytics = {
       context: "home",
       authState: this.el.dataset.sessionUserId ? "known" : "anonymous",
     });
-
-    this.el.addEventListener("click", (event) => {
-      const target = event.target.closest("[data-analytics-event]");
-      if (!target) return;
-      if (target.tagName === "FORM") return;
-
-      safeTrack(target.dataset.analyticsEvent, {
-        context: target.dataset.analyticsContext,
-        authState: this.el.dataset.sessionUserId ? "known" : "anonymous",
-        plan: target.dataset.analyticsPlan,
-      });
-    });
   },
 };
+
+function authStateForElement(target) {
+  const scopedSession = target.closest("[data-session-user-id]");
+  if (scopedSession) {
+    return scopedSession.dataset.sessionUserId ? "known" : "anonymous";
+  }
+
+  return undefined;
+}
+
+function analyticsDetail(target, extras = {}) {
+  return {
+    authState: target.dataset.analyticsAuthState || authStateForElement(target),
+    context: target.dataset.analyticsContext,
+    downloadType: target.dataset.analyticsDownloadType,
+    flow: target.dataset.analyticsFlow,
+    format: target.dataset.analyticsFormat,
+    plan: target.dataset.analyticsPlan,
+    ...extras,
+  };
+}
+
+function trackAnalyticsTarget(target, extras = {}) {
+  if (!target?.dataset?.analyticsEvent) return;
+
+  safeTrack(target.dataset.analyticsEvent, analyticsDetail(target, extras));
+}
+
+function promptLengthBucket(value) {
+  const length = value.trim().length;
+  if (length <= 0) return "";
+  if (length <= 40) return "1-40";
+  if (length <= 120) return "41-120";
+  if (length <= 300) return "121-300";
+  return "301+";
+}
+
+const trackedPromptInputs = new WeakSet();
+
+function trackPromptInput(target) {
+  if (!target?.matches?.("[data-analytics-input='prompt']")) return;
+  if (trackedPromptInputs.has(target)) return;
+
+  const value = target.value || "";
+  const bucket = promptLengthBucket(value);
+  if (!bucket) return;
+
+  trackedPromptInputs.add(target);
+
+  safeTrack("prompt_entered", {
+    authState: authStateForElement(target),
+    context: target.dataset.analyticsContext || "generator_prompt",
+    promptLengthBucket: bucket,
+    promptLineCount: value.split(/\r?\n/).filter((line) => line.trim()).length,
+  });
+}
+
+function trackPageMarkers() {
+  document.querySelectorAll("[data-analytics-page-event]").forEach((target) => {
+    if (target.dataset.analyticsPageTracked === "true") return;
+    if (!target.dataset.analyticsPageEvent) return;
+    target.dataset.analyticsPageTracked = "true";
+
+    safeTrack(
+      target.dataset.analyticsPageEvent,
+      analyticsDetail(target),
+    );
+  });
+}
+
+function startPageMarkerObserver() {
+  if (typeof MutationObserver !== "function") return;
+
+  const observer = new MutationObserver(() => {
+    trackPageMarkers();
+  });
+
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+}
+
+document.addEventListener("click", (event) => {
+  const target = event.target.closest("[data-analytics-event]");
+  if (!target || target.tagName === "FORM") return;
+
+  trackAnalyticsTarget(target);
+});
 
 document.addEventListener("submit", (event) => {
   const target = event.target.closest("[data-analytics-event]");
   if (!target) return;
 
-  safeTrack(target.dataset.analyticsEvent, {
-    context: target.dataset.analyticsContext,
-    plan: target.dataset.analyticsPlan,
-  });
+  trackAnalyticsTarget(target);
+});
+
+document.addEventListener("input", (event) => {
+  trackPromptInput(event.target);
+});
+
+document.addEventListener("change", (event) => {
+  trackPromptInput(event.target);
 });
 
 trackReturnState();
+trackPageMarkers();
+startPageMarkerObserver();
 
 Hooks.DownloadImage = {
   mounted() {

@@ -63,6 +63,10 @@
         <.link
           :if={@download_ids != ""}
           href={~p"/stickers/download?ids=#{@download_ids}&format=#{@download_format}"}
+          data-analytics-event="download_click"
+          data-analytics-context="batch_detail_bulk"
+          data-analytics-download-type="batch_zip"
+          data-analytics-format={@download_format}
         >
           Download Batch ZIP
         </.link>
@@ -82,7 +86,14 @@
               <span :if={prediction.status == :failed}>
                 Reason: <%= failed_reason(prediction) %>
               </span>
-              <.link :if={prediction.sticker_output} href={~p"/sticker/#{prediction.id}/download"}>
+              <.link
+                :if={prediction.sticker_output}
+                href={~p"/sticker/#{prediction.id}/download"}
+                data-analytics-event="download_click"
+                data-analytics-context="batch_detail_item"
+                data-analytics-download-type="single"
+                data-analytics-format="original"
+              >
                 Download
               </.link>
             </div>

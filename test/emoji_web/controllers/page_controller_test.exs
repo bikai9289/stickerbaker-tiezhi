@@ -175,6 +175,13 @@ defmodule StickerWeb.PageControllerTest do
 
     assert [%{"phx-hook" => "LaunchAnalytics"}] = meta_attrs(document, "#home")
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"text_generation_attempt\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-input=\"prompt\"]")
+
+    assert [_ | _] =
+             Floki.find(
+               document,
+               "[data-analytics-event=\"auth_required\"][data-analytics-flow=\"text_to_sticker\"]"
+             )
 
     assert [_ | _] =
              Floki.find(
@@ -190,6 +197,36 @@ defmodule StickerWeb.PageControllerTest do
     body = html_response(conn, 200)
     {:ok, document} = Floki.parse_document(body)
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"search_submit\"]")
+
+    conn = get(build_conn(), ~p"/pricing")
+    body = html_response(conn, 200)
+    {:ok, document} = Floki.parse_document(body)
+    assert [_ | _] = Floki.find(document, "[data-analytics-page-event=\"pricing_view\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"checkout_start\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"buy_credit_cta_click\"]")
+
+    conn = get(build_conn(), ~p"/users/log-in")
+    body = html_response(conn, 200)
+    {:ok, document} = Floki.parse_document(body)
+    assert [_ | _] = Floki.find(document, "form[data-analytics-event=\"login_confirm_attempt\"]")
+
+    conn = get(build_conn(), ~p"/users/register")
+    body = html_response(conn, 200)
+    {:ok, document} = Floki.parse_document(body)
+
+    assert [_ | _] =
+             Floki.find(document, "form[data-analytics-event=\"registration_confirm_attempt\"]")
+
+    user = user_fixture()
+
+    conn =
+      build_conn()
+      |> Plug.Test.init_test_session(%{user_id: user.id, local_user_id: user.public_id})
+      |> get(~p"/")
+
+    body = html_response(conn, 200)
+    {:ok, document} = Floki.parse_document(body)
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"generation_started\"]")
   end
 
   test "pricing page shows canceled checkout feedback", %{conn: conn} do
@@ -225,6 +262,9 @@ defmodule StickerWeb.PageControllerTest do
     assert {:ok, _view, html} = live(owner_conn, ~p"/sticker/#{prediction.id}")
     assert html =~ prediction.prompt
     assert html =~ "Delete"
+    assert html =~ ~s(data-analytics-page-event="generation_completed")
+    assert html =~ ~s(data-analytics-event="download_click")
+    assert html =~ ~s(data-analytics-download-type="single")
   end
 
   test "private sticker download and media require the owner session", %{conn: conn} do
@@ -329,6 +369,8 @@ defmodule StickerWeb.PageControllerTest do
     assert html =~ "Cancel Processing"
     assert html =~ "Download Batch ZIP"
     assert html =~ "format=original"
+    assert html =~ ~s(data-analytics-event="download_click")
+    assert html =~ ~s(data-analytics-download-type="batch_zip")
   end
 
   test "admin page renders failed generation diagnostics", %{conn: conn} do

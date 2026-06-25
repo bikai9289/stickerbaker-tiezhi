@@ -1,4 +1,9 @@
-<section class="saas-section">
+<section
+  class="saas-section"
+  data-analytics-page-event={if @prediction.sticker_output, do: "generation_completed", else: nil}
+  data-analytics-context="sticker_detail"
+  data-analytics-flow="text_to_sticker"
+>
   <div class="saas-container">
     <div class="saas-detail-grid">
       <div class="saas-detail-art">
@@ -56,6 +61,10 @@
             :if={@prediction.sticker_output}
             href={~p"/sticker/#{@prediction.id}/download"}
             class="saas-button saas-button-primary"
+            data-analytics-event="download_click"
+            data-analytics-context="sticker_detail"
+            data-analytics-download-type="single"
+            data-analytics-format="original"
           >
             Download <%= String.upcase(@prediction.output_format || "Sticker") %>
           </a>
@@ -63,6 +72,10 @@
             :if={@prediction.sticker_output}
             href={~p"/sticker/#{@prediction.id}/download?format=png"}
             class="saas-button saas-button-ghost"
+            data-analytics-event="download_click"
+            data-analytics-context="sticker_detail"
+            data-analytics-download-type="single"
+            data-analytics-format="png"
           >
             PNG
           </a>
@@ -70,6 +83,10 @@
             :if={@prediction.sticker_output}
             href={~p"/sticker/#{@prediction.id}/download?format=webp"}
             class="saas-button saas-button-ghost"
+            data-analytics-event="download_click"
+            data-analytics-context="sticker_detail"
+            data-analytics-download-type="single"
+            data-analytics-format="webp"
           >
             WebP
           </a>
@@ -78,6 +95,10 @@
             href={@prediction.sticker_output}
             target="_blank"
             class="saas-button saas-button-ghost"
+            data-analytics-event="download_click"
+            data-analytics-context="sticker_detail"
+            data-analytics-download-type="open_original"
+            data-analytics-format="source"
           >
             Open Original
           </a>

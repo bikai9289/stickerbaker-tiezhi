@@ -5,82 +5,172 @@ const launchSources = [
   ["google.", "organic"],
 ];
 
+const baseOptionalParams = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "referrer_host",
+  "event_context",
+];
+
 export const launchFunnelEvents = {
   generator_view: {
     keyEvent: true,
     trigger: "Home generator area is mounted",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context", "auth_state"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
+  },
+  prompt_entered: {
+    keyEvent: false,
+    trigger: "Visitor enters a non-empty generator prompt",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state", "prompt_length_bucket", "prompt_line_count"],
   },
   text_generation_attempt: {
     keyEvent: true,
     trigger: "Visitor submits the text-to-sticker form",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context", "auth_state"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
+  },
+  auth_required: {
+    keyEvent: true,
+    trigger: "Anonymous visitor submits a generator action that requires an account",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state", "flow"],
+  },
+  prompt_restored: {
+    keyEvent: false,
+    trigger: "Visitor returns to the generator with a restored prompt",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state", "restored_prompt"],
   },
   face_upload_attempt: {
     keyEvent: true,
     trigger: "Visitor chooses the face upload entry point",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context", "auth_state"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
   },
   registration_cta_click: {
     keyEvent: false,
     trigger: "Visitor clicks a registration CTA",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context", "auth_state"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
   },
   registration_confirm_attempt: {
     keyEvent: false,
     trigger: "Visitor submits the registration form",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context"],
+    optionalParams: baseOptionalParams,
   },
   registration_confirmed: {
     keyEvent: true,
     trigger: "Visitor returns after confirming email",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context", "auth_state"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
   },
   login_cta_click: {
     keyEvent: false,
     trigger: "Visitor clicks a login CTA",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context", "auth_state"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
+  },
+  login_confirm_attempt: {
+    keyEvent: false,
+    trigger: "Visitor submits the login form",
+    requiredParams: ["page_path", "source"],
+    optionalParams: baseOptionalParams,
+  },
+  generation_started: {
+    keyEvent: true,
+    trigger: "Frontend observes generation work starting",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state", "flow"],
+  },
+  generation_completed: {
+    keyEvent: true,
+    trigger: "Frontend observes a completed sticker result",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state", "flow"],
+  },
+  download_click: {
+    keyEvent: true,
+    trigger: "Visitor clicks a sticker download control",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "download_type", "format"],
+  },
+  pricing_view: {
+    keyEvent: false,
+    trigger: "Pricing page is viewed",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
   },
   pricing_cta_click: {
     keyEvent: false,
     trigger: "Visitor clicks a pricing CTA",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context", "auth_state"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
   },
   buy_credit_cta_click: {
     keyEvent: false,
     trigger: "Visitor clicks a buy-credit CTA",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context", "plan"],
+    optionalParams: [...baseOptionalParams, "plan"],
   },
   checkout_start: {
     keyEvent: true,
     trigger: "Visitor submits a checkout form",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context", "plan"],
+    optionalParams: [...baseOptionalParams, "plan"],
   },
   purchase_complete: {
     keyEvent: true,
     trigger: "Visitor returns from checkout with a success state",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context", "auth_state"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
   },
   search_submit: {
     keyEvent: false,
     trigger: "Visitor submits sticker search",
     requiredParams: ["page_path", "source"],
-    optionalParams: ["utm_source", "utm_medium", "utm_campaign", "referrer_host", "event_context"],
+    optionalParams: baseOptionalParams,
   },
 };
 
-const allowedDetailKeys = new Set(["authState", "context", "plan"]);
+const allowedDetailKeys = new Set([
+  "authState",
+  "context",
+  "downloadType",
+  "flow",
+  "format",
+  "plan",
+  "promptLengthBucket",
+  "promptLineCount",
+  "restoredPrompt",
+]);
+
+const detailPayloadKeys = {
+  authState: "auth_state",
+  context: "event_context",
+  downloadType: "download_type",
+  flow: "flow",
+  format: "format",
+  plan: "plan",
+  promptLengthBucket: "prompt_length_bucket",
+  promptLineCount: "prompt_line_count",
+  restoredPrompt: "restored_prompt",
+};
+
+function present(value) {
+  return value !== undefined && value !== null && value !== "";
+}
+
+function safeLocation(environment) {
+  return environment?.location || { pathname: "/", search: "" };
+}
+
+function safeReferrer(environment) {
+  return environment?.document?.referrer || "";
+}
 
 export function safeAttribution(location, referrer = "") {
   const params = new URLSearchParams(location.search || "");
@@ -107,40 +197,57 @@ export function safeAttribution(location, referrer = "") {
 }
 
 export function launchEventPayload(eventName, detail = {}, environment = window) {
-  if (!eventName) return null;
+  if (!eventName || !launchFunnelEvents[eventName]) return null;
 
-  const safeDetail = Object.fromEntries(
-    Object.entries(detail).filter(([key, value]) => allowedDetailKeys.has(key) && value),
-  );
+  const safeDetail = Object.entries(detail || {}).reduce((payload, [key, value]) => {
+    if (allowedDetailKeys.has(key) && present(value)) {
+      payload[detailPayloadKeys[key]] = value;
+    }
+
+    return payload;
+  }, {});
 
   return {
-    ...safeAttribution(environment.location, environment.document?.referrer || ""),
-    event_context: safeDetail.context,
-    auth_state: safeDetail.authState,
-    plan: safeDetail.plan,
+    ...safeAttribution(safeLocation(environment), safeReferrer(environment)),
+    ...safeDetail,
   };
 }
 
 export function safeTrack(eventName, detail = {}, environment = window) {
   const payload = launchEventPayload(eventName, detail, environment);
-  if (!payload) return;
+  if (!payload) return { ok: false, reason: "unknown_event" };
 
   try {
     if (typeof environment.gtag === "function") {
       environment.gtag("event", eventName, payload);
+      return { ok: true };
     }
+
+    return { ok: false, reason: "gtag_unavailable" };
   } catch (_error) {
     // Analytics must never block product actions.
+    return { ok: false, reason: "gtag_error" };
   }
 }
 
 export function trackReturnState(environment = window) {
-  const params = new URLSearchParams(environment.location.search || "");
-  const storage = environment.sessionStorage;
+  const params = new URLSearchParams(safeLocation(environment).search || "");
+  let storage;
+
+  try {
+    storage = environment?.sessionStorage;
+  } catch (_error) {
+    storage = undefined;
+  }
 
   const trackOnce = (key, eventName, detail) => {
-    if (storage?.getItem(key)) return;
-    storage?.setItem(key, "tracked");
+    try {
+      if (storage?.getItem(key)) return;
+      storage?.setItem(key, "tracked");
+    } catch (_error) {
+      // Storage failures must never block analytics or product actions.
+    }
+
     safeTrack(eventName, detail, environment);
   };
 
@@ -157,6 +264,14 @@ export function trackReturnState(environment = window) {
       "launch_return_state:registration_confirmed",
       "registration_confirmed",
       { context: "email_confirmation", authState: "known" },
+    );
+  }
+
+  if (params.get("prompt")) {
+    trackOnce(
+      `launch_return_state:prompt_restored:${params.get("prompt").length}`,
+      "prompt_restored",
+      { context: "prompt_return", authState: "known", restoredPrompt: true },
     );
   }
 }

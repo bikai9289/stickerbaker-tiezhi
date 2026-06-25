@@ -22,6 +22,11 @@
           id="prediction-form"
           phx-change="validate"
           phx-submit="save"
+          data-analytics-event="generation_started"
+          data-analytics-context={
+            if @prompt_restored?, do: "hero_generator_restored_prompt", else: "hero_generator"
+          }
+          data-analytics-flow="text_to_sticker"
         >
           <div class="saas-prompt-row">
             <textarea
@@ -32,6 +37,7 @@
               phx-mounted={JS.focus()}
               class="saas-prompt-input"
               data-analytics-input="prompt"
+              data-analytics-context="hero_generator"
             ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
             <button
               name="submit"
@@ -71,6 +77,9 @@
           id="prediction-form"
           action={~p"/users/pending-prompt"}
           method="post"
+          data-analytics-event="auth_required"
+          data-analytics-context="hero_generator_anonymous"
+          data-analytics-flow="text_to_sticker"
         >
           <div class="saas-prompt-row">
             <textarea
@@ -80,6 +89,7 @@
               required
               class="saas-prompt-input"
               data-analytics-input="prompt"
+              data-analytics-context="hero_generator_anonymous"
             ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
             <button
               name="submit"
@@ -87,6 +97,7 @@
               class="saas-button saas-button-primary"
               data-analytics-event="text_generation_attempt"
               data-analytics-context="hero_generator_anonymous"
+              data-analytics-flow="text_to_sticker"
             >
               Bake Sticker
             </button>
