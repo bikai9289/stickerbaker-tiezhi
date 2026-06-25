@@ -15,8 +15,6 @@ defmodule StickerWeb.SEO do
       ),
     twitter:
       SEO.Twitter.build(
-        site: "@charliebholtz",
-        creator: ["@charliebholtz"],
         card: :summary,
         summary_card_image: "/og.webp"
       )

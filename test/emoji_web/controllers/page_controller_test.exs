@@ -155,8 +155,36 @@ defmodule StickerWeb.PageControllerTest do
       assert [%{"content" => ^expected_title}] =
                meta_attrs(document, "meta[name=\"twitter:title\"]")
 
+      assert [%{"content" => "summary"}] = meta_attrs(document, "meta[name=\"twitter:card\"]")
+      assert [%{"content" => _}] = meta_attrs(document, "meta[name=\"twitter:image\"]")
+      assert meta_attrs(document, "meta[name=\"twitter:site\"]") == []
+      assert meta_attrs(document, "meta[name=\"twitter:creator\"]") == []
+      refute body =~ "@charliebholtz"
+
       assert length(Floki.find(document, "h1")) == 1
     end
+  end
+
+  test "public pages render brand trust cues", %{conn: conn} do
+    conn = get(conn, ~p"/")
+    body = html_response(conn, 200)
+
+    assert body =~ "Generated examples"
+    assert body =~ "PNG and WebP downloads"
+    assert body =~ "Failed generations refund credits"
+    assert body =~ "Support and billing help"
+    assert body =~ "Secure checkout"
+    assert body =~ "Account-linked credits"
+    assert body =~ "Refund policy available"
+
+    conn = get(build_conn(), ~p"/pricing")
+    body = html_response(conn, 200)
+
+    assert body =~ "Credit purchase confidence"
+    assert body =~ "Secure checkout"
+    assert body =~ "signed-in account"
+    assert body =~ "Payment and Credits"
+    assert body =~ "Refund Policy"
   end
 
   test "status chrome is marked as non-snippet content", %{conn: conn} do
