@@ -9,132 +9,138 @@
         generate online, and turn simple ideas into sticker-ready designs.
       </p>
 
-      <div id="generator" class="saas-tool-shell">
-        <div class="saas-mode-tabs" aria-label="Generator modes">
-          <a class="saas-mode-tab active" href="#generator">Text to Sticker</a>
-          <a class="saas-mode-tab" href="#upload">Face to Sticker</a>
-          <.link class="saas-mode-tab" navigate={~p"/search"}>Search</.link>
+      <div id="generator" class="saas-generator-workbench">
+        <div class="saas-workbench-trust" aria-label="AI Sticker Maker trust signals">
+          <span class="saas-status-chip">3 free credits for new accounts</span>
+          <span class="saas-status-chip">Generated examples</span>
+          <span class="saas-status-chip">Account-linked history and downloads</span>
+          <span class="saas-status-chip">Failed generations refund credits</span>
+          <span class="saas-status-chip">PNG and WebP downloads</span>
+          <span class="saas-status-chip">Support and billing help</span>
         </div>
 
-        <.form
-          :if={@current_user}
-          for={@form}
-          id="prediction-form"
-          phx-change="validate"
-          phx-submit="save"
-          data-analytics-event="generation_started"
-          data-analytics-context={
-            if @prompt_restored?, do: "hero_generator_restored_prompt", else: "hero_generator"
-          }
-          data-analytics-flow="text_to_sticker"
-        >
-          <div class="saas-prompt-row">
-            <textarea
-              id={@form[:prompt].id}
-              name={@form[:prompt].name}
-              placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot...&#10;Add up to 5 prompts, one per line."
-              required
-              phx-mounted={JS.focus()}
-              class="saas-prompt-input"
-              data-analytics-input="prompt"
-              data-analytics-context="hero_generator"
-            ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
-            <button
-              name="submit"
-              value="generate"
-              phx-disable-with="Baking..."
-              class="saas-button saas-button-primary"
-              data-analytics-event="text_generation_attempt"
-              data-analytics-context={
-                if @prompt_restored?, do: "hero_generator_restored_prompt", else: "hero_generator"
-              }
-            >
-              Bake Sticker
-            </button>
+        <div class="saas-workbench-shell">
+          <div class="saas-workbench-topbar">
+            <div class="saas-mode-tabs" aria-label="Generator modes">
+              <a class="saas-mode-tab active" href="#generator">Text to Sticker</a>
+              <a class="saas-mode-tab" href="#upload">Reference face</a>
+              <.link class="saas-mode-tab" navigate={~p"/search"}>Search ideas</.link>
+            </div>
+
+            <span class="saas-workbench-note">Sticker-ready square output</span>
           </div>
 
-          <div class="saas-hint-row" aria-label="Prompt examples">
-            <span class="saas-chip">cute panda eating cookie</span>
-            <span class="saas-chip">kawaii flower sticker</span>
-            <span class="saas-chip">3D robot mascot</span>
-            <span class="saas-chip">happy coffee cup</span>
-          </div>
+          <.form
+            :if={@current_user}
+            for={@form}
+            id="prediction-form"
+            phx-change="validate"
+            phx-submit="save"
+            data-analytics-event="generation_started"
+            data-analytics-context={
+              if @prompt_restored?, do: "hero_generator_restored_prompt", else: "hero_generator"
+            }
+            data-analytics-flow="text_to_sticker"
+          >
+            <div class="saas-raphael-input">
+              <div class="saas-raphael-reference">
+                <.face_upload_panel current_user={@current_user} uploads={@uploads} />
+              </div>
 
-          <div class="saas-auth-note">
-            <p>
-              <strong>Account ready.</strong> Each sticker generation uses 1 credit.
-            </p>
+              <label class="saas-raphael-prompt" for={@form[:prompt].id}>
+                <span class="saas-prompt-label">Describe the sticker you want to generate</span>
 
-            <span class="saas-credit-pill">Credits: <%= @current_user.credits %></span>
-          </div>
+                <textarea
+                  id={@form[:prompt].id}
+                  name={@form[:prompt].name}
+                  placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot...&#10;Add up to 5 prompts, one per line."
+                  required
+                  phx-mounted={JS.focus()}
+                  class="saas-prompt-input saas-raphael-textarea"
+                  data-analytics-input="prompt"
+                  data-analytics-context="hero_generator"
+                ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
+              </label>
 
-          <.face_upload_panel current_user={@current_user} uploads={@uploads} />
-        </.form>
+              <span class="saas-raphael-enhance" aria-disabled="true">AI Enhance</span>
 
-        <.form
-          :if={is_nil(@current_user)}
-          for={@form}
-          id="prediction-form"
-          action={~p"/users/pending-prompt"}
-          method="post"
-          data-analytics-event="auth_required"
-          data-analytics-context="hero_generator_anonymous"
-          data-analytics-flow="text_to_sticker"
-        >
-          <div class="saas-prompt-row">
-            <textarea
-              id={@form[:prompt].id}
-              name={@form[:prompt].name}
-              placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot...&#10;Add up to 5 prompts, one per line."
-              required
-              class="saas-prompt-input"
-              data-analytics-input="prompt"
-              data-analytics-context="hero_generator_anonymous"
-            ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
-            <button
-              name="submit"
-              value="generate"
-              class="saas-button saas-button-primary"
-              data-analytics-event="text_generation_attempt"
-              data-analytics-context="hero_generator_anonymous"
-              data-analytics-flow="text_to_sticker"
-            >
-              Bake Sticker
-            </button>
-          </div>
+              <div class="saas-raphael-footer">
+                <span class="saas-raphael-credit">Credits: <%= @current_user.credits %></span>
 
-          <div class="saas-hint-row" aria-label="Prompt examples">
-            <span class="saas-chip">cute panda eating cookie</span>
-            <span class="saas-chip">kawaii flower sticker</span>
-            <span class="saas-chip">3D robot mascot</span>
-            <span class="saas-chip">happy coffee cup</span>
-          </div>
+                <button
+                  name="submit"
+                  value="generate"
+                  phx-disable-with="Generating..."
+                  class="saas-button saas-button-primary saas-generate-button"
+                  data-analytics-event="text_generation_attempt"
+                  data-analytics-context={
+                    if @prompt_restored?,
+                      do: "hero_generator_restored_prompt",
+                      else: "hero_generator"
+                  }
+                  data-analytics-flow="text_to_sticker"
+                >
+                  Generate
+                </button>
+              </div>
+            </div>
+          </.form>
 
-          <div class="saas-auth-note">
-            <p>
-              <strong>Account required.</strong>
-              New users get 3 free credits. Each sticker generation uses 1 credit.
-            </p>
+          <.form
+            :if={is_nil(@current_user)}
+            for={@form}
+            id="prediction-form"
+            action={~p"/users/pending-prompt"}
+            method="post"
+            data-analytics-event="auth_required"
+            data-analytics-context="hero_generator_anonymous"
+            data-analytics-flow="text_to_sticker"
+          >
+            <div class="saas-raphael-input">
+              <div class="saas-raphael-reference">
+                <.face_upload_panel current_user={@current_user} uploads={@uploads} />
+              </div>
 
-            <.link
-              class="saas-button saas-button-ghost"
-              navigate={~p"/users/log-in"}
-              data-analytics-event="login_cta_click"
-              data-analytics-context="generator_auth_note"
-            >
-              Sign In
-            </.link>
-          </div>
+              <label class="saas-raphael-prompt" for={@form[:prompt].id}>
+                <span class="saas-prompt-label">Describe the sticker you want to generate</span>
 
-          <.face_upload_panel current_user={@current_user} uploads={@uploads} />
-        </.form>
-      </div>
+                <textarea
+                  id={@form[:prompt].id}
+                  name={@form[:prompt].name}
+                  placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot..."
+                  required
+                  class="saas-prompt-input saas-raphael-textarea"
+                  data-analytics-input="prompt"
+                  data-analytics-context="hero_generator_anonymous"
+                ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
+              </label>
 
-      <div class="saas-hint-row" aria-label="AI Sticker Maker trust signals">
-        <span class="saas-chip">Generated examples</span>
-        <span class="saas-chip">PNG and WebP downloads</span>
-        <span class="saas-chip">Failed generations refund credits</span>
-        <span class="saas-chip">Support and billing help</span>
+              <span class="saas-raphael-enhance" aria-disabled="true">AI Enhance</span>
+
+              <div class="saas-raphael-footer">
+                <.link
+                  navigate={~p"/users/log-in"}
+                  class="saas-raphael-credit"
+                  data-analytics-event="login_cta_click"
+                  data-analytics-context="generator_inline_sign_in"
+                >
+                  Sign in to use 3 free credits
+                </.link>
+
+                <button
+                  name="submit"
+                  value="generate"
+                  class="saas-button saas-button-primary saas-generate-button"
+                  data-analytics-event="text_generation_attempt"
+                  data-analytics-context="hero_generator_anonymous"
+                  data-analytics-flow="text_to_sticker"
+                >
+                  Generate
+                </button>
+              </div>
+            </div>
+          </.form>
+        </div>
       </div>
     </div>
   </section>

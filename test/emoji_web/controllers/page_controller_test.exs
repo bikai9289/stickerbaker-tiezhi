@@ -9,6 +9,53 @@ defmodule StickerWeb.PageControllerTest do
     assert html_response(conn, 200) =~ "AI Sticker Maker"
   end
 
+  test "homepage renders a single Raphael-style input panel with one generate action", %{
+    conn: conn
+  } do
+    conn = get(conn, ~p"/")
+    body = html_response(conn, 200)
+    {:ok, document} = Floki.parse_document(body)
+
+    assert [_] = Floki.find(document, "#generator.saas-generator-workbench")
+    assert [_] = Floki.find(document, ".saas-raphael-input")
+    assert [_] = Floki.find(document, ".saas-raphael-reference")
+    assert [_] = Floki.find(document, ".saas-raphael-prompt")
+    assert [] = Floki.find(document, ".saas-workbench-control-bar")
+    assert [_ | _] = Floki.find(document, ".saas-workbench-trust .saas-status-chip")
+
+    assert [generate_button] =
+             Floki.find(
+               document,
+               "[data-analytics-event=\"text_generation_attempt\"][data-analytics-flow=\"text_to_sticker\"]"
+             )
+
+    assert Floki.text(generate_button) =~ "Generate"
+
+    assert [_] =
+             Floki.find(
+               document,
+               "[data-analytics-event=\"registration_cta_click\"][data-analytics-context=\"home_upload_auth_gate\"]"
+             )
+
+    workbench_text =
+      document
+      |> Floki.find("#generator")
+      |> Floki.text()
+
+    assert workbench_text =~ "3 free credits"
+    assert workbench_text =~ "Failed generations refund credits"
+    assert workbench_text =~ "Upload Image"
+    assert workbench_text =~ "Describe the sticker you want to generate"
+    refute workbench_text =~ "Bake Sticker"
+    refute workbench_text =~ "Advanced defaults"
+    refute workbench_text =~ "Quality: Standard"
+    refute workbench_text =~ "Count:"
+    refute workbench_text =~ "No Login Required"
+    refute workbench_text =~ "Unlimited Generations"
+    refute workbench_text =~ "AI Video"
+    refute workbench_text =~ "multi-model"
+  end
+
   test "public SEO pages render focused content", %{conn: conn} do
     conn = get(conn, ~p"/face-to-sticker")
     body = html_response(conn, 200)

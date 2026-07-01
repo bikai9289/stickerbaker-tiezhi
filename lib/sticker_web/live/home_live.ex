@@ -388,109 +388,62 @@ defmodule StickerWeb.HomeLive do
 
   def face_upload_panel(assigns) do
     ~H"""
-    <div id="upload" class="saas-upload-panel">
-      <div class="saas-upload-box">
-        <p class="saas-mini-title">Upload a face</p>
+    <div id="upload" class="saas-reference-tile" phx-drop-target={@uploads.image.ref}>
+      <.link
+        :if={is_nil(@current_user)}
+        navigate={~p"/users/register"}
+        class="saas-reference-trigger"
+        data-analytics-event="registration_cta_click"
+        data-analytics-context="home_upload_auth_gate"
+      >
+        <span class="saas-reference-plus">+</span>
+        <span class="saas-reference-title">Upload Image</span>
+        <span class="saas-reference-copy">Sign in to generate</span>
+      </.link>
 
-        <p class="saas-mini-copy">
-          Choose a portrait to start face sticker generation automatically.
-        </p>
+      <label
+        :if={@current_user && @uploads.image.entries == []}
+        for={@uploads.image.ref}
+        class="saas-reference-trigger"
+      >
+        <span class="saas-reference-plus">+</span>
+        <span class="saas-reference-title">Upload Image</span>
+        <span
+          class="saas-reference-copy"
+          data-analytics-event="face_upload_attempt"
+          data-analytics-context="home_upload"
+        >
+          Direct sticker
+        </span>
+      </label>
 
-        <section class="saas-face-upload" phx-drop-target={@uploads.image.ref}>
-          <div :if={is_nil(@current_user)}>
-            <.link
-              navigate={~p"/users/register"}
-              class="saas-face-demo"
-              data-analytics-event="registration_cta_click"
-              data-analytics-context="home_upload_auth_gate"
-            >
-              <span>
-                <span class="saas-face-demo-figure">
-                  <img src="/images/arnold_before.png" alt="Portrait before sticker generation" />
-                </span>
-                <span class="saas-face-demo-caption">Before</span>
-              </span>
-              <span class="saas-face-demo-arrow">-&gt;</span>
-              <span>
-                <span class="saas-face-demo-figure">
-                  <img src="/images/arnold.png" alt="Sticker result after generation" />
-                </span>
-                <span class="saas-face-demo-caption">After</span>
-              </span>
+      <.live_file_input :if={@current_user} upload={@uploads.image} class="sr-only" />
 
-              <span class="saas-button saas-button-ghost">
-                Create Account to Upload
-              </span>
-            </.link>
-          </div>
+      <%= for entry <- @uploads.image.entries do %>
+        <article class="saas-upload-preview">
+          <figure>
+            <.live_img_preview entry={entry} class="saas-upload-preview-img" />
+          </figure>
 
-          <div :if={@current_user && @uploads.image.entries == []}>
-            <label for={@uploads.image.ref} class="saas-face-demo">
-              <span>
-                <span class="saas-face-demo-figure">
-                  <img src="/images/arnold_before.png" alt="Portrait before sticker generation" />
-                </span>
-                <span class="saas-face-demo-caption">Before</span>
-              </span>
-              <span class="saas-face-demo-arrow">-&gt;</span>
-              <span>
-                <span class="saas-face-demo-figure">
-                  <img src="/images/arnold.png" alt="Sticker result after generation" />
-                </span>
-                <span class="saas-face-demo-caption">After</span>
-              </span>
-
-              <span
-                class="saas-button saas-button-ghost"
-                data-analytics-event="face_upload_attempt"
-                data-analytics-context="home_upload"
-              >
-                Upload & Generate
-              </span>
-            </label>
-          </div>
-
-          <.live_file_input :if={@current_user} upload={@uploads.image} class="sr-only" />
-
-          <%= for entry <- @uploads.image.entries do %>
-            <article class="saas-upload-preview">
-              <figure>
-                <.live_img_preview entry={entry} class="saas-upload-preview-img" />
-              </figure>
-
-              <%= for err <- upload_errors(@uploads.image, entry) do %>
-                <p class="saas-upload-error"><%= error_to_string(err) %></p>
-              <% end %>
-
-              <p :if={!entry.done?} class="saas-mini-copy">
-                Uploading...
-              </p>
-
-              <%= if upload_errors(@uploads.image, entry) != [] do %>
-                <.link navigate={~p"/"} class="saas-button saas-button-ghost">
-                  Try another upload
-                </.link>
-              <% end %>
-            </article>
-          <% end %>
-
-          <%= for err <- upload_errors(@uploads.image) do %>
+          <%= for err <- upload_errors(@uploads.image, entry) do %>
             <p class="saas-upload-error"><%= error_to_string(err) %></p>
           <% end %>
-        </section>
-      </div>
 
-      <div class="saas-search-box">
-        <p class="saas-mini-title">Search sticker ideas</p>
+          <p :if={!entry.done?} class="saas-mini-copy">
+            Uploading...
+          </p>
 
-        <p class="saas-mini-copy">
-          Browse generated stickers after your library starts filling with results.
-        </p>
+          <%= if upload_errors(@uploads.image, entry) != [] do %>
+            <.link navigate={~p"/"} class="saas-button saas-button-ghost">
+              Try another upload
+            </.link>
+          <% end %>
+        </article>
+      <% end %>
 
-        <.link class="saas-button saas-button-ghost" navigate={~p"/search"}>
-          Open Search
-        </.link>
-      </div>
+      <%= for err <- upload_errors(@uploads.image) do %>
+        <p class="saas-upload-error"><%= error_to_string(err) %></p>
+      <% end %>
     </div>
     """
   end
