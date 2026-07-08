@@ -1,15 +1,62 @@
-name: Fly Deploy
+name: Server Deploy
+
 on:
   push:
     branches:
       - main
-env:
-  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  workflow_dispatch:
+
+concurrency:
+  group: server-deploy-main
+  cancel-in-progress: true
+
 jobs:
   deploy:
-    name: Deploy app
+    name: Deploy to production server
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -eu
+
+            APP_DIR="${{ secrets.DEPLOY_APP_DIR }}"
+            BRANCH="${{ github.ref_name }}"
+            RESTART_COMMAND="${{ secrets.DEPLOY_RESTART_COMMAND }}"
+            HEALTH_URL="${{ secrets.DEPLOY_HEALTH_URL }}"
+
+            if [ -z "$APP_DIR" ]; then
+              echo "DEPLOY_APP_DIR is required."
+              exit 1
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+
+            if [ -n "$RESTART_COMMAND" ]; then
+              sh -lc "$RESTART_COMMAND"
+            elif [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ] || [ -f compose.yaml ]; then
+              docker compose up -d --build
+            elif systemctl list-unit-files 2>/dev/null | grep -q '^sticker\.service'; then
+              sudo systemctl restart sticker
+            else
+              echo "No restart method found."
+              echo "Set DEPLOY_RESTART_COMMAND to the exact server command, for example:"
+              echo "docker compose up -d --build"
+              echo "or:"
+              echo "sudo systemctl restart sticker"
+              exit 1
+            fi
+
+            if [ -n "$HEALTH_URL" ]; then
+              curl -fsS "$HEALTH_URL" >/dev/null
+            else
+              curl -fsS "https://ai-sticker-maker.com/" >/dev/null
+            fi
