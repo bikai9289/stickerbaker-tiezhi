@@ -55,8 +55,19 @@ jobs:
               exit 1
             fi
 
-            if [ -n "$HEALTH_URL" ]; then
-              curl -fsS "$HEALTH_URL" >/dev/null
-            else
-              curl -fsS "https://ai-sticker-maker.com/" >/dev/null
+            if [ -z "$HEALTH_URL" ]; then
+              HEALTH_URL="https://ai-sticker-maker.com/"
             fi
+
+            for attempt in $(seq 1 12); do
+              if curl -fsS "$HEALTH_URL" >/dev/null; then
+                echo "Health check passed."
+                exit 0
+              fi
+
+              echo "Health check failed, retrying ($attempt/12)..."
+              sleep 5
+            done
+
+            echo "Health check failed after retries."
+            exit 1
