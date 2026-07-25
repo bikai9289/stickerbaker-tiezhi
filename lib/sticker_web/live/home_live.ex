@@ -36,6 +36,7 @@ defmodule StickerWeb.HomeLive do
      |> assign(local_user_id: local_user_id)
      |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], local_user_id))
      |> assign(:showcase_items, showcase_items())
+     |> assign(:my_eager_ids, eager_prediction_ids(loading_predictions))
      |> stream(:my_predictions, loading_predictions)
      |> allow_upload(:image,
        accept: @accepted,
@@ -114,12 +115,16 @@ defmodule StickerWeb.HomeLive do
         {:noreply,
          socket
          |> refresh_credit_assigns(user_id)
+         |> mark_prediction_eager(prediction)
          |> stream_insert(:my_predictions, prediction)
+         |> push_event("generation-cancel-result", %{context: "home", outcome: "canceled"})
          |> put_flash(:info, "Generation canceled. 1 credit was returned.")}
 
       {:error, :not_cancelable} ->
         {:noreply,
-         put_flash(socket, :error, "This generation has already finished or stopped.")}
+         socket
+         |> push_event("generation-cancel-result", %{context: "home", outcome: "not_cancelable"})
+         |> put_flash(:error, "This generation has already finished or stopped.")}
     end
   end
 
@@ -133,7 +138,9 @@ defmodule StickerWeb.HomeLive do
 
       socket =
         Enum.reduce(predictions, socket, fn prediction, acc ->
-          stream_insert(acc, :my_predictions, prediction, at: 0)
+          acc
+          |> mark_prediction_eager(prediction)
+          |> stream_insert(:my_predictions, prediction, at: 0)
         end)
 
       {:noreply,
@@ -213,6 +220,7 @@ defmodule StickerWeb.HomeLive do
       {:noreply,
        socket
        |> put_flash(:info, "AI generated safety rating:  #{10 - prediction.moderation_score}/10")
+       |> mark_prediction_eager(prediction)
        |> stream_insert(:my_predictions, prediction)}
     else
       {:noreply,
@@ -224,12 +232,14 @@ defmodule StickerWeb.HomeLive do
   def handle_info({:prediction_started, prediction}, socket) do
     {:noreply,
      socket
+     |> mark_prediction_eager(prediction)
      |> stream_insert(:my_predictions, prediction, at: 0)}
   end
 
   def handle_info({:prediction_loading, prediction}, socket) do
     {:noreply,
      socket
+     |> mark_prediction_eager(prediction)
      |> stream_insert(:my_predictions, prediction, at: 0)
      |> put_flash(:info, "Sticker is processing. This can take a little while.")}
   end
@@ -237,6 +247,7 @@ defmodule StickerWeb.HomeLive do
   def handle_info({:prediction_failed, prediction}, socket) do
     {:noreply,
      socket
+     |> mark_prediction_eager(prediction)
      |> stream_insert(:my_predictions, prediction, at: 0)
      |> put_flash(
        :error,
@@ -247,6 +258,7 @@ defmodule StickerWeb.HomeLive do
   def handle_info({:prediction_completed, prediction}, socket) do
     {:noreply,
      socket
+     |> mark_prediction_eager(prediction)
      |> stream_insert(:my_predictions, prediction)
      |> put_flash(:info, "Sticker generated! Click it to download.")}
   end
@@ -333,6 +345,7 @@ defmodule StickerWeb.HomeLive do
       {:noreply,
        socket
        |> assign_credit_result(credit_result)
+       |> mark_prediction_eager(prediction)
        |> stream_insert(:my_predictions, prediction, at: 0)
        |> track_guest_generation(credit_result, "face", 1)
        |> put_flash(:info, "Face sticker generation started.")}
@@ -506,6 +519,19 @@ defmodule StickerWeb.HomeLive do
     assign(socket, :current_user, Sticker.Accounts.get_user(socket.assigns.current_user.id))
   end
 
+  defp eager_prediction_ids(predictions) do
+    predictions |> Enum.take(4) |> Enum.map(& &1.id)
+  end
+
+  defp mark_prediction_eager(socket, prediction) do
+    eager_ids =
+      [prediction.id | socket.assigns.my_eager_ids]
+      |> Enum.uniq()
+      |> Enum.take(4)
+
+    assign(socket, :my_eager_ids, eager_ids)
+  end
+
   defp generation_user_id(%{assigns: %{local_user_id: local_user_id}})
        when is_binary(local_user_id),
        do: local_user_id
@@ -594,9 +620,7 @@ defmodule StickerWeb.HomeLive do
           JPG or PNG, up to 8 MB
         </span>
       </label>
-
-      <.live_file_input upload={@uploads.image} class="sr-only" />
-
+       <.live_file_input upload={@uploads.image} class="sr-only" />
       <%= for entry <- @uploads.image.entries do %>
         <article class="saas-portrait-preview">
           <figure class="saas-portrait-preview-frame">
@@ -604,9 +628,7 @@ defmodule StickerWeb.HomeLive do
           </figure>
 
           <div class="saas-portrait-file-meta">
-            <strong><%= entry.client_name %></strong>
-            <span>Ready to turn into a sticker</span>
-
+            <strong><%= entry.client_name %></strong> <span>Ready to turn into a sticker</span>
             <button
               type="button"
               class="saas-upload-remove"

@@ -2,6 +2,7 @@
   <div class="saas-container">
     <div class="saas-section-head">
       <h2>Account</h2>
+
       <p class="saas-section-copy">
         Manage credits, generation history, saved stickers, and billing records.
       </p>
@@ -50,7 +51,12 @@
       <article :if={@summary_state == :failed} id="account-summary-error" class="saas-tile">
         <h3>Generated</h3>
         <p>Totals could not be loaded.</p>
-        <button type="button" class="saas-button saas-button-ghost" phx-click="retry-section" phx-value-section="summary">
+        <button
+          type="button"
+          class="saas-button saas-button-ghost"
+          phx-click="retry-section"
+          phx-value-section="summary"
+        >
           Retry
         </button>
       </article>
@@ -66,6 +72,7 @@
   <div class="saas-container">
     <div class="saas-section-head">
       <h2>Recent Stickers</h2>
+
       <p class="saas-section-copy">Track active, completed, and failed generations.</p>
     </div>
 
@@ -82,10 +89,20 @@
       </article>
     </div>
 
-    <div :if={@recent_state == :failed} id="account-recent-error" class="saas-section-error" role="alert">
+    <div
+      :if={@recent_state == :failed}
+      id="account-recent-error"
+      class="saas-section-error"
+      role="alert"
+    >
       <strong>Recent stickers could not be loaded.</strong>
       <p>Your generations are safe. Try loading this section again.</p>
-      <button type="button" class="saas-button saas-button-ghost" phx-click="retry-section" phx-value-section="recent">
+      <button
+        type="button"
+        class="saas-button saas-button-ghost"
+        phx-click="retry-section"
+        phx-value-section="recent"
+      >
         Retry
       </button>
     </div>
@@ -108,12 +125,13 @@
             prediction={prediction}
             class="saas-generated-item"
             cancel_event="cancel-generation"
+            eager={prediction.id in @recent_eager_ids}
           />
           <div class="saas-history-actions">
             <button phx-click="toggle-favorite" phx-value-id={prediction.id}>
               <%= if prediction.is_favorite, do: "Saved", else: "Save" %>
             </button>
-            <.link navigate={~p"/?prompt=#{prediction.prompt}"}>Regenerate</.link>
+             <.link navigate={~p"/?prompt=#{prediction.prompt}"}>Regenerate</.link>
             <button phx-click="delete" phx-value-id={prediction.id}>Delete</button>
           </div>
         </div>
@@ -142,10 +160,20 @@
       </article>
     </div>
 
-    <div :if={@favorites_state == :failed} id="account-favorites-error" class="saas-section-error" role="alert">
+    <div
+      :if={@favorites_state == :failed}
+      id="account-favorites-error"
+      class="saas-section-error"
+      role="alert"
+    >
       <strong>Saved stickers could not be loaded.</strong>
       <p>Try loading this section again.</p>
-      <button type="button" class="saas-button saas-button-ghost" phx-click="retry-section" phx-value-section="favorites">
+      <button
+        type="button"
+        class="saas-button saas-button-ghost"
+        phx-click="retry-section"
+        phx-value-section="favorites"
+      >
         Retry
       </button>
     </div>
@@ -163,7 +191,12 @@
       role="list"
     >
       <li :for={{id, prediction} <- @streams.favorite_predictions} id={id}>
-        <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
+        <StickerWeb.Components.sticker
+          id={id}
+          prediction={prediction}
+          class="saas-generated-item"
+          eager={prediction.id in @favorite_eager_ids}
+        />
       </li>
     </ul>
   </div>
@@ -173,7 +206,10 @@
   <div class="saas-container">
     <div class="saas-section-head">
       <h2>Payment Records</h2>
-      <p class="saas-section-copy">Checkout activity and completed credit purchases for this account.</p>
+
+      <p class="saas-section-copy">
+        Checkout activity and completed credit purchases for this account.
+      </p>
     </div>
 
     <div
@@ -186,10 +222,20 @@
       <span :for={_ <- 1..3} class="saas-skeleton saas-skeleton-table-row"></span>
     </div>
 
-    <div :if={@payments_state == :failed} id="account-payments-error" class="saas-section-error" role="alert">
+    <div
+      :if={@payments_state == :failed}
+      id="account-payments-error"
+      class="saas-section-error"
+      role="alert"
+    >
       <strong>Payment records could not be loaded.</strong>
       <p>Credits and completed purchases are unchanged.</p>
-      <button type="button" class="saas-button saas-button-ghost" phx-click="retry-section" phx-value-section="payments">
+      <button
+        type="button"
+        class="saas-button saas-button-ghost"
+        phx-click="retry-section"
+        phx-value-section="payments"
+      >
         Retry
       </button>
     </div>

@@ -114,4 +114,63 @@ defmodule StickerWeb.ComponentsTest do
       assert html =~ ~s(class="saas-generated-frame)
     end
   end
+
+  test "preview images expose stable loading hints and retry hooks" do
+    prediction = %Prediction{
+      id: 45,
+      prompt: "preview loading hints",
+      status: :succeeded,
+      sticker_output: "https://example.com/preview.webp",
+      score: 0
+    }
+
+    eager_html =
+      render_component(&Components.sticker/1,
+        id: "prediction-45",
+        prediction: prediction,
+        eager: true
+      )
+
+    assert eager_html =~ ~s(phx-hook="PreviewImage")
+    assert eager_html =~ ~s(loading="eager")
+    assert eager_html =~ ~s(fetchpriority="high")
+    assert eager_html =~ ~s(decoding="async")
+    assert eager_html =~ ~s(width="1024")
+    assert eager_html =~ ~s(height="1024")
+    assert eager_html =~ ~s(data-preview-retry)
+
+    lazy_html =
+      render_component(&Components.sticker/1, id: "prediction-45-lazy", prediction: prediction)
+
+    assert lazy_html =~ ~s(loading="lazy")
+    assert lazy_html =~ ~s(fetchpriority="auto")
+  end
+
+  test "active cards expose the slow-state hook and privacy-safe cancel analytics" do
+    prediction = %Prediction{
+      id: 46,
+      prompt: "slow generation",
+      status: :processing,
+      score: 0
+    }
+
+    html =
+      render_component(&Components.sticker/1,
+        id: "prediction-46",
+        prediction: prediction,
+        cancel_event: "cancel-generation"
+      )
+
+    assert html =~ ~s(phx-hook="GenerationStatus")
+    assert html =~ ~s(data-analytics-event="generation_cancel_attempt")
+    assert html =~ ~s(data-analytics-context="generation_card")
+
+    {:ok, document} = Floki.parse_document(html)
+
+    [cancel_button] =
+      Floki.find(document, "button[data-analytics-event='generation_cancel_attempt']")
+
+    {_tag, attributes, _children} = cancel_button
+    refute Enum.any?(attributes, fn {_name, value} -> value =~ prediction.prompt end)
+  end
 end

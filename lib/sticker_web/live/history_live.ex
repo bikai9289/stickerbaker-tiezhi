@@ -34,6 +34,7 @@ defmodule StickerWeb.HistoryLive do
       |> assign(has_more?: false)
       |> assign(prediction_count: 0)
       |> assign(shown_count: 0)
+      |> assign(history_eager_ids: [])
       |> assign(selected_ids: MapSet.new())
       |> assign(download_format: "original")
       |> assign(results: [])
@@ -52,7 +53,9 @@ defmodule StickerWeb.HistoryLive do
     {:ok, socket}
   end
 
-  def handle_event("assign-user-id", %{"userId" => user_id},
+  def handle_event(
+        "assign-user-id",
+        %{"userId" => user_id},
         %{assigns: %{local_user_id: user_id}} = socket
       ) do
     {:noreply, socket}
@@ -107,8 +110,7 @@ defmodule StickerWeb.HistoryLive do
   end
 
   def handle_event("retry-history", _params, socket) do
-    {:noreply,
-     start_history_page(socket, socket.assigns.local_user_id, socket.assigns.filters)}
+    {:noreply, start_history_page(socket, socket.assigns.local_user_id, socket.assigns.filters)}
   end
 
   def handle_event("set-download-format", %{"format" => format}, socket) do
@@ -184,8 +186,7 @@ defmodule StickerWeb.HistoryLive do
     {:ok, prediction} = Predictions.toggle_favorite(id, socket.assigns.local_user_id)
 
     if socket.assigns.filters.status == "favorites" do
-      {:noreply,
-       start_history_page(socket, socket.assigns.local_user_id, socket.assigns.filters)}
+      {:noreply, start_history_page(socket, socket.assigns.local_user_id, socket.assigns.filters)}
     else
       {:noreply, stream_insert(socket, :predictions, prediction)}
     end
@@ -203,17 +204,22 @@ defmodule StickerWeb.HistoryLive do
      |> put_flash(:info, "Sticker deleted.")}
   end
 
-  def handle_async({:history_page, ref}, {:ok, page},
+  def handle_async(
+        {:history_page, ref},
+        {:ok, page},
         %{assigns: %{history_request_ref: ref}} = socket
       ) do
     {:noreply,
      socket
      |> assign(history_state: :loaded, shown_count: length(page.entries))
+     |> assign(history_eager_ids: eager_prediction_ids(page.entries))
      |> assign_page(page)
      |> stream(:predictions, page.entries, reset: true)}
   end
 
-  def handle_async({:history_page, ref}, {:exit, _reason},
+  def handle_async(
+        {:history_page, ref},
+        {:exit, _reason},
         %{assigns: %{history_request_ref: ref}} = socket
       ) do
     {:noreply, assign(socket, :history_state, :failed)}
@@ -221,7 +227,9 @@ defmodule StickerWeb.HistoryLive do
 
   def handle_async({:history_page, _stale_ref}, _result, socket), do: {:noreply, socket}
 
-  def handle_async({:history_more, ref, _page_number}, {:ok, page},
+  def handle_async(
+        {:history_more, ref, _page_number},
+        {:ok, page},
         %{assigns: %{history_more_ref: ref}} = socket
       ) do
     shown_count = min(socket.assigns.shown_count + length(page.entries), page.total)
@@ -233,7 +241,9 @@ defmodule StickerWeb.HistoryLive do
      |> stream(:predictions, page.entries)}
   end
 
-  def handle_async({:history_more, ref, _page_number}, {:exit, _reason},
+  def handle_async(
+        {:history_more, ref, _page_number},
+        {:exit, _reason},
         %{assigns: %{history_more_ref: ref}} = socket
       ) do
     {:noreply, assign(socket, :load_more_state, :failed)}
@@ -329,6 +339,10 @@ defmodule StickerWeb.HistoryLive do
 
   defp next_request_ref, do: System.unique_integer([:positive, :monotonic])
 
+  defp eager_prediction_ids(predictions) do
+    predictions |> Enum.take(4) |> Enum.map(& &1.id)
+  end
+
   defp assign_page(socket, page) do
     socket
     |> assign(page: page.page)
@@ -373,7 +387,8 @@ defmodule StickerWeb.HistoryLive do
         end
 
       {:error, :guest_insufficient_credits} ->
-        {:noreply, put_flash(socket, :error, "No guest trial generations left to retry this sticker.")}
+        {:noreply,
+         put_flash(socket, :error, "No guest trial generations left to retry this sticker.")}
 
       {:error, :insufficient_credits} ->
         {:noreply, put_flash(socket, :error, "Not enough credits to retry this sticker.")}

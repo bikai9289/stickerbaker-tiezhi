@@ -26,6 +26,7 @@
             >
               Create a sticker
             </a>
+
             <a
               href="#latest"
               class="saas-button saas-hero-secondary"
@@ -38,7 +39,9 @@
 
           <ul class="saas-hero-proof" aria-label="AI Sticker Maker benefits">
             <li>3 free guest generations</li>
+
             <li>PNG and WebP downloads</li>
+
             <li>Failed generations refund credits</li>
           </ul>
         </div>
@@ -48,8 +51,7 @@
             :for={{item, index} <- Enum.with_index(Enum.take(@showcase_items, 4))}
             class={["saas-hero-sticker", "saas-hero-sticker-#{index + 1}"]}
           >
-            <img src={item.image} alt={item.alt} />
-            <span><%= item.tag %></span>
+            <img src={item.image} alt={item.alt} /> <span><%= item.tag %></span>
           </div>
         </div>
       </div>
@@ -68,6 +70,7 @@
               >
                 Text to sticker
               </button>
+
               <button
                 id="generator-mode-portrait"
                 type="button"
@@ -115,6 +118,7 @@
                   <span class="saas-generator-kicker">Create from words</span>
                   <h2>Describe your sticker</h2>
                 </div>
+
                 <span class="saas-cost-badge">
                   <%= if @batch_mode, do: "1 credit each", else: "1 credit" %>
                 </span>
@@ -126,8 +130,7 @@
                     do: "Enter up to 5 prompts, one per line",
                     else: "What should the sticker look like?" %>
                 </span>
-
-                <textarea
+                 <textarea
                   id={@form[:prompt].id}
                   name={@form[:prompt].name}
                   placeholder={
@@ -159,7 +162,7 @@
                   <span class="saas-toggle-track" aria-hidden="true"><span></span></span>
                   Batch mode
                 </button>
-                <span>Line breaks stay in one prompt unless Batch mode is on.</span>
+                 <span>Line breaks stay in one prompt unless Batch mode is on.</span>
               </div>
             </div>
 
@@ -173,12 +176,11 @@
                   <span class="saas-generator-kicker">Create from a photo</span>
                   <h2>Upload a clear portrait</h2>
                 </div>
-                <span class="saas-cost-badge">1 credit</span>
+                 <span class="saas-cost-badge">1 credit</span>
               </div>
 
               <div class="saas-portrait-grid">
                 <.face_upload_panel uploads={@uploads} />
-
                 <div class="saas-portrait-guidance">
                   <div class="saas-portrait-tip">
                     <strong>For the best result</strong>
@@ -186,8 +188,7 @@
                   </div>
 
                   <label for={@form[:prompt].id}>
-                    <span class="saas-prompt-label">Optional style instructions</span>
-                    <textarea
+                    <span class="saas-prompt-label">Optional style instructions</span> <textarea
                       id={@form[:prompt].id}
                       name={@form[:prompt].name}
                       maxlength="1000"
@@ -223,7 +224,7 @@
                     </.link>
                   <% end %>
                 <% end %>
-                <span class="saas-credit-safety">Failed generations return the credit.</span>
+                 <span class="saas-credit-safety">Failed generations return the credit.</span>
               </div>
 
               <button
@@ -284,6 +285,7 @@
             prediction={prediction}
             class="saas-generated-item"
             cancel_event="cancel-generation"
+            eager={prediction.id in @my_eager_ids}
           />
         </li>
       </ul>

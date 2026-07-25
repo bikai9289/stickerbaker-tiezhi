@@ -64,6 +64,94 @@ Hooks.LaunchAnalytics = {
   },
 };
 
+Hooks.GenerationStatus = {
+  mounted() {
+    this.slowTimer = window.setTimeout(() => {
+      this.el.dataset.slow = "true";
+      this.el.querySelector("[data-slow-message]")?.removeAttribute("hidden");
+
+      safeTrack("generation_slow_state", {
+        context: this.el.dataset.generationContext || "generation_card",
+        state: "slow",
+      });
+    }, 45_000);
+  },
+  destroyed() {
+    window.clearTimeout(this.slowTimer);
+  },
+};
+
+Hooks.PreviewImage = {
+  mounted() {
+    this.bindPreview();
+  },
+  updated() {
+    this.bindPreview();
+  },
+  destroyed() {
+    this.unbindPreview();
+  },
+  bindPreview() {
+    const image = this.el.querySelector("img");
+    if (image === this.image) {
+      this.originalSrc = image?.currentSrc || image?.src || this.originalSrc;
+      return;
+    }
+
+    this.unbindPreview();
+    this.image = image;
+    if (!this.image) return;
+
+    const card = this.el.closest("[data-generation-state]");
+    this.retryButton = card?.querySelector("[data-preview-retry]");
+    this.errorLabel = this.el.querySelector("[data-preview-error]");
+    this.originalSrc = this.image.currentSrc || this.image.src;
+
+    this.onPreviewLoad = () => this.setPreviewState("loaded");
+    this.onPreviewError = () => this.setPreviewState("error");
+    this.onPreviewRetry = () => {
+      if (!this.image || !this.originalSrc) return;
+
+      this.setPreviewState("loading", false);
+      const retryUrl = new URL(this.originalSrc, window.location.href);
+      retryUrl.searchParams.set("preview_retry", Date.now().toString());
+      this.image.src = retryUrl.toString();
+    };
+
+    this.image.addEventListener("load", this.onPreviewLoad);
+    this.image.addEventListener("error", this.onPreviewError);
+    this.retryButton?.addEventListener("click", this.onPreviewRetry);
+
+    if (this.image.complete) {
+      if (this.image.naturalWidth > 0) {
+        this.setPreviewState("loaded");
+      } else {
+        this.setPreviewState("error");
+      }
+    }
+  },
+  unbindPreview() {
+    this.image?.removeEventListener("load", this.onPreviewLoad);
+    this.image?.removeEventListener("error", this.onPreviewError);
+    this.retryButton?.removeEventListener("click", this.onPreviewRetry);
+    this.image = null;
+    this.retryButton = null;
+    this.errorLabel = null;
+  },
+  setPreviewState(state, track = true) {
+    this.el.dataset.previewState = state;
+    this.errorLabel?.toggleAttribute("hidden", state !== "error");
+    this.retryButton?.toggleAttribute("hidden", state !== "error");
+
+    if (track) {
+      safeTrack("preview_image_state", {
+        context: this.el.dataset.previewContext || "generation_card",
+        state,
+      });
+    }
+  },
+};
+
 function authStateForElement(target) {
   const scopedAuth = target.closest("[data-auth-state]");
   if (scopedAuth?.dataset?.authState) {
@@ -168,6 +256,13 @@ document.addEventListener("input", (event) => {
 
 document.addEventListener("change", (event) => {
   trackPromptInput(event.target);
+});
+
+window.addEventListener("phx:generation-cancel-result", (event) => {
+  safeTrack("generation_cancel_result", {
+    context: event.detail?.context,
+    outcome: event.detail?.outcome,
+  });
 });
 
 trackReturnState();

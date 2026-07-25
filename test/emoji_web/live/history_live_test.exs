@@ -24,13 +24,13 @@ defmodule StickerWeb.HistoryLiveTest do
     refute static_html =~ "history item 1"
 
     {:ok, view, _html} = live(conn, ~p"/stickers")
-    _html = render_async(view)
+    _html = render_async(view, 1_000)
 
     assert has_element?(view, "#history-count", "Showing 24 of 25")
     assert has_element?(view, "button[phx-click='load-more']", "Load More")
 
     view |> element("button[phx-click='load-more']") |> render_click()
-    html = render_async(view)
+    html = render_async(view, 1_000)
 
     assert has_element?(view, "#history-count", "Showing 25 of 25")
     assert html =~ "All stickers loaded"
@@ -54,13 +54,13 @@ defmodule StickerWeb.HistoryLiveTest do
 
     conn = Plug.Test.init_test_session(conn, %{user_id: user.id, local_user_id: user.public_id})
     {:ok, view, _html} = live(conn, ~p"/stickers")
-    _html = render_async(view)
+    _html = render_async(view, 1_000)
 
     view
     |> form("#history-filter", %{"status" => "failed", "query" => "", "batch_id" => "all"})
     |> render_change()
 
-    html = render_async(view)
+    html = render_async(view, 1_000)
     assert html =~ "failed filter result"
     refute html =~ "completed filter result"
     assert has_element?(view, "#history-count", "Showing 1 of 1")
@@ -85,11 +85,16 @@ defmodule StickerWeb.HistoryLiveTest do
 
     conn = Plug.Test.init_test_session(conn, %{user_id: user.id, local_user_id: user.public_id})
     {:ok, view, _html} = live(conn, ~p"/stickers?status=favorites")
-    html = render_async(view)
+    html = render_async(view, 1_000)
 
     assert html =~ "saved from url"
     refute html =~ "not saved from url"
-    assert has_element?(view, "#history-filter select[name='status'] option[selected]", "Favorites")
+
+    assert has_element?(
+             view,
+             "#history-filter select[name='status'] option[selected]",
+             "Favorites"
+           )
   end
 
   test "assign-user-id is idempotent when the session identity already matches" do

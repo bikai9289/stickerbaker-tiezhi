@@ -3,6 +3,7 @@
     <div class="saas-container">
       <div class="saas-section-head">
         <h1>Sticker History</h1>
+
         <p class="saas-section-copy">
           Track completed, processing, and failed generations. Download, save, regenerate,
           create variations, or remove stickers from your account.
@@ -25,14 +26,23 @@
         />
         <select name="status" class="saas-history-select">
           <option value="all" selected={@filters.status == "all"}>All</option>
+
           <option value="completed" selected={@filters.status == "completed"}>Completed</option>
-          <option value="processing" selected={@filters.status == "processing"}>Processing</option>
+
+          <option value="processing" selected={@filters.status == "processing"}>
+            Processing
+          </option>
+
           <option value="failed" selected={@filters.status == "failed"}>Failed</option>
+
           <option value="canceled" selected={@filters.status == "canceled"}>Canceled</option>
+
           <option value="favorites" selected={@filters.status == "favorites"}>Favorites</option>
         </select>
+
         <select name="batch_id" class="saas-history-select">
           <option value="all" selected={@filters.batch_id == "all"}>All batches</option>
+
           <option
             :for={batch <- @batches}
             value={batch.batch_id}
@@ -43,7 +53,10 @@
         </select>
       </.form>
 
-      <div :if={not is_nil(@local_user_id) and MapSet.size(@selected_ids) > 0} class="saas-history-bulk">
+      <div
+        :if={not is_nil(@local_user_id) and MapSet.size(@selected_ids) > 0}
+        class="saas-history-bulk"
+      >
         <strong><%= MapSet.size(@selected_ids) %> selected</strong>
         <button
           class={if @download_format == "original", do: "active", else: nil}
@@ -52,6 +65,7 @@
         >
           Original
         </button>
+
         <button
           class={if @download_format == "png", do: "active", else: nil}
           phx-click="set-download-format"
@@ -59,6 +73,7 @@
         >
           PNG
         </button>
+
         <button
           class={if @download_format == "webp", do: "active", else: nil}
           phx-click="set-download-format"
@@ -66,8 +81,11 @@
         >
           WebP
         </button>
+
         <.link
-          href={~p"/stickers/download?ids=#{selected_ids_param(@selected_ids)}&format=#{download_format_param(@download_format)}"}
+          href={
+            ~p"/stickers/download?ids=#{selected_ids_param(@selected_ids)}&format=#{download_format_param(@download_format)}"
+          }
           data-analytics-event="download_click"
           data-analytics-context="history_bulk"
           data-analytics-download-type="batch_zip"
@@ -75,7 +93,7 @@
         >
           Download ZIP
         </.link>
-        <button phx-click="delete-selected">Delete Selected</button>
+         <button phx-click="delete-selected">Delete Selected</button>
         <button phx-click="clear-selection">Clear</button>
       </div>
 
@@ -84,11 +102,16 @@
           <.link navigate={~p"/stickers/batches/#{batch.batch_id}"}>
             <strong><%= batch_label(batch) %></strong>
           </.link>
-          <span><%= batch.processing %> processing</span>
+           <span><%= batch.processing %> processing</span>
         </article>
       </div>
 
-      <p :if={@history_state == :loaded} id="history-count" class="saas-history-count" aria-live="polite">
+      <p
+        :if={@history_state == :loaded}
+        id="history-count"
+        class="saas-history-count"
+        aria-live="polite"
+      >
         Showing <strong><%= @shown_count %></strong> of <strong><%= @prediction_count %></strong>
       </p>
 
@@ -105,7 +128,12 @@
         </article>
       </div>
 
-      <div :if={@history_state == :failed} id="history-initial-error" class="saas-section-error" role="alert">
+      <div
+        :if={@history_state == :failed}
+        id="history-initial-error"
+        class="saas-section-error"
+        role="alert"
+      >
         <strong>Sticker history could not be loaded.</strong>
         <p>Your stickers are safe. Try loading this page again.</p>
         <button type="button" class="saas-button saas-button-ghost" phx-click="retry-history">
@@ -128,24 +156,20 @@
                 checked={selected?(@selected_ids, prediction.id)}
                 phx-click="toggle-select"
                 phx-value-id={prediction.id}
-              />
-              <span>Select</span>
+              /> <span>Select</span>
             </label>
-            <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
+
+            <StickerWeb.Components.sticker
+              id={id}
+              prediction={prediction}
+              class="saas-generated-item"
+              eager={prediction.id in @history_eager_ids}
+            />
             <div class="saas-history-actions">
               <button phx-click="toggle-favorite" phx-value-id={prediction.id}>
                 <%= if prediction.is_favorite, do: "Saved", else: "Save" %>
               </button>
-              <.link
-                :if={prediction.sticker_output}
-                href={~p"/sticker/#{prediction.id}/download"}
-                data-analytics-event="download_click"
-                data-analytics-context="history_item"
-                data-analytics-download-type="single"
-                data-analytics-format="original"
-              >
-                Download
-              </.link>
+
               <button
                 :if={failed_or_canceled?(prediction)}
                 phx-click="retry"
@@ -153,6 +177,7 @@
               >
                 Retry
               </button>
+
               <button
                 :if={processing?(prediction)}
                 phx-click="cancel"
@@ -160,21 +185,27 @@
               >
                 Cancel
               </button>
-              <.link navigate={~p"/?prompt=#{prediction.prompt}"}>Regenerate</.link>
-              <.link navigate={~p"/?prompt=#{prediction.prompt <> " variation"}"}>Variation</.link>
+               <.link navigate={~p"/?prompt=#{prediction.prompt}"}>Regenerate</.link>
+              <.link navigate={~p"/?prompt=#{prediction.prompt <> " variation"}"}>
+                Variation
+              </.link>
               <span :if={prediction.status == :failed and prediction.credit_refunded}>
                 Credit returned
               </span>
+
               <span :if={prediction.status == :failed and not prediction.credit_refunded}>
                 Needs review
               </span>
-              <button phx-click="delete" phx-value-id={prediction.id}>Delete</button>
+               <button phx-click="delete" phx-value-id={prediction.id}>Delete</button>
             </div>
           </div>
         </li>
       </ul>
 
-      <div :if={@history_state == :loaded and @has_more? and @load_more_state == :idle} class="saas-history-load">
+      <div
+        :if={@history_state == :loaded and @has_more? and @load_more_state == :idle}
+        class="saas-history-load"
+      >
         <button class="saas-button saas-button-ghost" phx-click="load-more">Load More</button>
       </div>
 
@@ -194,7 +225,11 @@
         </div>
       </div>
 
-      <div :if={@history_state == :loaded and @load_more_state == :failed} class="saas-section-error" role="alert">
+      <div
+        :if={@history_state == :loaded and @load_more_state == :failed}
+        class="saas-section-error"
+        role="alert"
+      >
         <strong>More stickers could not be loaded.</strong>
         <button type="button" class="saas-button saas-button-ghost" phx-click="load-more">
           Try again
@@ -210,8 +245,9 @@
 
       <div :if={@history_state == :loaded and @prediction_count == 0} class="saas-empty-state">
         <h2>No stickers found</h2>
+
         <p>Try a different filter, or generate a new sticker from the home page.</p>
-        <.link class="saas-button saas-button-primary" navigate={~p"/"}>Create Sticker</.link>
+         <.link class="saas-button saas-button-primary" navigate={~p"/"}>Create Sticker</.link>
       </div>
     </div>
   </section>

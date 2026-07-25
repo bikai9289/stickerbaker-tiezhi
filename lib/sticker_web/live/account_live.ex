@@ -20,7 +20,8 @@ defmodule StickerWeb.AccountLive do
      |> SEO.assign(
        PageSEO.noindex("/account",
          title: "AI Sticker Maker Account",
-         description: "Manage AI Sticker Maker credits, saved stickers, generation history, and billing records."
+         description:
+           "Manage AI Sticker Maker credits, saved stickers, generation history, and billing records."
        )
      )
      |> put_flash(:error, "Please sign in to view your account.")
@@ -36,7 +37,8 @@ defmodule StickerWeb.AccountLive do
       |> SEO.assign(
         PageSEO.noindex("/account",
           title: "AI Sticker Maker Account",
-          description: "Manage AI Sticker Maker credits, saved stickers, generation history, and billing records."
+          description:
+            "Manage AI Sticker Maker credits, saved stickers, generation history, and billing records."
         )
       )
       |> assign(:summary_state, :loading)
@@ -48,6 +50,8 @@ defmodule StickerWeb.AccountLive do
       |> assign(:payments, [])
       |> assign(:recent_empty?, false)
       |> assign(:favorites_empty?, false)
+      |> assign(:recent_eager_ids, [])
+      |> assign(:favorite_eager_ids, [])
       |> stream(:recent_predictions, [])
       |> stream(:favorite_predictions, [])
 
@@ -78,6 +82,7 @@ defmodule StickerWeb.AccountLive do
     {:noreply,
      socket
      |> assign(:recent_empty?, false)
+     |> mark_recent_eager(prediction)
      |> stream_insert(:recent_predictions, prediction, at: 0)
      |> refresh_prediction_sections(user)}
   end
@@ -129,13 +134,20 @@ defmodule StickerWeb.AccountLive do
          socket
          |> assign(:current_user, refreshed_user)
          |> assign(:recent_empty?, false)
+         |> mark_recent_eager(prediction)
          |> stream_insert(:recent_predictions, prediction, at: 0)
          |> refresh_prediction_sections(refreshed_user)
+         |> push_event("generation-cancel-result", %{context: "account", outcome: "canceled"})
          |> put_flash(:info, "Generation canceled. 1 credit was returned.")}
 
       {:error, :not_cancelable} ->
         {:noreply,
-         put_flash(socket, :error, "This generation has already finished or stopped.")}
+         socket
+         |> push_event("generation-cancel-result", %{
+           context: "account",
+           outcome: "not_cancelable"
+         })
+         |> put_flash(:error, "This generation has already finished or stopped.")}
     end
   end
 
@@ -148,6 +160,7 @@ defmodule StickerWeb.AccountLive do
      socket
      |> assign(:recent_state, :loaded)
      |> assign(:recent_empty?, predictions == [])
+     |> assign(:recent_eager_ids, eager_prediction_ids(predictions))
      |> stream(:recent_predictions, predictions, reset: true)}
   end
 
@@ -156,6 +169,7 @@ defmodule StickerWeb.AccountLive do
      socket
      |> assign(:favorites_state, :loaded)
      |> assign(:favorites_empty?, predictions == [])
+     |> assign(:favorite_eager_ids, eager_prediction_ids(predictions))
      |> stream(:favorite_predictions, predictions, reset: true)}
   end
 
@@ -245,11 +259,38 @@ defmodule StickerWeb.AccountLive do
   defp update_favorite_stream(socket, %{is_favorite: true} = prediction) do
     socket
     |> assign(:favorites_empty?, false)
+    |> mark_favorite_eager(prediction)
     |> stream_insert(:favorite_predictions, prediction, at: 0)
   end
 
   defp update_favorite_stream(socket, prediction) do
-    stream_delete(socket, :favorite_predictions, prediction)
+    socket
+    |> assign(:favorite_eager_ids, List.delete(socket.assigns.favorite_eager_ids, prediction.id))
+    |> stream_delete(:favorite_predictions, prediction)
+  end
+
+  defp eager_prediction_ids(predictions) do
+    predictions |> Enum.take(4) |> Enum.map(& &1.id)
+  end
+
+  defp mark_recent_eager(socket, prediction) do
+    assign(
+      socket,
+      :recent_eager_ids,
+      prepend_eager_id(socket.assigns.recent_eager_ids, prediction.id)
+    )
+  end
+
+  defp mark_favorite_eager(socket, prediction) do
+    assign(
+      socket,
+      :favorite_eager_ids,
+      prepend_eager_id(socket.assigns.favorite_eager_ids, prediction.id)
+    )
+  end
+
+  defp prepend_eager_id(eager_ids, prediction_id) do
+    [prediction_id | eager_ids] |> Enum.uniq() |> Enum.take(4)
   end
 
   defp state_key(:account_summary), do: :summary_state

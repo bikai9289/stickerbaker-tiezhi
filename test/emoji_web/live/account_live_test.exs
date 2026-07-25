@@ -36,7 +36,7 @@ defmodule StickerWeb.AccountLiveTest do
     refute static_html =~ "recent account sticker"
 
     {:ok, view, _html} = live(conn, ~p"/account")
-    html = render_async(view)
+    html = render_async(view, 1_000)
 
     assert html =~ ~s(id="account-summary")
     assert html =~ ~s(id="account-recent")
@@ -97,7 +97,7 @@ defmodule StickerWeb.AccountLiveTest do
     credits_before = user.credits
     conn = Plug.Test.init_test_session(conn, %{user_id: user.id, local_user_id: user.public_id})
     {:ok, view, _html} = live(conn, ~p"/account")
-    _html = render_async(view)
+    _html = render_async(view, 1_000)
 
     view
     |> element("button[phx-click='cancel-generation'][phx-value-id='#{prediction.id}']")
