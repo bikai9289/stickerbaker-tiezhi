@@ -20,8 +20,8 @@ Add these in GitHub repo settings:
 | `DEPLOY_USER` | `ubuntu` | Server login user. |
 | `DEPLOY_SSH_KEY` | private key text | Recommended over password deploys. |
 | `DEPLOY_PORT` | `22` | Optional if SSH uses port 22. |
-| `DEPLOY_APP_DIR` | `/home/ubuntu/stickerbaker-tiezhi` | Absolute project path on the server. |
-| `DEPLOY_RESTART_COMMAND` | `docker compose up -d --build` | Optional if the server has a compose file or `sticker.service`. |
+| `DEPLOY_APP_DIR` | `/opt/stickerbaker` | Absolute project path on the server. |
+| `DEPLOY_RESTART_COMMAND` | `docker compose up -d --build` | Optional custom restart command. The workflow runs `/app/bin/migrate` afterward when a compose file is present. |
 | `DEPLOY_HEALTH_URL` | `https://ai-sticker-maker.com/` | Optional health check URL. |
 
 ## Recommended SSH Key Setup
@@ -40,8 +40,8 @@ Put the private key content into `DEPLOY_SSH_KEY`.
 
 The workflow tries these in order:
 
-1. `DEPLOY_RESTART_COMMAND`, if configured.
-2. `docker compose up -d --build`, if a compose file exists.
+1. `DEPLOY_RESTART_COMMAND`, if configured, followed by `/app/bin/migrate` and `docker compose up -d app` when a compose file exists.
+2. `docker compose build app`, `/app/bin/migrate`, and `docker compose up -d app`, if a compose file exists.
 3. `sudo systemctl restart sticker`, if `sticker.service` exists.
 
 Set `DEPLOY_RESTART_COMMAND` when the server uses a custom command.

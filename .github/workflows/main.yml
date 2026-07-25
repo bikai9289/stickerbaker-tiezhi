@@ -31,6 +31,16 @@ jobs:
             RESTART_COMMAND="${{ secrets.DEPLOY_RESTART_COMMAND }}"
             HEALTH_URL="${{ secrets.DEPLOY_HEALTH_URL }}"
 
+            has_compose_file() {
+              [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ] || [ -f compose.yaml ]
+            }
+
+            run_compose_release() {
+              docker compose build app
+              docker compose run --rm app /app/bin/migrate
+              docker compose up -d app
+            }
+
             if [ -z "$APP_DIR" ]; then
               echo "DEPLOY_APP_DIR is required."
               exit 1
@@ -42,8 +52,12 @@ jobs:
 
             if [ -n "$RESTART_COMMAND" ]; then
               sh -lc "$RESTART_COMMAND"
-            elif [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ] || [ -f compose.yaml ]; then
-              docker compose up -d --build
+              if has_compose_file; then
+                docker compose run --rm app /app/bin/migrate
+                docker compose up -d app
+              fi
+            elif has_compose_file; then
+              run_compose_release
             elif systemctl list-unit-files 2>/dev/null | grep -q '^sticker\.service'; then
               sudo systemctl restart sticker
             else
