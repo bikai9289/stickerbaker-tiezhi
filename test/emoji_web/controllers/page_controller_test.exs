@@ -16,6 +16,14 @@ defmodule StickerWeb.PageControllerTest do
     body = html_response(conn, 200)
     {:ok, document} = Floki.parse_document(body)
 
+    assert [_] = Floki.find(document, ".saas-hero-intro")
+    assert [_] = Floki.find(document, ".saas-hero-copy")
+    assert [_] = Floki.find(document, ".saas-hero-gallery")
+    assert 4 = Floki.find(document, ".saas-hero-sticker") |> length()
+    assert 4 = Floki.find(document, ".saas-hero-sticker img") |> length()
+    assert [_] = Floki.find(document, "a[href=\"#generator\"].saas-hero-primary")
+    assert [_] = Floki.find(document, "a[href=\"#latest\"].saas-hero-secondary")
+
     assert [_] = Floki.find(document, "#generator.saas-generator-workbench")
     assert [_] = Floki.find(document, ".saas-raphael-input")
     assert [_] = Floki.find(document, ".saas-raphael-reference")
@@ -43,7 +51,6 @@ defmodule StickerWeb.PageControllerTest do
       |> Floki.text()
 
     assert workbench_text =~ "3 free credits"
-    assert workbench_text =~ "Failed generations refund credits"
     assert workbench_text =~ "Upload Image"
     assert workbench_text =~ "Describe the sticker you want to generate"
     refute workbench_text =~ "Bake Sticker"
@@ -54,6 +61,14 @@ defmodule StickerWeb.PageControllerTest do
     refute workbench_text =~ "Unlimited Generations"
     refute workbench_text =~ "AI Video"
     refute workbench_text =~ "multi-model"
+
+    hero_text =
+      document
+      |> Floki.find(".saas-hero")
+      |> Floki.text()
+
+    assert hero_text =~ "3 free generations"
+    assert hero_text =~ "Failed generations refund credits"
   end
 
   test "public SEO pages render focused content", %{conn: conn} do

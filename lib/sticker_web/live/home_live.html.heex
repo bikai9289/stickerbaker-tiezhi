@@ -7,24 +7,54 @@
 >
   <section class="saas-hero">
     <div class="saas-container saas-hero-main">
-      <span class="saas-eyebrow">Try 3 free guest sticker generations</span>
-      <h1>AI Sticker Maker for Custom Stickers</h1>
+      <div class="saas-hero-intro">
+        <div class="saas-hero-copy">
+          <span class="saas-eyebrow">3 free generations - no sign-up required</span>
+          <h1>AI Sticker Maker for Custom Stickers</h1>
 
-      <p class="saas-lead">
-        Create cute, clean, custom AI stickers from text prompts or portraits. Start free,
-        generate online, and turn simple ideas into sticker-ready designs.
-      </p>
+          <p class="saas-lead">
+            Turn a prompt or portrait into a clean, expressive sticker. Try it free and download
+            sticker-ready PNG or WebP designs.
+          </p>
 
-      <div id="generator" class="saas-generator-workbench">
-        <div class="saas-workbench-trust" aria-label="AI Sticker Maker trust signals">
-          <span class="saas-status-chip">3 free guest generations</span>
-          <span class="saas-status-chip">Generated examples</span>
-          <span class="saas-status-chip">Account-linked history and downloads</span>
-          <span class="saas-status-chip">Failed generations refund credits</span>
-          <span class="saas-status-chip">PNG and WebP downloads</span>
-          <span class="saas-status-chip">Support and billing help</span>
+          <div class="saas-hero-actions">
+            <a
+              href="#generator"
+              class="saas-button saas-button-primary saas-hero-primary"
+              data-analytics-event="hero_cta_click"
+              data-analytics-context="gallery_first_hero"
+            >
+              Create a sticker
+            </a>
+            <a
+              href="#latest"
+              class="saas-button saas-hero-secondary"
+              data-analytics-event="hero_examples_click"
+              data-analytics-context="gallery_first_hero"
+            >
+              View examples
+            </a>
+          </div>
+
+          <ul class="saas-hero-proof" aria-label="AI Sticker Maker benefits">
+            <li>3 free guest generations</li>
+            <li>PNG and WebP downloads</li>
+            <li>Failed generations refund credits</li>
+          </ul>
         </div>
 
+        <div class="saas-hero-gallery" aria-label="Featured AI sticker examples">
+          <div
+            :for={{item, index} <- Enum.with_index(Enum.take(@showcase_items, 4))}
+            class={["saas-hero-sticker", "saas-hero-sticker-#{index + 1}"]}
+          >
+            <img src={item.image} alt={item.alt} />
+            <span><%= item.tag %></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="generator" class="saas-generator-workbench">
         <div class="saas-workbench-shell">
           <div class="saas-workbench-topbar">
             <div class="saas-mode-tabs" aria-label="Generator modes">
@@ -155,6 +185,12 @@
               </div>
             </div>
           </.form>
+        </div>
+
+        <div class="saas-workbench-trust" aria-label="AI Sticker Maker trust signals">
+          <span class="saas-status-chip">Generated examples</span>
+          <span class="saas-status-chip">Account-linked history and downloads</span>
+          <span class="saas-status-chip">Support and billing help</span>
         </div>
       </div>
     </div>
