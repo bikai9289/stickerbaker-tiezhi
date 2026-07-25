@@ -2,6 +2,7 @@ defmodule Sticker.Accounts do
   import Ecto.Query, warn: false
 
   alias Sticker.Accounts.User
+  alias Sticker.GuestTrials
   alias Sticker.Repo
 
   def get_user(nil), do: nil
@@ -35,8 +36,10 @@ defmodule Sticker.Accounts do
   def confirm_user(token) when is_binary(token) do
     case Repo.get_by(User, confirmation_token: token) do
       %User{} = user ->
+        free_credits = GuestTrials.free_credits_for_signup(user.signup_guest_user_id)
+
         user
-        |> User.confirm_changeset()
+        |> User.confirm_changeset(free_credits)
         |> Repo.update()
 
       nil ->

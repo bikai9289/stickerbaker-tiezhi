@@ -5,7 +5,7 @@ defmodule Sticker.Predictions do
 
   import Ecto.Query, warn: false
   alias Ecto.Multi
-  alias Sticker.Accounts
+  alias Sticker.GenerationCredits
   alias Sticker.Repo
 
   alias Sticker.Predictions.Prediction
@@ -558,7 +558,7 @@ defmodule Sticker.Predictions do
     |> Repo.all()
   end
 
-  def restart_user_predictions(ids, user_id) when is_list(ids) do
+  def restart_user_predictions(ids, user_id, attrs \\ %{}) when is_list(ids) do
     restartable_ids =
       from(p in Prediction,
         where:
@@ -584,6 +584,8 @@ defmodule Sticker.Predictions do
         output_format: nil,
         output_content_type: nil,
         credit_refunded: false,
+        credit_source: restart_credit_source(attrs),
+        credit_owner_id: restart_credit_owner_id(attrs),
         failure_reason: nil,
         failure_stage: nil
       ]
@@ -593,7 +595,7 @@ defmodule Sticker.Predictions do
     |> Repo.all()
   end
 
-  def restart_user_prediction(id, user_id) do
+  def restart_user_prediction(id, user_id, attrs \\ %{}) do
     prediction = get_user_prediction!(id, user_id)
 
     if retryable?(prediction) do
@@ -605,6 +607,8 @@ defmodule Sticker.Predictions do
         output_format: nil,
         output_content_type: nil,
         credit_refunded: false,
+        credit_source: restart_credit_source(attrs),
+        credit_owner_id: restart_credit_owner_id(attrs),
         failure_reason: nil,
         failure_stage: nil
       })
@@ -623,9 +627,10 @@ defmodule Sticker.Predictions do
         Prediction.changeset(prediction, %{status: :canceled, credit_refunded: true})
       )
       |> Multi.run(:refund, fn _repo, _changes ->
-        case Accounts.refund_credit_by_public_id(prediction.local_user_id) do
+        case GenerationCredits.refund_prediction_credit(prediction) do
           {:ok, _user} -> {:ok, :refunded}
-          {:error, :not_found} -> {:ok, :no_account}
+          {:error, :not_found} -> {:ok, :no_credit_account}
+          {:error, :not_refundable} -> {:ok, :not_refundable}
         end
       end)
       |> Repo.transaction()
@@ -676,9 +681,10 @@ defmodule Sticker.Predictions do
     )
     |> Multi.run(:refund, fn _repo, %{prediction: prediction} ->
       if should_refund? do
-        case Accounts.refund_credit_by_public_id(prediction.local_user_id) do
-          {:ok, _user} -> {:ok, :refunded}
-          {:error, :not_found} -> {:ok, :no_account}
+        case GenerationCredits.refund_prediction_credit(prediction) do
+          {:ok, _credit_subject} -> {:ok, :refunded}
+          {:error, :not_found} -> {:ok, :no_credit_account}
+          {:error, :not_refundable} -> {:ok, :not_refundable}
         end
       else
         {:ok, :already_refunded}
@@ -918,4 +924,12 @@ defmodule Sticker.Predictions do
   end
 
   defp to_integer(_value), do: 0
+
+  defp restart_credit_source(%{credit_source: source}) when source in ["account", "guest"], do: source
+  defp restart_credit_source(%{"credit_source" => source}) when source in ["account", "guest"], do: source
+  defp restart_credit_source(_attrs), do: "account"
+
+  defp restart_credit_owner_id(%{credit_owner_id: owner_id}) when is_binary(owner_id), do: owner_id
+  defp restart_credit_owner_id(%{"credit_owner_id" => owner_id}) when is_binary(owner_id), do: owner_id
+  defp restart_credit_owner_id(_attrs), do: nil
 end

@@ -19,7 +19,14 @@
           Sign Out
         </.link>
       <% else %>
-        <.link class="saas-button saas-button-ghost" navigate={~p"/users/log-in"}>Sign In</.link>
+        <.link
+          class="saas-button saas-button-ghost"
+          navigate={~p"/users/log-in"}
+          data-analytics-event="login_cta_click"
+          data-analytics-context="nav"
+        >
+          Sign In
+        </.link>
         <.link
           class="saas-button saas-button-primary"
           navigate={~p"/users/register"}

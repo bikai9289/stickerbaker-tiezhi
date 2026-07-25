@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
-import { launchEventPayload, safeAttribution, safeTrack, trackReturnState } from "./launch_analytics.mjs";
+import {
+  launchEventPayload,
+  launchFunnelEvents,
+  safeAttribution,
+  safeTrack,
+  trackReturnState,
+} from "./launch_analytics.mjs";
 
 const reddit = safeAttribution(
   { pathname: "/", search: "?utm_source=reddit&utm_medium=social&utm_campaign=launch" },
@@ -64,6 +70,25 @@ const downloadPayload = launchEventPayload(
 
 assert.equal(downloadPayload.download_type, "batch_zip");
 assert.equal(downloadPayload.format, "webp");
+
+const guestPayload = launchEventPayload(
+  "guest_generation_started",
+  {
+    context: "hero_generator",
+    authState: "guest",
+    generationMode: "text",
+    promptCount: 2,
+    remainingTrialCredits: 1,
+    prompt: "private prompt",
+  },
+  { location: { pathname: "/", search: "" }, document: { referrer: "" } },
+);
+
+assert.equal(guestPayload.auth_state, "guest");
+assert.equal(guestPayload.generation_mode, "text");
+assert.equal(guestPayload.prompt_count, 2);
+assert.equal(guestPayload.remaining_trial_credits, 1);
+assert.equal(guestPayload.prompt, undefined);
 
 assert.equal(launchEventPayload("unknown_event", {}, {
   location: { pathname: "/", search: "" },
@@ -159,3 +184,36 @@ const blockedStorageGetterEnvironment = {
 };
 
 assert.doesNotThrow(() => trackReturnState(blockedStorageGetterEnvironment));
+
+const requiredFunnelEvents = [
+  "generator_view",
+  "prompt_entered",
+  "text_generation_attempt",
+  "auth_required",
+  "prompt_restored",
+  "face_upload_attempt",
+  "guest_generation_started",
+  "guest_trial_exhausted",
+  "guest_to_signup_click",
+  "guest_to_login_click",
+  "registration_cta_click",
+  "registration_confirm_attempt",
+  "registration_confirmed",
+  "login_cta_click",
+  "login_confirm_attempt",
+  "generation_started",
+  "generation_completed",
+  "download_click",
+  "pricing_view",
+  "pricing_cta_click",
+  "buy_credit_cta_click",
+  "checkout_start",
+  "purchase_complete",
+  "search_submit",
+];
+
+for (const eventName of requiredFunnelEvents) {
+  assert.ok(launchFunnelEvents[eventName], `${eventName} is defined`);
+  assert.ok(launchFunnelEvents[eventName].requiredParams.includes("page_path"));
+  assert.ok(launchFunnelEvents[eventName].requiredParams.includes("source"));
+}

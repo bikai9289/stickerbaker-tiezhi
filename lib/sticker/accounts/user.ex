@@ -12,18 +12,21 @@ defmodule Sticker.Accounts.User do
     field :confirmation_token, :string
     field :confirmation_sent_at, :utc_datetime
     field :signup_ip, :string
+    field :signup_guest_user_id, :string
 
     timestamps()
   end
 
   def registration_changeset(user, attrs) do
     user
-    |> cast(attrs, [:email, :password, :signup_ip])
+    |> cast(attrs, [:email, :password, :signup_ip, :signup_guest_user_id])
     |> validate_required([:email, :password])
     |> update_change(:email, &normalize_email/1)
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must be a valid email")
     |> validate_length(:email, max: 160)
     |> validate_length(:password, min: 8, max: 72)
+    |> validate_format(:signup_guest_user_id, ~r/^[A-Za-z0-9_-]+$/)
+    |> validate_length(:signup_guest_user_id, min: 6, max: 128)
     |> unique_constraint(:email, name: :users_email_lower_index)
     |> unique_constraint(:public_id)
     |> put_public_id()
@@ -32,13 +35,13 @@ defmodule Sticker.Accounts.User do
     |> put_password_hash()
   end
 
-  def confirm_changeset(user) do
+  def confirm_changeset(user, free_credits \\ 3) do
     user
     |> change(%{
       confirmed_at: DateTime.utc_now() |> DateTime.truncate(:second),
       confirmation_token: nil,
       confirmation_sent_at: nil,
-      credits: max(user.credits, 3)
+      credits: max(user.credits, max(free_credits, 0))
     })
   end
 

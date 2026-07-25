@@ -80,6 +80,36 @@ export const launchFunnelEvents = {
     requiredParams: ["page_path", "source"],
     optionalParams: baseOptionalParams,
   },
+  guest_generation_started: {
+    keyEvent: true,
+    trigger: "Anonymous visitor starts a free guest generation",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [
+      ...baseOptionalParams,
+      "auth_state",
+      "generation_mode",
+      "prompt_count",
+      "remaining_trial_credits",
+    ],
+  },
+  guest_trial_exhausted: {
+    keyEvent: false,
+    trigger: "Anonymous visitor reaches zero remaining guest trial generations",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state", "remaining_trial_credits"],
+  },
+  guest_to_signup_click: {
+    keyEvent: false,
+    trigger: "Anonymous visitor clicks a signup CTA from the guest trial flow",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
+  },
+  guest_to_login_click: {
+    keyEvent: false,
+    trigger: "Anonymous visitor clicks a login CTA from the guest trial flow",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state"],
+  },
   generation_started: {
     keyEvent: true,
     trigger: "Frontend observes generation work starting",
@@ -142,9 +172,12 @@ const allowedDetailKeys = new Set([
   "downloadType",
   "flow",
   "format",
+  "generationMode",
   "plan",
   "promptLengthBucket",
   "promptLineCount",
+  "promptCount",
+  "remainingTrialCredits",
   "restoredPrompt",
 ]);
 
@@ -154,9 +187,12 @@ const detailPayloadKeys = {
   downloadType: "download_type",
   flow: "flow",
   format: "format",
+  generationMode: "generation_mode",
   plan: "plan",
   promptLengthBucket: "prompt_length_bucket",
   promptLineCount: "prompt_line_count",
+  promptCount: "prompt_count",
+  remainingTrialCredits: "remaining_trial_credits",
   restoredPrompt: "restored_prompt",
 };
 

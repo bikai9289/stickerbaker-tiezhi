@@ -52,12 +52,24 @@ Hooks.LaunchAnalytics = {
 
     safeTrack("generator_view", {
       context: "home",
-      authState: this.el.dataset.sessionUserId ? "known" : "anonymous",
+      authState: this.el.dataset.authState || (this.el.dataset.sessionUserId ? "known" : "anonymous"),
+    });
+
+    this.handleEvent("launch-track", (payload = {}) => {
+      if (!payload.event) return;
+
+      const { event, ...detail } = payload;
+      safeTrack(event, detail);
     });
   },
 };
 
 function authStateForElement(target) {
+  const scopedAuth = target.closest("[data-auth-state]");
+  if (scopedAuth?.dataset?.authState) {
+    return scopedAuth.dataset.authState;
+  }
+
   const scopedSession = target.closest("[data-session-user-id]");
   if (scopedSession) {
     return scopedSession.dataset.sessionUserId ? "known" : "anonymous";

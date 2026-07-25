@@ -1,7 +1,8 @@
 defmodule StickerWeb.HomeLive do
   use StickerWeb, :live_view
   alias Phoenix.PubSub
-  alias Sticker.Accounts
+  alias Sticker.GenerationCredits
+  alias Sticker.GuestTrials
   alias Sticker.Predictions
   alias StickerWeb.SEO, as: PageSEO
 
@@ -10,7 +11,8 @@ defmodule StickerWeb.HomeLive do
   @max_batch_prompts 5
 
   def mount(_params, session, socket) do
-    loading_predictions = Predictions.list_loading_predictions(session["local_user_id"])
+    local_user_id = session["local_user_id"]
+    loading_predictions = Predictions.list_loading_predictions(local_user_id)
 
     {:ok,
      socket
@@ -18,12 +20,13 @@ defmodule StickerWeb.HomeLive do
        PageSEO.page("/",
          title: "AI Sticker Maker - Free AI Sticker Generator Online",
          description:
-           "Create custom AI stickers from text prompts or portraits. Start with 3 free credits and download sticker-ready designs online."
+           "Create custom AI stickers from text prompts or portraits. Try 3 free guest generations and download sticker-ready designs online."
        )
      )
      |> assign(form: to_form(%{"prompt" => ""}))
      |> assign(:prompt_restored?, false)
-     |> assign(local_user_id: session["local_user_id"])
+     |> assign(local_user_id: local_user_id)
+     |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], local_user_id))
      |> assign(:showcase_items, showcase_items())
      |> stream(:my_predictions, loading_predictions)
      |> allow_upload(:image,
@@ -51,22 +54,18 @@ defmodule StickerWeb.HomeLive do
   def handle_event("assign-user-id", %{"userId" => user_id}, socket) do
     PubSub.subscribe(Sticker.PubSub, "user:#{user_id}")
 
-    {:noreply, socket |> assign(local_user_id: user_id)}
-  end
-
-  def handle_event("save", %{"prompt" => prompt}, %{assigns: %{current_user: nil}} = socket) do
     {:noreply,
      socket
-     |> assign(form: to_form(%{"prompt" => prompt}))
-     |> put_flash(:error, "Please create an account to use your 3 free sticker credits.")}
+     |> assign(local_user_id: user_id)
+     |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], user_id))}
   end
 
   def handle_event("save", %{"prompt" => prompt}, socket) do
-    user_id = socket.assigns.local_user_id
+    user_id = generation_user_id(socket)
     prompts = batch_prompts(prompt)
 
     case start_text_predictions(socket.assigns.current_user, user_id, prompts) do
-      {:ok, current_user, predictions} ->
+      {:ok, credit_result, predictions} ->
         Enum.each(predictions, &send(self(), {:kick_off_sticker, &1}))
 
         socket =
@@ -76,8 +75,9 @@ defmodule StickerWeb.HomeLive do
 
         {:noreply,
          socket
-         |> assign(current_user: current_user)
+         |> assign_credit_result(credit_result)
          |> assign(form: to_form(%{"prompt" => ""}))
+         |> track_guest_generation(credit_result, "text", length(predictions))
          |> put_flash(:info, generation_started_message(predictions))}
 
       {:error, :empty_prompt} ->
@@ -89,6 +89,30 @@ defmodule StickerWeb.HomeLive do
            socket,
            :error,
            "You have used your free credits. Visit Pricing to buy more credits."
+         )}
+
+      {:error, :guest_insufficient_credits} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
+         )}
+
+      {:error, :missing_guest_identity} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "We could not prepare your guest trial. Refresh the page or sign in to continue."
+         )}
+
+      {:error, :invalid_guest_identity} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "We could not prepare your guest trial. Refresh the page or sign in to continue."
          )}
 
       {:error, :rate_limited} ->
@@ -103,10 +127,10 @@ defmodule StickerWeb.HomeLive do
            "Too many stickers are already processing. Wait for a few to finish."
          )}
 
-      {:error, :create_failed, current_user} ->
+      {:error, :create_failed, credit_result} ->
         {:noreply,
          socket
-         |> assign(current_user: current_user)
+         |> assign_credit_result(credit_result)
          |> put_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
     end
   end
@@ -192,30 +216,40 @@ defmodule StickerWeb.HomeLive do
   end
 
   defp start_text_predictions(_current_user, _user_id, []), do: {:error, :empty_prompt}
+  defp start_text_predictions(nil, nil, _prompts), do: {:error, :missing_guest_identity}
 
   defp start_text_predictions(current_user, user_id, prompts) do
     credit_count = length(prompts)
     batch_id = batch_id()
 
     with :ok <- Predictions.check_generation_limits(user_id, credit_count),
-         {:ok, current_user} <- Accounts.spend_credits(current_user, credit_count) do
+         {:ok, credit_result} <- GenerationCredits.spend(current_user, user_id, credit_count) do
       Enum.reduce_while(prompts, {:ok, []}, fn prompt, {:ok, predictions} ->
         case Predictions.create_prediction(%{
                prompt: prompt,
                local_user_id: user_id,
                status: :starting,
-               batch_id: batch_id
+               batch_id: batch_id,
+               credit_source: credit_result.credit_source,
+               credit_owner_id: credit_result.credit_owner_id
              }) do
           {:ok, prediction} ->
             {:cont, {:ok, [prediction | predictions]}}
 
           {:error, _changeset} ->
-            current_user = Accounts.refund_credits(current_user, credit_count)
-            {:halt, {:error, :create_failed, current_user}}
+            {:ok, refreshed} =
+              GenerationCredits.refund(
+                credit_result.credit_source,
+                credit_result.credit_owner_id,
+                credit_count
+              )
+
+            credit_result = refresh_credit_result(credit_result, refreshed)
+            {:halt, {:error, :create_failed, credit_result}}
         end
       end)
       |> case do
-        {:ok, predictions} -> {:ok, current_user, Enum.reverse(predictions)}
+        {:ok, predictions} -> {:ok, credit_result, Enum.reverse(predictions)}
         error -> error
       end
     end
@@ -230,37 +264,25 @@ defmodule StickerWeb.HomeLive do
     "batch-" <> Base.url_encode64(:crypto.strong_rand_bytes(8), padding: false)
   end
 
-  defp generate_face_sticker_from_upload(%{assigns: %{current_user: nil}} = socket, entry) do
-    discard_uploaded_entry(socket, entry)
-
-    {:noreply, put_flash(socket, :error, "Please sign in to use your 3 free sticker credits.")}
-  end
-
   defp generate_face_sticker_from_upload(socket, entry) do
-    user_id = socket.assigns.local_user_id || socket.assigns.current_user.public_id
+    user_id = generation_user_id(socket)
     prompt = face_sticker_prompt(socket.assigns.form)
 
-    with :ok <- Predictions.check_generation_limits(user_id, 1),
-         true <- Accounts.has_credits?(socket.assigns.current_user, 1),
+    with {:ok, user_id} <- require_generation_user_id(user_id),
+         :ok <- Predictions.check_generation_limits(user_id, 1),
+         true <- GenerationCredits.has_credits?(socket.assigns.current_user, user_id, 1),
          %{data_uri: _data_uri} = upload <- uploaded_entry_data(socket, entry),
          :ok <- Sticker.ImageSafety.review(upload.data_uri),
          {:ok, source_image_url} <- save_source_image(upload),
-         {:ok, current_user} <- Accounts.spend_credit(socket.assigns.current_user),
-         {:ok, prediction} <-
-           Predictions.create_prediction(%{
-             prompt: prompt,
-             local_user_id: user_id,
-             model: "face-to-sticker",
-             source_image_url: source_image_url,
-             source_image_content_type: upload.content_type,
-             batch_id: batch_id()
-           }) do
+         {:ok, credit_result, prediction} <-
+           create_face_prediction(socket.assigns.current_user, user_id, prompt, upload, source_image_url) do
       send(self(), {:kick_off_face_to_sticker, prediction, upload.data_uri})
 
       {:noreply,
        socket
-       |> assign(current_user: current_user)
+       |> assign_credit_result(credit_result)
        |> stream_insert(:my_predictions, prediction, at: 0)
+       |> track_guest_generation(credit_result, "face", 1)
        |> put_flash(:info, "Face sticker generation started.")}
     else
       {:error, :insufficient_credits} ->
@@ -274,11 +296,34 @@ defmodule StickerWeb.HomeLive do
       false ->
         discard_uploaded_entry(socket, entry)
 
+        {:noreply, put_flash(socket, :error, insufficient_credit_message(socket))}
+
+      {:error, :guest_insufficient_credits} ->
         {:noreply,
          put_flash(
            socket,
            :error,
-           "You have used your free credits. Visit Pricing to buy more credits."
+           "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
+         )}
+
+      {:error, :missing_guest_identity} ->
+        discard_uploaded_entry(socket, entry)
+
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "We could not prepare your guest trial. Refresh the page or sign in to continue."
+         )}
+
+      {:error, :invalid_guest_identity} ->
+        discard_uploaded_entry(socket, entry)
+
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "We could not prepare your guest trial. Refresh the page or sign in to continue."
          )}
 
       {:error, :rate_limited} ->
@@ -310,12 +355,10 @@ defmodule StickerWeb.HomeLive do
       {:error, :source_image_upload_failed} ->
         {:noreply, put_flash(socket, :error, "Could not upload that portrait. Please try again.")}
 
-      {:error, _changeset} ->
-        current_user = Accounts.refund_credit(socket.assigns.current_user)
-
+      {:error, :create_failed, credit_result} ->
         {:noreply,
          socket
-         |> assign(current_user: current_user)
+         |> assign_credit_result(credit_result)
          |> put_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
     end
   end
@@ -367,6 +410,34 @@ defmodule StickerWeb.HomeLive do
     _reason -> {:error, :source_image_upload_failed}
   end
 
+  defp create_face_prediction(current_user, user_id, prompt, upload, source_image_url) do
+    with {:ok, credit_result} <- GenerationCredits.spend(current_user, user_id, 1) do
+      case Predictions.create_prediction(%{
+             prompt: prompt,
+             local_user_id: user_id,
+             credit_source: credit_result.credit_source,
+             credit_owner_id: credit_result.credit_owner_id,
+             model: "face-to-sticker",
+             source_image_url: source_image_url,
+             source_image_content_type: upload.content_type,
+             batch_id: batch_id()
+           }) do
+        {:ok, prediction} ->
+          {:ok, credit_result, prediction}
+
+        {:error, _changeset} ->
+          {:ok, refreshed} =
+            GenerationCredits.refund(
+              credit_result.credit_source,
+              credit_result.credit_owner_id,
+              1
+            )
+
+          {:error, :create_failed, refresh_credit_result(credit_result, refreshed)}
+      end
+    end
+  end
+
   defp discard_uploaded_entry(socket, entry) do
     consume_uploaded_entry(socket, entry, fn _meta -> {:ok, :discarded} end)
   end
@@ -383,26 +454,86 @@ defmodule StickerWeb.HomeLive do
   def error_to_string(:too_large), do: "Too large"
   def error_to_string(:not_accepted), do: "Sorry, we only accept #{@accepted}"
 
+  defp guest_trial_for(nil, local_user_id) when is_binary(local_user_id) do
+    case GuestTrials.get_or_create_allowance(local_user_id) do
+      {:ok, guest_trial} -> guest_trial
+      {:error, _reason} -> nil
+    end
+  end
+
+  defp guest_trial_for(_current_user, _local_user_id), do: nil
+
+  defp generation_user_id(%{assigns: %{local_user_id: local_user_id}})
+       when is_binary(local_user_id),
+       do: local_user_id
+
+  defp generation_user_id(%{assigns: %{current_user: %{public_id: public_id}}})
+       when is_binary(public_id),
+       do: public_id
+
+  defp generation_user_id(_socket), do: nil
+
+  defp require_generation_user_id(user_id) when is_binary(user_id), do: {:ok, user_id}
+  defp require_generation_user_id(_user_id), do: {:error, :missing_guest_identity}
+
+  defp assign_credit_result(socket, %{current_user: current_user, guest_trial: guest_trial}) do
+    socket
+    |> assign(current_user: current_user)
+    |> assign(guest_trial: guest_trial)
+  end
+
+  defp refresh_credit_result(%{credit_source: "guest"} = credit_result, refreshed),
+    do: %{credit_result | guest_trial: refreshed}
+
+  defp refresh_credit_result(%{credit_source: "account"} = credit_result, refreshed),
+    do: %{credit_result | current_user: refreshed}
+
+  defp insufficient_credit_message(%{assigns: %{current_user: nil}}),
+    do:
+      "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
+
+  defp insufficient_credit_message(_socket),
+    do: "You have used your free credits. Visit Pricing to buy more credits."
+
+  def guest_trial_remaining(%{credits_remaining: credits_remaining}), do: credits_remaining
+  def guest_trial_remaining(_guest_trial), do: GuestTrials.max_trial_credits()
+
+  defp track_guest_generation(socket, %{credit_source: "guest", guest_trial: guest_trial}, mode, count) do
+    remaining = guest_trial_remaining(guest_trial)
+
+    socket
+    |> push_event("launch-track", %{
+      event: "guest_generation_started",
+      context: "hero_generator",
+      authState: "guest",
+      generationMode: mode,
+      promptCount: count,
+      remainingTrialCredits: remaining
+    })
+    |> maybe_track_guest_exhausted(remaining)
+  end
+
+  defp track_guest_generation(socket, _credit_result, _mode, _count), do: socket
+
+  defp maybe_track_guest_exhausted(socket, 0) do
+    push_event(socket, "launch-track", %{
+      event: "guest_trial_exhausted",
+      context: "hero_generator",
+      authState: "guest",
+      remainingTrialCredits: 0
+    })
+  end
+
+  defp maybe_track_guest_exhausted(socket, _remaining), do: socket
+
   attr :current_user, :any, required: true
   attr :uploads, :map, required: true
 
   def face_upload_panel(assigns) do
     ~H"""
     <div id="upload" class="saas-reference-tile" phx-drop-target={@uploads.image.ref}>
-      <.link
-        :if={is_nil(@current_user)}
-        navigate={~p"/users/register"}
-        class="saas-reference-trigger"
-        data-analytics-event="registration_cta_click"
-        data-analytics-context="home_upload_auth_gate"
-      >
-        <span class="saas-reference-plus">+</span>
-        <span class="saas-reference-title">Upload Image</span>
-        <span class="saas-reference-copy">Sign in to generate</span>
-      </.link>
-
       <label
-        :if={@current_user && @uploads.image.entries == []}
+        :if={@uploads.image.entries == []}
         for={@uploads.image.ref}
         class="saas-reference-trigger"
       >
@@ -417,7 +548,7 @@ defmodule StickerWeb.HomeLive do
         </span>
       </label>
 
-      <.live_file_input :if={@current_user} upload={@uploads.image} class="sr-only" />
+      <.live_file_input upload={@uploads.image} class="sr-only" />
 
       <%= for entry <- @uploads.image.entries do %>
         <article class="saas-upload-preview">

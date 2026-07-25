@@ -317,6 +317,31 @@ defmodule Sticker.PredictionsTest do
       assert Sticker.Accounts.get_user(user.id).credits == user.credits + 1
     end
 
+    test "fail_prediction_and_refund/1 refunds guest credits to the guest ledger" do
+      local_user_id = "guest_failed_one"
+      {:ok, guest_trial} = Sticker.GuestTrials.spend_credits(local_user_id, 1)
+      assert guest_trial.credits_remaining == 2
+
+      prediction =
+        prediction_fixture(%{
+          local_user_id: local_user_id,
+          credit_source: "guest",
+          credit_owner_id: local_user_id,
+          status: :processing,
+          credit_refunded: false
+        })
+
+      {:ok, prediction} =
+        Predictions.fail_prediction_and_refund(prediction, :generation, "timeout")
+
+      assert prediction.status == :failed
+      assert prediction.credit_refunded == true
+      assert Sticker.GuestTrials.get_allowance(local_user_id).credits_remaining == 3
+
+      {:ok, _prediction} = Predictions.fail_prediction_and_refund(prediction)
+      assert Sticker.GuestTrials.get_allowance(local_user_id).credits_remaining == 3
+    end
+
     test "has_credits?/2 checks account balance before upload consumption" do
       assert Sticker.Accounts.has_credits?(user_fixture(%{credits: 1}), 1)
 
@@ -442,6 +467,46 @@ defmodule Sticker.PredictionsTest do
 
       assert prediction.status == :canceled
       assert Sticker.Accounts.get_user(user.id).credits == user.credits + 1
+    end
+
+    test "cancel_user_prediction/2 refunds guest-funded predictions to the guest ledger" do
+      local_user_id = "guest_cancel_one"
+      {:ok, guest_trial} = Sticker.GuestTrials.spend_credits(local_user_id, 1)
+      assert guest_trial.credits_remaining == 2
+
+      prediction =
+        prediction_fixture(%{
+          local_user_id: local_user_id,
+          credit_source: "guest",
+          credit_owner_id: local_user_id,
+          status: :processing,
+          credit_refunded: false
+        })
+
+      {:ok, prediction} = Predictions.cancel_user_prediction(prediction.id, local_user_id)
+
+      assert prediction.status == :canceled
+      assert prediction.credit_refunded == true
+      assert Sticker.GuestTrials.get_allowance(local_user_id).credits_remaining == 3
+    end
+
+    test "transfer_user_predictions/2 preserves original guest credit owner" do
+      user = user_fixture()
+      local_user_id = "guest_transfer_one"
+
+      prediction =
+        prediction_fixture(%{
+          local_user_id: local_user_id,
+          credit_source: "guest",
+          credit_owner_id: local_user_id
+        })
+
+      assert {1, nil} = Predictions.transfer_user_predictions(local_user_id, user.public_id)
+
+      prediction = Predictions.get_prediction!(prediction.id)
+      assert prediction.local_user_id == user.public_id
+      assert prediction.credit_source == "guest"
+      assert prediction.credit_owner_id == local_user_id
     end
 
     test "restart_user_prediction/2 resets failed text prediction" do

@@ -30,7 +30,10 @@ defmodule StickerWeb.UserRegistrationController do
   def create(conn, %{"user" => user_params} = params) do
     with :ok <- AbuseProtection.check_registration(conn),
          true <- AbuseProtection.captcha_valid?(params, get_session(conn, :captcha_answer)) do
-      user_params = Map.put(user_params, "signup_ip", AbuseProtection.client_ip(conn))
+      user_params =
+        user_params
+        |> Map.put("signup_ip", AbuseProtection.client_ip(conn))
+        |> put_signup_guest_user_id(get_session(conn, :local_user_id))
 
       case Accounts.register_user(user_params) do
         {:ok, user} ->
@@ -42,7 +45,10 @@ defmodule StickerWeb.UserRegistrationController do
 
           conn
           |> delete_session(:captcha_answer)
-          |> put_flash(:info, "Account created. Confirm your email to unlock 3 free credits.")
+          |> put_flash(
+            :info,
+            "Account created. Confirm your email to unlock your remaining free credits."
+          )
           |> UserSessionController.log_in_user(user, redirect_opts)
 
         {:error, changeset} ->
@@ -91,4 +97,10 @@ defmodule StickerWeb.UserRegistrationController do
       page_title: "Create Account"
     )
   end
+
+  defp put_signup_guest_user_id(user_params, guest_user_id) when is_binary(guest_user_id) do
+    Map.put(user_params, "signup_guest_user_id", guest_user_id)
+  end
+
+  defp put_signup_guest_user_id(user_params, _guest_user_id), do: user_params
 end

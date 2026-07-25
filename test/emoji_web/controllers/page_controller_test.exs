@@ -268,6 +268,14 @@ defmodule StickerWeb.PageControllerTest do
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"login_cta_click\"]")
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"pricing_cta_click\"]")
 
+    conn = get(build_conn(), ~p"/pricing")
+    body = html_response(conn, 200)
+    {:ok, document} = Floki.parse_document(body)
+    assert [_ | _] = Floki.find(document, "form[data-analytics-event=\"checkout_start\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"buy_credit_cta_click\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-plan=\"starter\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-plan=\"creator\"]")
+
     conn = get(build_conn(), ~p"/search")
     body = html_response(conn, 200)
     {:ok, document} = Floki.parse_document(body)
@@ -310,6 +318,26 @@ defmodule StickerWeb.PageControllerTest do
 
     assert body =~ "Checkout canceled"
     assert body =~ "You were not charged"
+  end
+
+  test "anonymous homepage shows guest trial credits after assigning local user id", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    html = render_hook(view, "assign-user-id", %{"userId" => "guest_home_one"})
+
+    assert html =~ "3 free guest generations left"
+    assert html =~ "No account needed to try"
+  end
+
+  test "anonymous homepage shows exhausted guest trial state", %{conn: conn} do
+    local_user_id = "guest_home_empty"
+    {:ok, _allowance} = Sticker.GuestTrials.spend_credits(local_user_id, 3)
+
+    conn = Plug.Test.init_test_session(conn, %{local_user_id: local_user_id})
+    {:ok, _view, html} = live(conn, ~p"/")
+
+    assert html =~ "Free trial used"
+    assert html =~ "Create an account to keep your stickers"
   end
 
   test "batch download without selection redirects to history", %{conn: conn} do
@@ -407,6 +435,35 @@ defmodule StickerWeb.PageControllerTest do
 
     user = Sticker.Accounts.get_user_by_email("new-user@example.com")
     assert user.credits == 3
+  end
+
+  test "registration confirmation grants only remaining guest trial credits", %{conn: conn} do
+    local_user_id = "guest_signup_one"
+    {:ok, _allowance} = Sticker.GuestTrials.spend_credits(local_user_id, 2)
+
+    conn =
+      conn
+      |> Plug.Test.init_test_session(%{local_user_id: local_user_id})
+      |> get(~p"/users/register")
+
+    captcha_answer = get_session(conn, :captcha_answer)
+
+    conn =
+      post(conn, ~p"/users/register", %{
+        "captcha_answer" => captcha_answer,
+        "user" => %{"email" => "guest-signup@example.com", "password" => "password123"}
+      })
+
+    assert redirected_to(conn, 302) == ~p"/"
+    user = Sticker.Accounts.get_user_by_email("guest-signup@example.com")
+    assert user.credits == 0
+    assert user.signup_guest_user_id == local_user_id
+
+    conn = get(build_conn(), ~p"/users/confirm/#{user.confirmation_token}")
+    assert redirected_to(conn, 302) == ~p"/?registration=confirmed"
+
+    user = Sticker.Accounts.get_user_by_email("guest-signup@example.com")
+    assert user.credits == 1
   end
 
   test "registration rejects wrong captcha", %{conn: conn} do

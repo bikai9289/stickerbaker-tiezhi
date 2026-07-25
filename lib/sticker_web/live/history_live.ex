@@ -1,5 +1,7 @@
 defmodule StickerWeb.HistoryLive do
   use StickerWeb, :live_view
+  alias Sticker.GenerationCredits
+  alias Sticker.GuestTrials
   alias Sticker.Predictions
   alias StickerWeb.SEO, as: PageSEO
   @per_page 24
@@ -25,6 +27,7 @@ defmodule StickerWeb.HistoryLive do
        )
      )
      |> assign(local_user_id: local_user_id)
+     |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], local_user_id))
      |> assign(filters: filters)
      |> assign(batches: batches)
      |> assign(page: page.page)
@@ -49,6 +52,7 @@ defmodule StickerWeb.HistoryLive do
     {:noreply,
      socket
      |> assign(local_user_id: user_id)
+     |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], user_id))
      |> assign(batches: Predictions.list_user_batches(user_id))
      |> assign_page(page)
      |> stream(:predictions, page.entries, reset: true)}
@@ -136,26 +140,9 @@ defmodule StickerWeb.HistoryLive do
   end
 
   def handle_event("retry", %{"id" => id}, socket) do
-    with {:ok, _prediction} <-
-           Predictions.retry_user_prediction(id, socket.assigns.local_user_id),
-         {:ok, current_user} <- Sticker.Accounts.spend_credit(socket.assigns.current_user),
-         {:ok, prediction} <-
-           Predictions.restart_user_prediction(id, socket.assigns.local_user_id) do
-      send(self(), {:retry_sticker, prediction})
-
-      {:noreply,
-       socket
-       |> assign(current_user: current_user)
-       |> assign(batches: Predictions.list_user_batches(socket.assigns.local_user_id))
-       |> assign(prediction_count: socket.assigns.prediction_count)
-       |> stream_insert(:predictions, prediction)
-       |> put_flash(:info, "Retry started. 1 credit was used.")}
-    else
-      {:error, :insufficient_credits} ->
-        {:noreply, put_flash(socket, :error, "Not enough credits to retry this sticker.")}
-
-      {:error, :not_signed_in} ->
-        {:noreply, put_flash(socket, :error, "Sign in before retrying this sticker.")}
+    case Predictions.retry_user_prediction(id, socket.assigns.local_user_id) do
+      {:ok, _prediction} ->
+        retry_prediction(socket, id)
 
       {:error, :not_retryable} ->
         {:noreply,
@@ -164,16 +151,6 @@ defmodule StickerWeb.HistoryLive do
            :error,
            "This older upload sticker has no saved source image. Upload it again."
          )}
-
-      {:error, _reason} ->
-        current_user =
-          socket.assigns.current_user &&
-            Sticker.Accounts.refund_credit(socket.assigns.current_user)
-
-        {:noreply,
-         socket
-         |> assign(current_user: current_user)
-         |> put_flash(:error, "Could not restart this sticker. Your credit was refunded.")}
     end
   end
 
@@ -254,4 +231,80 @@ defmodule StickerWeb.HistoryLive do
   defp empty_page do
     %{entries: [], page: 0, per_page: @per_page, total: 0, has_more?: false}
   end
+
+  defp retry_prediction(socket, id) do
+    user_id = socket.assigns.local_user_id
+
+    case GenerationCredits.spend(socket.assigns.current_user, user_id, 1) do
+      {:ok, credit_result} ->
+        case Predictions.restart_user_prediction(id, user_id, credit_attrs(credit_result)) do
+          {:ok, prediction} ->
+            send(self(), {:retry_sticker, prediction})
+
+            {:noreply,
+             socket
+             |> assign_credit_result(credit_result)
+             |> assign(batches: Predictions.list_user_batches(user_id))
+             |> assign(prediction_count: socket.assigns.prediction_count)
+             |> stream_insert(:predictions, prediction)
+             |> put_flash(:info, "Retry started. 1 credit was used.")}
+
+          {:error, _reason} ->
+            {:ok, refreshed} =
+              GenerationCredits.refund(
+                credit_result.credit_source,
+                credit_result.credit_owner_id,
+                1
+              )
+
+            {:noreply,
+             socket
+             |> assign_credit_result(refresh_credit_result(credit_result, refreshed))
+             |> put_flash(:error, "Could not restart this sticker. Your credit was refunded.")}
+        end
+
+      {:error, :guest_insufficient_credits} ->
+        {:noreply, put_flash(socket, :error, "No guest trial generations left to retry this sticker.")}
+
+      {:error, :insufficient_credits} ->
+        {:noreply, put_flash(socket, :error, "Not enough credits to retry this sticker.")}
+
+      {:error, :missing_guest_identity} ->
+        {:noreply, put_flash(socket, :error, "Refresh the page or sign in before retrying.")}
+
+      {:error, :invalid_guest_identity} ->
+        {:noreply, put_flash(socket, :error, "Refresh the page or sign in before retrying.")}
+
+      {:error, :not_signed_in} ->
+        {:noreply, put_flash(socket, :error, "Sign in before retrying this sticker.")}
+    end
+  end
+
+  defp credit_attrs(credit_result) do
+    %{
+      credit_source: credit_result.credit_source,
+      credit_owner_id: credit_result.credit_owner_id
+    }
+  end
+
+  defp guest_trial_for(nil, local_user_id) when is_binary(local_user_id) do
+    case GuestTrials.get_or_create_allowance(local_user_id) do
+      {:ok, guest_trial} -> guest_trial
+      {:error, _reason} -> nil
+    end
+  end
+
+  defp guest_trial_for(_current_user, _local_user_id), do: nil
+
+  defp assign_credit_result(socket, %{current_user: current_user, guest_trial: guest_trial}) do
+    socket
+    |> assign(current_user: current_user)
+    |> assign(guest_trial: guest_trial)
+  end
+
+  defp refresh_credit_result(%{credit_source: "guest"} = credit_result, refreshed),
+    do: %{credit_result | guest_trial: refreshed}
+
+  defp refresh_credit_result(%{credit_source: "account"} = credit_result, refreshed),
+    do: %{credit_result | current_user: refreshed}
 end

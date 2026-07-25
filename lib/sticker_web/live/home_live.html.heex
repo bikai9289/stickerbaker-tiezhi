@@ -1,7 +1,13 @@
-<div id="home" class="saas-home" phx-hook="LaunchAnalytics" data-session-user-id={@local_user_id}>
+<div
+  id="home"
+  class="saas-home"
+  phx-hook="LaunchAnalytics"
+  data-session-user-id={@local_user_id}
+  data-auth-state={if @current_user, do: "known", else: "guest"}
+>
   <section class="saas-hero">
     <div class="saas-container saas-hero-main">
-      <span class="saas-eyebrow">Create an account and get 3 free sticker credits</span>
+      <span class="saas-eyebrow">Try 3 free guest sticker generations</span>
       <h1>AI Sticker Maker for Custom Stickers</h1>
 
       <p class="saas-lead">
@@ -11,7 +17,7 @@
 
       <div id="generator" class="saas-generator-workbench">
         <div class="saas-workbench-trust" aria-label="AI Sticker Maker trust signals">
-          <span class="saas-status-chip">3 free credits for new accounts</span>
+          <span class="saas-status-chip">3 free guest generations</span>
           <span class="saas-status-chip">Generated examples</span>
           <span class="saas-status-chip">Account-linked history and downloads</span>
           <span class="saas-status-chip">Failed generations refund credits</span>
@@ -90,10 +96,10 @@
             :if={is_nil(@current_user)}
             for={@form}
             id="prediction-form"
-            action={~p"/users/pending-prompt"}
-            method="post"
-            data-analytics-event="auth_required"
-            data-analytics-context="hero_generator_anonymous"
+            phx-change="validate"
+            phx-submit="save"
+            data-analytics-event="generation_started"
+            data-analytics-context="hero_generator_guest"
             data-analytics-flow="text_to_sticker"
           >
             <div class="saas-raphael-input">
@@ -107,32 +113,41 @@
                 <textarea
                   id={@form[:prompt].id}
                   name={@form[:prompt].name}
-                  placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot..."
+                  placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot...&#10;Add up to 5 prompts, one per line."
                   required
+                  phx-mounted={JS.focus()}
                   class="saas-prompt-input saas-raphael-textarea"
                   data-analytics-input="prompt"
-                  data-analytics-context="hero_generator_anonymous"
+                  data-analytics-context="hero_generator_guest"
                 ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
               </label>
 
               <span class="saas-raphael-enhance" aria-disabled="true">AI Enhance</span>
 
               <div class="saas-raphael-footer">
-                <.link
-                  navigate={~p"/users/log-in"}
-                  class="saas-raphael-credit"
-                  data-analytics-event="login_cta_click"
-                  data-analytics-context="generator_inline_sign_in"
-                >
-                  Sign in to use 3 free credits
-                </.link>
+                <% remaining = guest_trial_remaining(@guest_trial) %>
+                <%= if remaining > 0 do %>
+                  <span class="saas-raphael-credit">
+                    No account needed to try · <%= remaining %> free guest generations left
+                  </span>
+                <% else %>
+                  <.link
+                    navigate={~p"/users/register"}
+                    class="saas-raphael-credit"
+                    data-analytics-event="guest_to_signup_click"
+                    data-analytics-context="generator_trial_exhausted"
+                  >
+                    Free trial used · Create an account to keep your stickers
+                  </.link>
+                <% end %>
 
                 <button
                   name="submit"
                   value="generate"
+                  phx-disable-with="Generating..."
                   class="saas-button saas-button-primary saas-generate-button"
                   data-analytics-event="text_generation_attempt"
-                  data-analytics-context="hero_generator_anonymous"
+                  data-analytics-context="hero_generator_guest"
                   data-analytics-flow="text_to_sticker"
                 >
                   Generate

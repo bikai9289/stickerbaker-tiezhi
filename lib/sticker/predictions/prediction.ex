@@ -21,6 +21,8 @@ defmodule Sticker.Predictions.Prediction do
     field :flag, Ecto.Enum, values: [true, false]
     field :is_favorite, :boolean, default: false
     field :credit_refunded, :boolean, default: false
+    field :credit_source, :string, default: "account"
+    field :credit_owner_id, :string
     field :batch_id, :string
     field :failure_reason, :string
     field :failure_stage, :string
@@ -60,6 +62,8 @@ defmodule Sticker.Predictions.Prediction do
       :model,
       :is_favorite,
       :credit_refunded,
+      :credit_source,
+      :credit_owner_id,
       :batch_id,
       :failure_reason,
       :failure_stage,
@@ -67,5 +71,6 @@ defmodule Sticker.Predictions.Prediction do
       :source_image_content_type
     ])
     |> validate_required([:prompt])
+    |> validate_inclusion(:credit_source, ["account", "guest"])
   end
 end

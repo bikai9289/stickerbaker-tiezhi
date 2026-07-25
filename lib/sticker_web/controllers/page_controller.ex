@@ -9,7 +9,7 @@ defmodule StickerWeb.PageController do
       PageSEO.page("/",
         title: "AI Sticker Maker - Free AI Sticker Generator Online",
         description:
-          "Create custom AI stickers from text prompts or portraits. Start with 3 free credits and download sticker-ready designs online."
+          "Create custom AI stickers from text prompts or portraits. Try 3 free guest generations and download sticker-ready designs online."
       )
     )
     |> render(:home, layout: false)
@@ -214,7 +214,7 @@ defmodule StickerWeb.PageController do
         {"Can I manage generated stickers?",
          "Yes. History supports search, filters, favorites, delete, retry, cancel, and batch detail pages."},
         {"Is this online sticker maker credit based?",
-         "Yes. New users start with free credits and each generation uses 1 credit."}
+         "Yes. Visitors can try up to 3 free guest generations, and each generation uses 1 credit."}
       ]
     )
     |> render(:sticker_maker_online)
