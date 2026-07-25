@@ -9,11 +9,13 @@
         </p>
       </div>
 
-      <p :if={is_nil(@local_user_id)} class="saas-loading">
-        <img src="/images/loading.png" alt="loading" /> Loading your stickers...
-      </p>
-
-      <.form :if={@local_user_id} for={%{}} phx-change="filter" class="saas-history-toolbar">
+      <.form
+        :if={@local_user_id}
+        id="history-filter"
+        for={%{}}
+        phx-change="filter"
+        class="saas-history-toolbar"
+      >
         <input
           type="search"
           name="query"
@@ -77,7 +79,7 @@
         <button phx-click="clear-selection">Clear</button>
       </div>
 
-      <div :if={@batches != []} class="saas-batch-summary">
+      <div :if={@batches_state == :loaded and @batches != []} class="saas-batch-summary">
         <article :for={batch <- Enum.take(@batches, 4)}>
           <.link navigate={~p"/stickers/batches/#{batch.batch_id}"}>
             <strong><%= batch_label(batch) %></strong>
@@ -86,8 +88,33 @@
         </article>
       </div>
 
+      <p :if={@history_state == :loaded} id="history-count" class="saas-history-count" aria-live="polite">
+        Showing <strong><%= @shown_count %></strong> of <strong><%= @prediction_count %></strong>
+      </p>
+
+      <div
+        :if={@history_state == :loading}
+        id="history-initial-loading"
+        class="saas-generated-grid"
+        role="status"
+        aria-label="Loading sticker history"
+      >
+        <article :for={_ <- 1..24} class="saas-generated-item saas-skeleton-card">
+          <span class="saas-skeleton saas-skeleton-square"></span>
+          <span class="saas-skeleton saas-skeleton-line"></span>
+        </article>
+      </div>
+
+      <div :if={@history_state == :failed} id="history-initial-error" class="saas-section-error" role="alert">
+        <strong>Sticker history could not be loaded.</strong>
+        <p>Your stickers are safe. Try loading this page again.</p>
+        <button type="button" class="saas-button saas-button-ghost" phx-click="retry-history">
+          Retry
+        </button>
+      </div>
+
       <ul
-        :if={not is_nil(@local_user_id)}
+        :if={@history_state == :loaded}
         id="predictions"
         phx-update="stream"
         role="list"
@@ -147,11 +174,41 @@
         </li>
       </ul>
 
-      <div :if={@has_more?} class="saas-history-load">
+      <div :if={@history_state == :loaded and @has_more? and @load_more_state == :idle} class="saas-history-load">
         <button class="saas-button saas-button-ghost" phx-click="load-more">Load More</button>
       </div>
 
-      <div :if={not is_nil(@local_user_id) and @prediction_count == 0} class="saas-empty-state">
+      <div
+        :if={@history_state == :loaded and @load_more_state == :loading}
+        id="history-more-loading"
+        class="saas-history-more-loading"
+        role="status"
+        aria-label="Loading more stickers"
+      >
+        <p>Loading more stickers...</p>
+        <div class="saas-generated-grid">
+          <article :for={_ <- 1..8} class="saas-generated-item saas-skeleton-card">
+            <span class="saas-skeleton saas-skeleton-square"></span>
+            <span class="saas-skeleton saas-skeleton-line"></span>
+          </article>
+        </div>
+      </div>
+
+      <div :if={@history_state == :loaded and @load_more_state == :failed} class="saas-section-error" role="alert">
+        <strong>More stickers could not be loaded.</strong>
+        <button type="button" class="saas-button saas-button-ghost" phx-click="load-more">
+          Try again
+        </button>
+      </div>
+
+      <p
+        :if={@history_state == :loaded and not @has_more? and @prediction_count > 0}
+        class="saas-history-complete"
+      >
+        All stickers loaded
+      </p>
+
+      <div :if={@history_state == :loaded and @prediction_count == 0} class="saas-empty-state">
         <h2>No stickers found</h2>
         <p>Try a different filter, or generate a new sticker from the home page.</p>
         <.link class="saas-button saas-button-primary" navigate={~p"/"}>Create Sticker</.link>

@@ -5,57 +5,66 @@ defmodule StickerWeb.HistoryLive do
   alias Sticker.Predictions
   alias StickerWeb.SEO, as: PageSEO
   @per_page 24
+  @history_statuses ["all", "completed", "processing", "failed", "canceled", "favorites"]
 
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
     local_user_id = session["local_user_id"]
-    filters = %{status: "all", query: "", batch_id: "all"}
+    filters = initial_filters(params)
 
-    page =
-      if local_user_id,
-        do: Predictions.paginate_user_predictions(local_user_id, filters),
-        else: empty_page()
+    socket =
+      socket
+      |> SEO.assign(
+        PageSEO.noindex("/stickers",
+          title: "Sticker History",
+          description:
+            "View and manage your generated AI sticker history, saved stickers, and downloads."
+        )
+      )
+      |> assign(local_user_id: local_user_id)
+      |> assign(guest_trial: nil)
+      |> assign(filters: filters)
+      |> assign(batches: [])
+      |> assign(batches_state: :loading)
+      |> assign(history_state: :loading)
+      |> assign(load_more_state: :idle)
+      |> assign(history_request_ref: nil)
+      |> assign(history_more_ref: nil)
+      |> assign(page: 0)
+      |> assign(per_page: @per_page)
+      |> assign(has_more?: false)
+      |> assign(prediction_count: 0)
+      |> assign(shown_count: 0)
+      |> assign(selected_ids: MapSet.new())
+      |> assign(download_format: "original")
+      |> assign(results: [])
+      |> stream(:predictions, [])
 
-    batches = Predictions.list_user_batches(local_user_id)
+    socket =
+      if connected?(socket) and is_binary(local_user_id) do
+        socket
+        |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], local_user_id))
+        |> start_history_page(local_user_id, filters)
+        |> start_history_batches(local_user_id, true)
+      else
+        socket
+      end
 
-    {:ok,
-     socket
-     |> SEO.assign(
-       PageSEO.noindex("/stickers",
-         title: "Sticker History",
-         description:
-           "View and manage your generated AI sticker history, saved stickers, and downloads."
-       )
-     )
-     |> assign(local_user_id: local_user_id)
-     |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], local_user_id))
-     |> assign(filters: filters)
-     |> assign(batches: batches)
-     |> assign(page: page.page)
-     |> assign(per_page: page.per_page)
-     |> assign(has_more?: page.has_more?)
-     |> assign(prediction_count: page.total)
-     |> assign(selected_ids: MapSet.new())
-     |> assign(download_format: "original")
-     |> assign(results: [])
-     |> stream(:predictions, page.entries)}
+    {:ok, socket}
+  end
+
+  def handle_event("assign-user-id", %{"userId" => user_id},
+        %{assigns: %{local_user_id: user_id}} = socket
+      ) do
+    {:noreply, socket}
   end
 
   def handle_event("assign-user-id", %{"userId" => user_id}, socket) do
-    page =
-      Predictions.paginate_user_predictions(
-        user_id,
-        socket.assigns.filters,
-        0,
-        socket.assigns.per_page
-      )
-
     {:noreply,
      socket
      |> assign(local_user_id: user_id)
      |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], user_id))
-     |> assign(batches: Predictions.list_user_batches(user_id))
-     |> assign_page(page)
-     |> stream(:predictions, page.entries, reset: true)}
+     |> start_history_page(user_id, socket.assigns.filters)
+     |> start_history_batches(user_id, true)}
   end
 
   def handle_event("filter", params, socket) do
@@ -65,37 +74,41 @@ defmodule StickerWeb.HistoryLive do
       batch_id: Map.get(params, "batch_id", socket.assigns.filters.batch_id)
     }
 
-    page =
-      Predictions.paginate_user_predictions(
-        socket.assigns.local_user_id,
-        filters,
-        0,
-        socket.assigns.per_page
-      )
-
     {:noreply,
      socket
      |> assign(filters: filters)
      |> assign(selected_ids: MapSet.new())
-     |> assign_page(page)
-     |> stream(:predictions, page.entries, reset: true)}
+     |> start_history_page(socket.assigns.local_user_id, filters)}
+  end
+
+  def handle_event("load-more", _params, %{assigns: %{load_more_state: :loading}} = socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("load-more", _params, %{assigns: %{has_more?: false}} = socket) do
+    {:noreply, socket}
   end
 
   def handle_event("load-more", _params, socket) do
     next_page = socket.assigns.page + 1
-
-    page =
-      Predictions.paginate_user_predictions(
-        socket.assigns.local_user_id,
-        socket.assigns.filters,
-        next_page,
-        socket.assigns.per_page
-      )
+    ref = next_request_ref()
+    user_id = socket.assigns.local_user_id
+    filters = socket.assigns.filters
+    per_page = socket.assigns.per_page
 
     {:noreply,
      socket
-     |> assign_page(page)
-     |> stream(:predictions, page.entries)}
+     |> assign(load_more_state: :loading, history_more_ref: ref)
+     |> start_async({:history_more, ref, next_page}, fn ->
+       Sticker.LoadTelemetry.measure(:history_more, %{page: next_page, per_page: per_page}, fn ->
+         Predictions.paginate_user_predictions(user_id, filters, next_page, per_page)
+       end)
+     end)}
+  end
+
+  def handle_event("retry-history", _params, socket) do
+    {:noreply,
+     start_history_page(socket, socket.assigns.local_user_id, socket.assigns.filters)}
   end
 
   def handle_event("set-download-format", %{"format" => format}, socket) do
@@ -121,21 +134,13 @@ defmodule StickerWeb.HistoryLive do
   def handle_event("delete-selected", _params, socket) do
     ids = MapSet.to_list(socket.assigns.selected_ids)
     {count, _} = Predictions.delete_user_predictions(ids, socket.assigns.local_user_id)
-
-    page =
-      Predictions.paginate_user_predictions(
-        socket.assigns.local_user_id,
-        socket.assigns.filters,
-        0,
-        socket.assigns.per_page
-      )
+    user_id = socket.assigns.local_user_id
 
     {:noreply,
      socket
      |> assign(selected_ids: MapSet.new())
-     |> assign(batches: Predictions.list_user_batches(socket.assigns.local_user_id))
-     |> assign_page(page)
-     |> stream(:predictions, page.entries, reset: true)
+     |> start_history_page(user_id, socket.assigns.filters)
+     |> start_history_batches(user_id, false)
      |> put_flash(:info, "#{count} stickers deleted.")}
   end
 
@@ -164,9 +169,9 @@ defmodule StickerWeb.HistoryLive do
         {:noreply,
          socket
          |> assign(current_user: current_user)
-         |> assign(batches: Predictions.list_user_batches(socket.assigns.local_user_id))
          |> assign(prediction_count: socket.assigns.prediction_count)
          |> stream_insert(:predictions, prediction)
+         |> start_history_batches(socket.assigns.local_user_id, false)
          |> put_flash(:info, "Generation canceled and 1 credit was refunded.")}
 
       {:error, :not_cancelable} ->
@@ -177,7 +182,13 @@ defmodule StickerWeb.HistoryLive do
 
   def handle_event("toggle-favorite", %{"id" => id}, socket) do
     {:ok, prediction} = Predictions.toggle_favorite(id, socket.assigns.local_user_id)
-    {:noreply, stream_insert(socket, :predictions, prediction)}
+
+    if socket.assigns.filters.status == "favorites" do
+      {:noreply,
+       start_history_page(socket, socket.assigns.local_user_id, socket.assigns.filters)}
+    else
+      {:noreply, stream_insert(socket, :predictions, prediction)}
+    end
   end
 
   def handle_event("delete", %{"id" => id}, socket) do
@@ -185,10 +196,58 @@ defmodule StickerWeb.HistoryLive do
 
     {:noreply,
      socket
-     |> assign(batches: Predictions.list_user_batches(socket.assigns.local_user_id))
      |> assign(prediction_count: max(socket.assigns.prediction_count - 1, 0))
+     |> assign(shown_count: max(socket.assigns.shown_count - 1, 0))
      |> stream_delete(:predictions, prediction)
+     |> start_history_batches(socket.assigns.local_user_id, false)
      |> put_flash(:info, "Sticker deleted.")}
+  end
+
+  def handle_async({:history_page, ref}, {:ok, page},
+        %{assigns: %{history_request_ref: ref}} = socket
+      ) do
+    {:noreply,
+     socket
+     |> assign(history_state: :loaded, shown_count: length(page.entries))
+     |> assign_page(page)
+     |> stream(:predictions, page.entries, reset: true)}
+  end
+
+  def handle_async({:history_page, ref}, {:exit, _reason},
+        %{assigns: %{history_request_ref: ref}} = socket
+      ) do
+    {:noreply, assign(socket, :history_state, :failed)}
+  end
+
+  def handle_async({:history_page, _stale_ref}, _result, socket), do: {:noreply, socket}
+
+  def handle_async({:history_more, ref, _page_number}, {:ok, page},
+        %{assigns: %{history_more_ref: ref}} = socket
+      ) do
+    shown_count = min(socket.assigns.shown_count + length(page.entries), page.total)
+
+    {:noreply,
+     socket
+     |> assign(load_more_state: :idle, shown_count: shown_count)
+     |> assign_page(page)
+     |> stream(:predictions, page.entries)}
+  end
+
+  def handle_async({:history_more, ref, _page_number}, {:exit, _reason},
+        %{assigns: %{history_more_ref: ref}} = socket
+      ) do
+    {:noreply, assign(socket, :load_more_state, :failed)}
+  end
+
+  def handle_async({:history_more, _stale_ref, _page_number}, _result, socket),
+    do: {:noreply, socket}
+
+  def handle_async(:history_batches, {:ok, batches}, socket) do
+    {:noreply, assign(socket, batches: batches, batches_state: :loaded)}
+  end
+
+  def handle_async(:history_batches, {:exit, _reason}, socket) do
+    {:noreply, assign(socket, :batches_state, :failed)}
   end
 
   def handle_info({:retry_sticker, prediction}, socket) do
@@ -220,6 +279,56 @@ defmodule StickerWeb.HistoryLive do
   defp download_format(format) when format in ["original", "png", "webp"], do: format
   defp download_format(_format), do: "original"
 
+  defp initial_filters(params) do
+    status = Map.get(params, "status", "all")
+    query = Map.get(params, "query", "")
+    batch_id = Map.get(params, "batch_id", "all")
+
+    %{
+      status: if(status in @history_statuses, do: status, else: "all"),
+      query: if(is_binary(query), do: String.slice(query, 0, 200), else: ""),
+      batch_id: if(is_binary(batch_id) and batch_id != "", do: batch_id, else: "all")
+    }
+  end
+
+  defp start_history_page(socket, user_id, filters) do
+    ref = next_request_ref()
+    per_page = socket.assigns.per_page
+
+    socket
+    |> assign(
+      history_request_ref: ref,
+      history_more_ref: nil,
+      history_state: :loading,
+      load_more_state: :idle,
+      shown_count: 0
+    )
+    |> assign_page(empty_page())
+    |> stream(:predictions, [], reset: true)
+    |> start_async({:history_page, ref}, fn ->
+      Sticker.LoadTelemetry.measure(:history_page, %{page: 0, per_page: per_page}, fn ->
+        Predictions.paginate_user_predictions(user_id, filters, 0, per_page)
+      end)
+    end)
+  end
+
+  defp start_history_batches(socket, user_id, show_loading?) do
+    socket =
+      if show_loading? do
+        assign(socket, :batches_state, :loading)
+      else
+        socket
+      end
+
+    start_async(socket, :history_batches, fn ->
+      Sticker.LoadTelemetry.measure(:history_batches, fn ->
+        Predictions.list_user_batches(user_id)
+      end)
+    end)
+  end
+
+  defp next_request_ref, do: System.unique_integer([:positive, :monotonic])
+
   defp assign_page(socket, page) do
     socket
     |> assign(page: page.page)
@@ -244,9 +353,9 @@ defmodule StickerWeb.HistoryLive do
             {:noreply,
              socket
              |> assign_credit_result(credit_result)
-             |> assign(batches: Predictions.list_user_batches(user_id))
              |> assign(prediction_count: socket.assigns.prediction_count)
              |> stream_insert(:predictions, prediction)
+             |> start_history_batches(user_id, false)
              |> put_flash(:info, "Retry started. 1 credit was used.")}
 
           {:error, _reason} ->
