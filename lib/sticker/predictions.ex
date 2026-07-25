@@ -388,24 +388,27 @@ defmodule Sticker.Predictions do
     )
   end
 
-  def list_user_favorite_predictions(user_id) do
+  def list_user_favorite_predictions(user_id, limit \\ 12) do
     Repo.all(
       from p in Prediction,
         where: p.local_user_id == ^user_id and p.is_favorite == true,
         order_by: [desc: p.updated_at],
-        where: not is_nil(p.sticker_output)
+        where: not is_nil(p.sticker_output),
+        limit: ^max(limit, 1)
     )
   end
 
   def user_prediction_counts(user_id) do
-    query = from p in Prediction, where: p.local_user_id == ^user_id
-
-    %{
-      total: Repo.aggregate(query, :count),
-      completed: Repo.aggregate(from(p in query, where: p.status == :succeeded), :count),
-      failed: Repo.aggregate(from(p in query, where: p.status == :failed), :count),
-      favorites: Repo.aggregate(from(p in query, where: p.is_favorite == true), :count)
-    }
+    from(p in Prediction,
+      where: p.local_user_id == ^user_id,
+      select: %{
+        total: count(p.id),
+        completed: filter(count(p.id), p.status == :succeeded),
+        failed: filter(count(p.id), p.status == :failed),
+        favorites: filter(count(p.id), p.is_favorite == true)
+      }
+    )
+    |> Repo.one!()
   end
 
   def list_user_batches(nil), do: []

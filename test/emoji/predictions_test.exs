@@ -1,7 +1,9 @@
 defmodule Sticker.PredictionsTest do
   use Sticker.DataCase
 
+  import Ecto.Query
   alias Sticker.Predictions
+  alias Sticker.Repo
 
   describe "predictions" do
     alias Sticker.Predictions.Prediction
@@ -185,6 +187,59 @@ defmodule Sticker.PredictionsTest do
         |> MapSet.new()
 
       assert recent_ids == MapSet.new([failed.id, processing.id, completed.id])
+    end
+
+    test "user_prediction_counts/1 returns all counters from one result" do
+      user_id = "count-user"
+
+      prediction_fixture(%{
+        local_user_id: user_id,
+        status: :succeeded,
+        is_favorite: true
+      })
+
+      prediction_fixture(%{
+        local_user_id: user_id,
+        status: :failed,
+        is_favorite: false
+      })
+
+      prediction_fixture(%{local_user_id: "another-count-user", status: :failed})
+
+      assert %{total: 2, completed: 1, failed: 1, favorites: 1} =
+               Predictions.user_prediction_counts(user_id)
+    end
+
+    test "list_user_favorite_predictions/2 is newest-first and bounded" do
+      user_id = "favorite-user"
+
+      older =
+        prediction_fixture(%{
+          local_user_id: user_id,
+          is_favorite: true,
+          sticker_output: "https://example.com/older.webp"
+        })
+
+      newer =
+        prediction_fixture(%{
+          local_user_id: user_id,
+          is_favorite: true,
+          sticker_output: "https://example.com/newer.webp"
+        })
+
+      now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+      Repo.update_all(from(p in Prediction, where: p.id == ^older.id),
+        set: [updated_at: NaiveDateTime.add(now, -60)]
+      )
+
+      Repo.update_all(from(p in Prediction, where: p.id == ^newer.id),
+        set: [updated_at: now]
+      )
+
+      assert [result] = Predictions.list_user_favorite_predictions(user_id, 1)
+      assert result.id == newer.id
+      refute result.id == older.id
     end
 
     test "list_latest_safe_predictions/2 returns generated public stickers" do

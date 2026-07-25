@@ -60,6 +60,38 @@ defmodule Sticker.PaymentsTest do
     assert updated.checkout_url == "https://checkout.stripe.com/c/pay/cs_test_attempt"
   end
 
+  test "list_user_payment_events/2 is newest-first and bounded" do
+    user = user_fixture()
+    other_user = user_fixture()
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    events =
+      for {suffix, seconds_ago} <- [{"oldest", 120}, {"second", 60}, {"newest", 0}] do
+        Repo.insert!(%PaymentEvent{
+          stripe_session_id: "cs_test_list_#{suffix}",
+          user_id: user.id,
+          credits: 50,
+          inserted_at: NaiveDateTime.add(now, -seconds_ago),
+          updated_at: NaiveDateTime.add(now, -seconds_ago)
+        })
+      end
+
+    Repo.insert!(%PaymentEvent{
+      stripe_session_id: "cs_test_list_other_user",
+      user_id: other_user.id,
+      credits: 50,
+      inserted_at: NaiveDateTime.add(now, 60),
+      updated_at: NaiveDateTime.add(now, 60)
+    })
+
+    [oldest, second, newest] = events
+
+    assert [first, next] = Payments.list_user_payment_events(user.id, 2)
+    assert first.id == newest.id
+    assert next.id == second.id
+    refute oldest.id in [first.id, next.id]
+  end
+
   test "create_stripe_checkout_session/4 creates an attempt before returning checkout URL" do
     user = user_fixture()
     plan = Payments.get_plan("starter")

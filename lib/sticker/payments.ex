@@ -78,13 +78,14 @@ defmodule Sticker.Payments do
     )
   end
 
-  def list_user_payment_events(user_id) do
+  def list_user_payment_events(user_id, limit \\ 20) do
     import Ecto.Query
 
     Repo.all(
       from e in PaymentEvent,
         where: e.user_id == ^user_id,
-        order_by: [desc: e.inserted_at]
+        order_by: [desc: e.inserted_at],
+        limit: ^max(limit, 1)
     )
   end
 
