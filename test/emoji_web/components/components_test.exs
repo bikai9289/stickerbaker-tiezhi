@@ -139,6 +139,10 @@ defmodule StickerWeb.ComponentsTest do
     assert eager_html =~ ~s(height="1024")
     assert eager_html =~ ~s(data-preview-retry)
 
+    css = File.read!("assets/css/app.css")
+    assert css =~ "[data-preview-retry][hidden]"
+    assert css =~ "[data-preview-error][hidden]"
+
     lazy_html =
       render_component(&Components.sticker/1, id: "prediction-45-lazy", prediction: prediction)
 

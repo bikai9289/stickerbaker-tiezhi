@@ -1476,6 +1476,11 @@ html {
   text-align: center;
 }
 
+[data-preview-retry][hidden],
+[data-preview-error][hidden] {
+  display: none;
+}
+
 [data-preview-state="error"] .saas-generated-image {
   opacity: 0.18;
 }

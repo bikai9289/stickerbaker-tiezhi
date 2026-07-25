@@ -130,7 +130,7 @@
                     do: "Enter up to 5 prompts, one per line",
                     else: "What should the sticker look like?" %>
                 </span>
-                 <textarea
+                <textarea
                   id={@form[:prompt].id}
                   name={@form[:prompt].name}
                   placeholder={
@@ -140,7 +140,6 @@
                         "A cheerful red panda eating a cookie, bold outline, white sticker border"
                   }
                   required
-                  phx-mounted={JS.focus()}
                   maxlength={if @batch_mode, do: 5_004, else: 1_000}
                   class="saas-prompt-input saas-workbench-textarea"
                   data-analytics-input="prompt"

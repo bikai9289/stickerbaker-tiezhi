@@ -22,6 +22,13 @@ defmodule StickerWeb.HomeLiveTest do
     refute html =~ ~s(id="text-generator-panel")
   end
 
+  test "does not steal focus and scroll past the hero on initial load", %{conn: conn} do
+    {:ok, _view, html} = live(conn, ~p"/")
+
+    refute html =~ "phx-mounted"
+    refute html =~ "focus"
+  end
+
   test "portrait mode can be opened directly from upload links", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/?mode=portrait")
 
