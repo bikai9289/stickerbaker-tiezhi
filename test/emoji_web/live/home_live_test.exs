@@ -2,6 +2,7 @@ defmodule StickerWeb.HomeLiveTest do
   use StickerWeb.ConnCase
 
   import Sticker.AccountsFixtures
+  import Sticker.PredictionsFixtures
 
   alias Sticker.Accounts
   alias Sticker.Predictions
@@ -79,5 +80,48 @@ defmodule StickerWeb.HomeLiveTest do
     send(view.pid, {:moderation_failed, "The prompt could not pass the safety check."})
 
     assert render(view) =~ "The prompt could not pass the safety check."
+  end
+
+  test "canceling an active generation refunds once and rejects completion races", %{conn: conn} do
+    user = user_fixture()
+
+    active =
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        status: :processing,
+        sticker_output: nil,
+        no_bg_output: nil,
+        credit_source: "account",
+        credit_owner_id: user.public_id,
+        credit_refunded: false
+      })
+
+    completed =
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        status: :succeeded,
+        credit_source: "account",
+        credit_owner_id: user.public_id,
+        credit_refunded: false
+      })
+
+    credits_before = user.credits
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id, local_user_id: user.public_id})
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    view
+    |> element("button[phx-click='cancel-generation'][phx-value-id='#{active.id}']")
+    |> render_click()
+
+    assert Predictions.get_prediction!(active.id).status == :canceled
+    assert Accounts.get_user(user.id).credits == credits_before + 1
+    assert render(view) =~ "Generation canceled"
+
+    render_click(view, "cancel-generation", %{"id" => Integer.to_string(active.id)})
+    assert Accounts.get_user(user.id).credits == credits_before + 1
+
+    render_click(view, "cancel-generation", %{"id" => Integer.to_string(completed.id)})
+    assert Predictions.get_prediction!(completed.id).status == :succeeded
+    assert Accounts.get_user(user.id).credits == credits_before + 1
   end
 end

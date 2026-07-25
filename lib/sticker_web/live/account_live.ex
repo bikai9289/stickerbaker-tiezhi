@@ -118,6 +118,27 @@ defmodule StickerWeb.AccountLive do
     end
   end
 
+  def handle_event("cancel-generation", %{"id" => id}, socket) do
+    user = socket.assigns.current_user
+
+    case Predictions.cancel_user_prediction(id, user.public_id) do
+      {:ok, prediction} ->
+        refreshed_user = Sticker.Accounts.get_user(user.id)
+
+        {:noreply,
+         socket
+         |> assign(:current_user, refreshed_user)
+         |> assign(:recent_empty?, false)
+         |> stream_insert(:recent_predictions, prediction, at: 0)
+         |> refresh_prediction_sections(refreshed_user)
+         |> put_flash(:info, "Generation canceled. 1 credit was returned.")}
+
+      {:error, :not_cancelable} ->
+        {:noreply,
+         put_flash(socket, :error, "This generation has already finished or stopped.")}
+    end
+  end
+
   def handle_async(:account_summary, {:ok, counts}, socket) do
     {:noreply, socket |> assign(:counts, counts) |> assign(:summary_state, :loaded)}
   end

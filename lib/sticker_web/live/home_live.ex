@@ -106,6 +106,23 @@ defmodule StickerWeb.HomeLive do
     end
   end
 
+  def handle_event("cancel-generation", %{"id" => id}, socket) do
+    user_id = generation_user_id(socket)
+
+    case Predictions.cancel_user_prediction(id, user_id) do
+      {:ok, prediction} ->
+        {:noreply,
+         socket
+         |> refresh_credit_assigns(user_id)
+         |> stream_insert(:my_predictions, prediction)
+         |> put_flash(:info, "Generation canceled. 1 credit was returned.")}
+
+      {:error, :not_cancelable} ->
+        {:noreply,
+         put_flash(socket, :error, "This generation has already finished or stopped.")}
+    end
+  end
+
   defp start_text_generation(socket, prompt) do
     user_id = generation_user_id(socket)
 
@@ -480,6 +497,14 @@ defmodule StickerWeb.HomeLive do
   end
 
   defp guest_trial_for(_current_user, _local_user_id), do: nil
+
+  defp refresh_credit_assigns(%{assigns: %{current_user: nil}} = socket, user_id) do
+    assign(socket, :guest_trial, GuestTrials.get_allowance(user_id))
+  end
+
+  defp refresh_credit_assigns(socket, _user_id) do
+    assign(socket, :current_user, Sticker.Accounts.get_user(socket.assigns.current_user.id))
+  end
 
   defp generation_user_id(%{assigns: %{local_user_id: local_user_id}})
        when is_binary(local_user_id),

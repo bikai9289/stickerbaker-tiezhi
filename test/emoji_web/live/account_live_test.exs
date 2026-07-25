@@ -4,6 +4,8 @@ defmodule StickerWeb.AccountLiveTest do
   import Sticker.AccountsFixtures
   import Sticker.PredictionsFixtures
 
+  alias Sticker.Accounts
+  alias Sticker.Predictions
   alias StickerWeb.AccountLive
 
   test "account renders section skeletons then loads each section", %{conn: conn} do
@@ -76,5 +78,34 @@ defmodule StickerWeb.AccountLiveTest do
     assert retrying_socket.assigns.favorites_state == :loaded
     assert retrying_socket.assigns.summary_state == :loaded
     assert retrying_socket.assigns.payments_state == :loaded
+  end
+
+  test "account cancels an active generation in place and refreshes credits", %{conn: conn} do
+    user = user_fixture()
+
+    prediction =
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        status: :moderation_succeeded,
+        sticker_output: nil,
+        no_bg_output: nil,
+        credit_source: "account",
+        credit_owner_id: user.public_id,
+        credit_refunded: false
+      })
+
+    credits_before = user.credits
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id, local_user_id: user.public_id})
+    {:ok, view, _html} = live(conn, ~p"/account")
+    _html = render_async(view)
+
+    view
+    |> element("button[phx-click='cancel-generation'][phx-value-id='#{prediction.id}']")
+    |> render_click()
+
+    assert Predictions.get_prediction!(prediction.id).status == :canceled
+    assert Accounts.get_user(user.id).credits == credits_before + 1
+    assert render(view) =~ "Generation canceled"
+    assert render(view) =~ "Credit returned"
   end
 end

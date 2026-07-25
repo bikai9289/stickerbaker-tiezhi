@@ -103,7 +103,12 @@
     >
       <li :for={{id, prediction} <- @streams.recent_predictions} id={id}>
         <div class="saas-history-item">
-          <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
+          <StickerWeb.Components.sticker
+            id={id}
+            prediction={prediction}
+            class="saas-generated-item"
+            cancel_event="cancel-generation"
+          />
           <div class="saas-history-actions">
             <button phx-click="toggle-favorite" phx-value-id={prediction.id}>
               <%= if prediction.is_favorite, do: "Saved", else: "Save" %>
