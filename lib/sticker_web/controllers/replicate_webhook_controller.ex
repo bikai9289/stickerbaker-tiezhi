@@ -1,5 +1,6 @@
 defmodule StickerWeb.ReplicateWebhookController do
   use StickerWeb, :controller
+  alias Sticker.GenerationLauncher
   alias Sticker.Predictions
   require Logger
 
@@ -44,7 +45,7 @@ defmodule StickerWeb.ReplicateWebhookController do
 
             # automatically kick off gen image step
             if rating <= 5 do
-              Predictions.gen_image(prediction.prompt, user_id, prediction_id)
+              GenerationLauncher.start_image(prediction)
             else
               {:ok, prediction} =
                 Predictions.fail_prediction_and_refund(
@@ -54,7 +55,11 @@ defmodule StickerWeb.ReplicateWebhookController do
                 )
 
               broadcast(user_id, {:prediction_failed, prediction})
-              broadcast(user_id, {:moderation_failed, "AI generated safety rating: #{10 - rating}/10"})
+
+              broadcast(
+                user_id,
+                {:moderation_failed, "AI generated safety rating: #{10 - rating}/10"}
+              )
             end
           end
 
@@ -63,7 +68,11 @@ defmodule StickerWeb.ReplicateWebhookController do
 
           if prediction.status != :canceled do
             {:ok, prediction} =
-              Predictions.fail_prediction_and_refund(prediction, :moderation, "Replicate moderation failed")
+              Predictions.fail_prediction_and_refund(
+                prediction,
+                :moderation,
+                "Replicate moderation failed"
+              )
 
             broadcast(user_id, {:prediction_failed, prediction})
             broadcast(user_id, {:moderation_failed, "Something went wrong...try again?"})
@@ -103,9 +112,14 @@ defmodule StickerWeb.ReplicateWebhookController do
             |> Predictions.update_prediction(%{uuid: uuid})
             |> case do
               {:ok, prediction} ->
-                Predictions.fail_prediction_and_refund(prediction, :generation, "Replicate image failed")
+                Predictions.fail_prediction_and_refund(
+                  prediction,
+                  :generation,
+                  "Replicate image failed"
+                )
 
-              error -> error
+              error ->
+                error
             end
 
           broadcast(user_id, {:prediction_failed, prediction})
@@ -114,7 +128,7 @@ defmodule StickerWeb.ReplicateWebhookController do
       "processing" ->
         if prediction.status != :canceled do
           {:ok, prediction} =
-            Predictions.update_prediction(prediction, %{status: :processing})
+            Predictions.update_prediction(prediction, %{status: :processing, uuid: uuid})
 
           broadcast(user_id, {:prediction_loading, prediction})
         end

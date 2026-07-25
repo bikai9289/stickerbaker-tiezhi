@@ -460,6 +460,34 @@ defmodule Sticker.Predictions do
     end
   end
 
+  def claim_stale_moderated_prediction(id, cutoff) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    from(p in Prediction,
+      where:
+        p.id == ^id and p.status == :moderation_succeeded and is_nil(p.uuid) and
+          p.updated_at < ^cutoff
+    )
+    |> Repo.update_all(set: [updated_at: now])
+    |> case do
+      {1, _rows} -> {:ok, get_prediction!(id)}
+      {0, _rows} -> :ignored
+    end
+  end
+
+  def mark_generation_started(id, uuid) when is_binary(uuid) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    from(p in Prediction,
+      where: p.id == ^id and p.status == :moderation_succeeded and is_nil(p.uuid)
+    )
+    |> Repo.update_all(set: [status: :processing, uuid: uuid, updated_at: now])
+    |> case do
+      {1, _rows} -> {:ok, get_prediction!(id)}
+      {0, _rows} -> :ignored
+    end
+  end
+
   def delete_user_prediction(id, user_id) do
     id
     |> get_user_prediction!(user_id)
