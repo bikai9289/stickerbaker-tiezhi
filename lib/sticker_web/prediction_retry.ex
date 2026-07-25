@@ -1,9 +1,10 @@
 defmodule StickerWeb.PredictionRetry do
+  alias Sticker.MediaDownload
   alias Sticker.Predictions
 
   def start(%{model: "face-to-sticker", source_image_url: source_image_url} = prediction)
       when is_binary(source_image_url) do
-    case Req.get(source_image_url) do
+    case MediaDownload.fetch(source_image_url) do
       {:ok, %{status: 200, body: body, headers: headers}} ->
         content_type =
           prediction.source_image_content_type ||

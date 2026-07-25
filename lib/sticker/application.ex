@@ -18,6 +18,7 @@ defmodule Sticker.Application do
       Sticker.Repo,
       # Start the PubSub system
       {Phoenix.PubSub, name: Sticker.PubSub},
+      {Task.Supervisor, name: Sticker.GenerationTaskSupervisor},
       StickerWeb.RateLimiter,
       # Start Finch
       {Finch, name: Sticker.Finch},

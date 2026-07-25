@@ -1,11 +1,16 @@
 defmodule StickerWeb.StickerDownloadController do
   use StickerWeb, :controller
 
+  alias Sticker.MediaDownload
   alias Sticker.Predictions
   alias StickerWeb.SEO, as: PageSEO
 
   def show(conn, %{"id" => id} = params) do
-    case Predictions.get_viewable_prediction(id, conn.assigns[:current_user], get_session(conn, :local_user_id)) do
+    case Predictions.get_viewable_prediction(
+           id,
+           conn.assigns[:current_user],
+           get_session(conn, :local_user_id)
+         ) do
       {:ok, prediction} ->
         download(conn, params, prediction)
 
@@ -27,7 +32,7 @@ defmodule StickerWeb.StickerDownloadController do
       )
 
     with output when is_binary(output) <- prediction.sticker_output,
-         {:ok, %{status: 200, body: body, headers: headers}} <- Req.get(output),
+         {:ok, %{status: 200, body: body, headers: headers}} <- MediaDownload.fetch(output),
          extension = requested_extension(params["format"], prediction, output),
          source_extension = source_extension(prediction, output),
          {:ok, body} <- maybe_convert(body, source_extension, extension) do
@@ -70,7 +75,9 @@ defmodule StickerWeb.StickerDownloadController do
        when is_binary(content_type) and content_type != "",
        do: content_type
 
-  defp content_type(headers, _prediction, "webp"), do: header_content_type(headers) || "image/webp"
+  defp content_type(headers, _prediction, "webp"),
+    do: header_content_type(headers) || "image/webp"
+
   defp content_type(headers, _prediction, "png"), do: header_content_type(headers) || "image/png"
 
   defp content_type(headers, _prediction, _extension),
@@ -86,8 +93,9 @@ defmodule StickerWeb.StickerDownloadController do
     end)
   end
 
-  defp source_extension(%{output_format: format}, _output) when is_binary(format) and format != "",
-    do: format
+  defp source_extension(%{output_format: format}, _output)
+       when is_binary(format) and format != "",
+       do: format
 
   defp source_extension(_prediction, output), do: requested_extension(nil, %{}, output)
 

@@ -104,7 +104,13 @@ defmodule Sticker.Predictions do
       })
 
     broadcast(user_id, {:prediction_completed, prediction})
-    Phoenix.PubSub.broadcast(Sticker.PubSub, "safe-prediction-firehose", {:new_prediction, prediction})
+
+    Phoenix.PubSub.broadcast(
+      Sticker.PubSub,
+      "safe-prediction-firehose",
+      {:new_prediction, prediction}
+    )
+
     {:ok, prediction}
   rescue
     reason ->
@@ -439,6 +445,19 @@ defmodule Sticker.Predictions do
 
   def get_user_prediction!(id, user_id) do
     Repo.get_by!(Prediction, id: id, local_user_id: user_id)
+  end
+
+  def claim_stale_starting_prediction(id, cutoff) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    from(p in Prediction,
+      where: p.id == ^id and p.status == :starting and p.updated_at < ^cutoff
+    )
+    |> Repo.update_all(set: [updated_at: now])
+    |> case do
+      {1, _rows} -> {:ok, get_prediction!(id)}
+      {0, _rows} -> :ignored
+    end
   end
 
   def delete_user_prediction(id, user_id) do
@@ -925,11 +944,19 @@ defmodule Sticker.Predictions do
 
   defp to_integer(_value), do: 0
 
-  defp restart_credit_source(%{credit_source: source}) when source in ["account", "guest"], do: source
-  defp restart_credit_source(%{"credit_source" => source}) when source in ["account", "guest"], do: source
+  defp restart_credit_source(%{credit_source: source}) when source in ["account", "guest"],
+    do: source
+
+  defp restart_credit_source(%{"credit_source" => source}) when source in ["account", "guest"],
+    do: source
+
   defp restart_credit_source(_attrs), do: "account"
 
-  defp restart_credit_owner_id(%{credit_owner_id: owner_id}) when is_binary(owner_id), do: owner_id
-  defp restart_credit_owner_id(%{"credit_owner_id" => owner_id}) when is_binary(owner_id), do: owner_id
+  defp restart_credit_owner_id(%{credit_owner_id: owner_id}) when is_binary(owner_id),
+    do: owner_id
+
+  defp restart_credit_owner_id(%{"credit_owner_id" => owner_id}) when is_binary(owner_id),
+    do: owner_id
+
   defp restart_credit_owner_id(_attrs), do: nil
 end

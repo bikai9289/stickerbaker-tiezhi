@@ -1,6 +1,7 @@
 defmodule StickerWeb.StickerBatchDownloadController do
   use StickerWeb, :controller
 
+  alias Sticker.MediaDownload
   alias Sticker.Predictions
   alias StickerWeb.SEO, as: PageSEO
 
@@ -59,7 +60,7 @@ defmodule StickerWeb.StickerBatchDownloadController do
   defp fetch_files(predictions, format) do
     predictions
     |> Enum.reduce_while({:ok, []}, fn prediction, {:ok, files} ->
-      case Req.get(prediction.sticker_output) do
+      case MediaDownload.fetch(prediction.sticker_output) do
         {:ok, %{status: 200, body: body}} ->
           with {:ok, body, extension} <- maybe_convert(body, prediction, format) do
             file_name = file_name(prediction, extension)
@@ -96,7 +97,8 @@ defmodule StickerWeb.StickerBatchDownloadController do
     if source_extension == requested_extension do
       {:ok, body, requested_extension}
     else
-      with {:ok, body} <- Sticker.ImageConverter.convert(body, source_extension, requested_extension) do
+      with {:ok, body} <-
+             Sticker.ImageConverter.convert(body, source_extension, requested_extension) do
         {:ok, body, requested_extension}
       end
     end

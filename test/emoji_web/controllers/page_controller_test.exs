@@ -4,6 +4,17 @@ defmodule StickerWeb.PageControllerTest do
   import Sticker.AccountsFixtures
   import Sticker.PredictionsFixtures
 
+  defmodule DownloadStorageStub do
+    def get_object(bucket, key) do
+      {:ok,
+       %{
+         status_code: 200,
+         body: "stored:#{bucket}/#{key}",
+         headers: [{"content-type", "image/png"}]
+       }}
+    end
+  end
+
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")
     assert html_response(conn, 200) =~ "AI Sticker Maker"
@@ -397,6 +408,60 @@ defmodule StickerWeb.PageControllerTest do
     assert response(media, 404) == "not found"
   end
 
+  test "owner can download a private sticker from internal media storage", %{conn: conn} do
+    user = user_fixture()
+
+    prediction =
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        is_featured: nil,
+        sticker_output: "https://ai-sticker-maker.com/media/prediction-private-owner-sticker.png",
+        output_format: "png",
+        output_content_type: "image/png"
+      })
+
+    configure_download_storage()
+
+    conn =
+      conn
+      |> Plug.Test.init_test_session(%{user_id: user.id, local_user_id: user.public_id})
+      |> get(~p"/sticker/#{prediction.id}/download")
+
+    assert response(conn, 200) ==
+             "stored:download-test-bucket/prediction-private-owner-sticker.png"
+
+    assert get_resp_header(conn, "content-disposition") ==
+             [~s(attachment; filename="sticker-#{prediction.id}.png")]
+  end
+
+  test "owner can batch download private stickers from internal media storage", %{conn: conn} do
+    user = user_fixture()
+
+    prediction =
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        is_featured: nil,
+        sticker_output: "https://ai-sticker-maker.com/media/prediction-private-batch.png",
+        output_format: "png",
+        output_content_type: "image/png"
+      })
+
+    configure_download_storage()
+
+    conn =
+      conn
+      |> Plug.Test.init_test_session(%{user_id: user.id, local_user_id: user.public_id})
+      |> get(~p"/stickers/download?ids=#{prediction.id}&format=original")
+
+    assert response_content_type(conn, :zip) == "application/zip"
+    assert {:ok, files} = :zip.extract(response(conn, 200), [:memory])
+    expected_file_name = String.to_charlist("sticker-#{prediction.id}.png")
+
+    assert [
+             {^expected_file_name, "stored:download-test-bucket/prediction-private-batch.png"}
+           ] = files
+  end
+
   test "checkout redirects with a friendly message when Stripe is not configured", %{conn: conn} do
     user = user_fixture()
     stripe_secret_key = System.get_env("STRIPE_SECRET_KEY")
@@ -538,6 +603,24 @@ defmodule StickerWeb.PageControllerTest do
     username = System.fetch_env!("ADMIN_USERNAME")
     password = System.fetch_env!("ADMIN_PASSWORD")
     "Basic " <> Base.encode64("#{username}:#{password}")
+  end
+
+  defp configure_download_storage do
+    previous_storage = Application.get_env(:sticker, :download_storage)
+    previous_bucket = System.get_env("BUCKET_NAME")
+
+    Application.put_env(:sticker, :download_storage, DownloadStorageStub)
+    System.put_env("BUCKET_NAME", "download-test-bucket")
+
+    on_exit(fn ->
+      if previous_storage do
+        Application.put_env(:sticker, :download_storage, previous_storage)
+      else
+        Application.delete_env(:sticker, :download_storage)
+      end
+
+      restore_env("BUCKET_NAME", previous_bucket)
+    end)
   end
 
   defp restore_env(key, nil), do: System.delete_env(key)
