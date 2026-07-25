@@ -3,12 +3,13 @@ defmodule StickerWeb.HomeLive do
   alias Phoenix.PubSub
   alias Sticker.GenerationCredits
   alias Sticker.GuestTrials
+  alias Sticker.PromptInput
   alias Sticker.Predictions
+  alias Sticker.Repo
   alias StickerWeb.SEO, as: PageSEO
 
   @accepted ~w(.jpg .jpeg .png)
   @face_sticker_prompt "A cute, clean portrait sticker with a white border, expressive face, simple background, high quality"
-  @max_batch_prompts 5
 
   def mount(_params, session, socket) do
     local_user_id = session["local_user_id"]
@@ -24,6 +25,8 @@ defmodule StickerWeb.HomeLive do
        )
      )
      |> assign(form: to_form(%{"prompt" => ""}))
+     |> assign(:generator_mode, :text)
+     |> assign(:batch_mode, false)
      |> assign(:prompt_restored?, false)
      |> assign(local_user_id: local_user_id)
      |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], local_user_id))
@@ -33,22 +36,52 @@ defmodule StickerWeb.HomeLive do
        accept: @accepted,
        max_entries: 1,
        max_file_size: 8_000_000,
-       auto_upload: true,
-       progress: &handle_image_progress/3
+       auto_upload: false
      )}
   end
 
-  def handle_params(%{"prompt" => prompt}, _, socket) do
-    {:noreply,
-     socket |> assign(form: to_form(%{"prompt" => prompt})) |> assign(:prompt_restored?, true)}
-  end
+  def handle_params(params, _, socket) do
+    socket =
+      case params do
+        %{"prompt" => prompt} ->
+          socket
+          |> assign(form: to_form(%{"prompt" => prompt}))
+          |> assign(:prompt_restored?, true)
 
-  def handle_params(_params, _, socket) do
+        _params ->
+          socket
+      end
+
+    socket =
+      if params["mode"] == "portrait" do
+        assign(socket, :generator_mode, :portrait)
+      else
+        socket
+      end
+
     {:noreply, socket}
   end
 
   def handle_event("validate", %{"prompt" => prompt}, socket) do
     {:noreply, socket |> assign(form: to_form(%{"prompt" => prompt}))}
+  end
+
+  def handle_event("validate", _params, socket), do: {:noreply, socket}
+
+  def handle_event("switch-generator-mode", %{"mode" => "text"}, socket) do
+    {:noreply, assign(socket, :generator_mode, :text)}
+  end
+
+  def handle_event("switch-generator-mode", %{"mode" => "portrait"}, socket) do
+    {:noreply, assign(socket, :generator_mode, :portrait)}
+  end
+
+  def handle_event("toggle-batch-mode", _params, socket) do
+    {:noreply, assign(socket, :batch_mode, !socket.assigns.batch_mode)}
+  end
+
+  def handle_event("cancel-upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :image, ref)}
   end
 
   def handle_event("assign-user-id", %{"userId" => user_id}, socket) do
@@ -61,27 +94,41 @@ defmodule StickerWeb.HomeLive do
   end
 
   def handle_event("save", %{"prompt" => prompt}, socket) do
+    if socket.assigns.generator_mode == :portrait do
+      start_portrait_generation(socket)
+    else
+      start_text_generation(socket, prompt)
+    end
+  end
+
+  defp start_text_generation(socket, prompt) do
     user_id = generation_user_id(socket)
-    prompts = batch_prompts(prompt)
 
-    case start_text_predictions(socket.assigns.current_user, user_id, prompts) do
-      {:ok, credit_result, predictions} ->
-        Enum.each(predictions, &send(self(), {:kick_off_sticker, &1}))
+    with {:ok, prompts} <- PromptInput.parse(prompt, batch?: socket.assigns.batch_mode),
+         {:ok, credit_result, predictions} <-
+           start_text_predictions(socket.assigns.current_user, user_id, prompts) do
+      Enum.each(predictions, &send(self(), {:kick_off_sticker, &1}))
 
-        socket =
-          Enum.reduce(predictions, socket, fn prediction, acc ->
-            stream_insert(acc, :my_predictions, prediction, at: 0)
-          end)
+      socket =
+        Enum.reduce(predictions, socket, fn prediction, acc ->
+          stream_insert(acc, :my_predictions, prediction, at: 0)
+        end)
 
-        {:noreply,
-         socket
-         |> assign_credit_result(credit_result)
-         |> assign(form: to_form(%{"prompt" => ""}))
-         |> track_guest_generation(credit_result, "text", length(predictions))
-         |> put_flash(:info, generation_started_message(predictions))}
-
+      {:noreply,
+       socket
+       |> assign_credit_result(credit_result)
+       |> assign(form: to_form(%{"prompt" => ""}))
+       |> track_guest_generation(credit_result, "text", length(predictions))
+       |> put_flash(:info, generation_started_message(predictions))}
+    else
       {:error, :empty_prompt} ->
         {:noreply, put_flash(socket, :error, "Add at least one sticker prompt.")}
+
+      {:error, :prompt_too_long} ->
+        {:noreply, put_flash(socket, :error, "Each prompt must be 1,000 characters or fewer.")}
+
+      {:error, :too_many_prompts} ->
+        {:noreply, put_flash(socket, :error, "Batch mode supports up to 5 prompts at a time.")}
 
       {:error, :insufficient_credits} ->
         {:noreply,
@@ -132,6 +179,10 @@ defmodule StickerWeb.HomeLive do
          socket
          |> assign_credit_result(credit_result)
          |> put_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
+
+      {:error, :create_failed} ->
+        {:noreply,
+         put_flash(socket, :error, "Could not start sticker generation. No credit was charged.")}
     end
   end
 
@@ -199,20 +250,8 @@ defmodule StickerWeb.HomeLive do
      |> put_flash(:info, "Sticker generated! Click it to download.")}
   end
 
-  defp handle_image_progress(:image, entry, socket) do
-    if entry.done? do
-      generate_face_sticker_from_upload(socket, entry)
-    else
-      {:noreply, socket}
-    end
-  end
-
-  defp batch_prompts(prompt) do
-    prompt
-    |> String.split(["\n", "\r"], trim: true)
-    |> Enum.map(&String.trim/1)
-    |> Enum.reject(&(&1 == ""))
-    |> Enum.take(@max_batch_prompts)
+  def handle_info({:moderation_failed, message}, socket) do
+    {:noreply, put_flash(socket, :error, message)}
   end
 
   defp start_text_predictions(_current_user, _user_id, []), do: {:error, :empty_prompt}
@@ -222,36 +261,42 @@ defmodule StickerWeb.HomeLive do
     credit_count = length(prompts)
     batch_id = batch_id()
 
-    with :ok <- Predictions.check_generation_limits(user_id, credit_count),
-         {:ok, credit_result} <- GenerationCredits.spend(current_user, user_id, credit_count) do
-      Enum.reduce_while(prompts, {:ok, []}, fn prompt, {:ok, predictions} ->
-        case Predictions.create_prediction(%{
-               prompt: prompt,
-               local_user_id: user_id,
-               status: :starting,
-               batch_id: batch_id,
-               credit_source: credit_result.credit_source,
-               credit_owner_id: credit_result.credit_owner_id
-             }) do
-          {:ok, prediction} ->
-            {:cont, {:ok, [prediction | predictions]}}
-
-          {:error, _changeset} ->
-            {:ok, refreshed} =
-              GenerationCredits.refund(
-                credit_result.credit_source,
-                credit_result.credit_owner_id,
-                credit_count
-              )
-
-            credit_result = refresh_credit_result(credit_result, refreshed)
-            {:halt, {:error, :create_failed, credit_result}}
+    with :ok <- Predictions.check_generation_limits(user_id, credit_count) do
+      Repo.transaction(fn ->
+        with {:ok, credit_result} <-
+               GenerationCredits.spend(current_user, user_id, credit_count),
+             {:ok, predictions} <-
+               create_text_prediction_batch(prompts, user_id, batch_id, credit_result) do
+          {credit_result, predictions}
+        else
+          {:error, reason} -> Repo.rollback(reason)
         end
       end)
       |> case do
-        {:ok, predictions} -> {:ok, credit_result, Enum.reverse(predictions)}
-        error -> error
+        {:ok, {credit_result, predictions}} -> {:ok, credit_result, predictions}
+        {:error, :create_failed} -> {:error, :create_failed}
+        {:error, reason} -> {:error, reason}
       end
+    end
+  end
+
+  defp create_text_prediction_batch(prompts, user_id, batch_id, credit_result) do
+    Enum.reduce_while(prompts, {:ok, []}, fn prompt, {:ok, predictions} ->
+      case Predictions.create_prediction(%{
+             prompt: prompt,
+             local_user_id: user_id,
+             status: :starting,
+             batch_id: batch_id,
+             credit_source: credit_result.credit_source,
+             credit_owner_id: credit_result.credit_owner_id
+           }) do
+        {:ok, prediction} -> {:cont, {:ok, [prediction | predictions]}}
+        {:error, _changeset} -> {:halt, {:error, :create_failed}}
+      end
+    end)
+    |> case do
+      {:ok, predictions} -> {:ok, Enum.reverse(predictions)}
+      error -> error
     end
   end
 
@@ -275,7 +320,13 @@ defmodule StickerWeb.HomeLive do
          :ok <- Sticker.ImageSafety.review(upload.data_uri),
          {:ok, source_image_url} <- save_source_image(upload),
          {:ok, credit_result, prediction} <-
-           create_face_prediction(socket.assigns.current_user, user_id, prompt, upload, source_image_url) do
+           create_face_prediction(
+             socket.assigns.current_user,
+             user_id,
+             prompt,
+             upload,
+             source_image_url
+           ) do
       send(self(), {:kick_off_face_to_sticker, prediction, upload.data_uri})
 
       {:noreply,
@@ -363,6 +414,13 @@ defmodule StickerWeb.HomeLive do
     end
   end
 
+  defp start_portrait_generation(socket) do
+    case socket.assigns.uploads.image.entries do
+      [entry] -> generate_face_sticker_from_upload(socket, entry)
+      [] -> {:noreply, put_flash(socket, :error, "Choose a JPG or PNG portrait first.")}
+    end
+  end
+
   defp safe_start_prediction(prediction, failure_stage, fun) do
     case fun.() do
       {:error, reason} ->
@@ -415,6 +473,7 @@ defmodule StickerWeb.HomeLive do
       case Predictions.create_prediction(%{
              prompt: prompt,
              local_user_id: user_id,
+             status: :starting,
              credit_source: credit_result.credit_source,
              credit_owner_id: credit_result.credit_owner_id,
              model: "face-to-sticker",
@@ -498,7 +557,12 @@ defmodule StickerWeb.HomeLive do
   def guest_trial_remaining(%{credits_remaining: credits_remaining}), do: credits_remaining
   def guest_trial_remaining(_guest_trial), do: GuestTrials.max_trial_credits()
 
-  defp track_guest_generation(socket, %{credit_source: "guest", guest_trial: guest_trial}, mode, count) do
+  defp track_guest_generation(
+         socket,
+         %{credit_source: "guest", guest_trial: guest_trial},
+         mode,
+         count
+       ) do
     remaining = guest_trial_remaining(guest_trial)
 
     socket
@@ -526,48 +590,51 @@ defmodule StickerWeb.HomeLive do
 
   defp maybe_track_guest_exhausted(socket, _remaining), do: socket
 
-  attr :current_user, :any, required: true
   attr :uploads, :map, required: true
 
   def face_upload_panel(assigns) do
     ~H"""
-    <div id="upload" class="saas-reference-tile" phx-drop-target={@uploads.image.ref}>
+    <div id="upload" class="saas-portrait-uploader" phx-drop-target={@uploads.image.ref}>
       <label
         :if={@uploads.image.entries == []}
         for={@uploads.image.ref}
-        class="saas-reference-trigger"
+        class="saas-portrait-dropzone"
       >
-        <span class="saas-reference-plus">+</span>
-        <span class="saas-reference-title">Upload Image</span>
+        <span class="saas-upload-icon" aria-hidden="true">+</span>
+        <span class="saas-reference-title">Choose a portrait</span>
         <span
           class="saas-reference-copy"
           data-analytics-event="face_upload_attempt"
           data-analytics-context="home_upload"
         >
-          Direct sticker
+          JPG or PNG, up to 8 MB
         </span>
       </label>
 
       <.live_file_input upload={@uploads.image} class="sr-only" />
 
       <%= for entry <- @uploads.image.entries do %>
-        <article class="saas-upload-preview">
-          <figure>
+        <article class="saas-portrait-preview">
+          <figure class="saas-portrait-preview-frame">
             <.live_img_preview entry={entry} class="saas-upload-preview-img" />
           </figure>
 
+          <div class="saas-portrait-file-meta">
+            <strong><%= entry.client_name %></strong>
+            <span>Ready to turn into a sticker</span>
+
+            <button
+              type="button"
+              class="saas-upload-remove"
+              phx-click="cancel-upload"
+              phx-value-ref={entry.ref}
+            >
+              Remove
+            </button>
+          </div>
+
           <%= for err <- upload_errors(@uploads.image, entry) do %>
             <p class="saas-upload-error"><%= error_to_string(err) %></p>
-          <% end %>
-
-          <p :if={!entry.done?} class="saas-mini-copy">
-            Uploading...
-          </p>
-
-          <%= if upload_errors(@uploads.image, entry) != [] do %>
-            <.link navigate={~p"/"} class="saas-button saas-button-ghost">
-              Try another upload
-            </.link>
           <% end %>
         </article>
       <% end %>

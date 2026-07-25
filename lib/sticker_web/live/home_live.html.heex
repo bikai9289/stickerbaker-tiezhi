@@ -57,132 +57,203 @@
       <div id="generator" class="saas-generator-workbench">
         <div class="saas-workbench-shell">
           <div class="saas-workbench-topbar">
-            <div class="saas-mode-tabs" aria-label="Generator modes">
-              <a class="saas-mode-tab active" href="#generator">Text to Sticker</a>
-              <a class="saas-mode-tab" href="#upload">Reference face</a>
-              <.link class="saas-mode-tab" navigate={~p"/search"}>Search ideas</.link>
+            <div class="saas-mode-tabs" role="group" aria-label="Generator modes">
+              <button
+                id="generator-mode-text"
+                type="button"
+                class={["saas-mode-tab", @generator_mode == :text && "active"]}
+                phx-click="switch-generator-mode"
+                phx-value-mode="text"
+                aria-pressed={to_string(@generator_mode == :text)}
+              >
+                Text to sticker
+              </button>
+              <button
+                id="generator-mode-portrait"
+                type="button"
+                class={["saas-mode-tab", @generator_mode == :portrait && "active"]}
+                phx-click="switch-generator-mode"
+                phx-value-mode="portrait"
+                aria-pressed={to_string(@generator_mode == :portrait)}
+              >
+                Portrait to sticker
+              </button>
             </div>
 
-            <span class="saas-workbench-note">Sticker-ready square output</span>
+            <div class="saas-workbench-links">
+              <.link navigate={~p"/search"}>Browse prompt ideas</.link>
+              <span class="saas-workbench-note">Square PNG or WebP</span>
+            </div>
           </div>
 
           <.form
-            :if={@current_user}
             for={@form}
             id="prediction-form"
             phx-change="validate"
             phx-submit="save"
             data-analytics-event="generation_started"
             data-analytics-context={
-              if @prompt_restored?, do: "hero_generator_restored_prompt", else: "hero_generator"
+              if @current_user,
+                do:
+                  if(@prompt_restored?,
+                    do: "hero_generator_restored_prompt",
+                    else: "hero_generator"
+                  ),
+                else: "hero_generator_guest"
             }
-            data-analytics-flow="text_to_sticker"
+            data-analytics-flow={
+              if @generator_mode == :portrait, do: "portrait_to_sticker", else: "text_to_sticker"
+            }
           >
-            <div class="saas-raphael-input">
-              <div class="saas-raphael-reference">
-                <.face_upload_panel current_user={@current_user} uploads={@uploads} />
+            <div
+              :if={@generator_mode == :text}
+              id="text-generator-panel"
+              class="saas-generator-panel"
+            >
+              <div class="saas-generator-panel-head">
+                <div>
+                  <span class="saas-generator-kicker">Create from words</span>
+                  <h2>Describe your sticker</h2>
+                </div>
+                <span class="saas-cost-badge">
+                  <%= if @batch_mode, do: "1 credit each", else: "1 credit" %>
+                </span>
               </div>
 
-              <label class="saas-raphael-prompt" for={@form[:prompt].id}>
-                <span class="saas-prompt-label">Describe the sticker you want to generate</span>
+              <label class="saas-text-generator" for={@form[:prompt].id}>
+                <span class="saas-prompt-label">
+                  <%= if @batch_mode,
+                    do: "Enter up to 5 prompts, one per line",
+                    else: "What should the sticker look like?" %>
+                </span>
 
                 <textarea
                   id={@form[:prompt].id}
                   name={@form[:prompt].name}
-                  placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot...&#10;Add up to 5 prompts, one per line."
+                  placeholder={
+                    if @batch_mode,
+                      do: "cute panda eating a cookie&#10;happy robot holding a flower",
+                      else:
+                        "A cheerful red panda eating a cookie, bold outline, white sticker border"
+                  }
                   required
                   phx-mounted={JS.focus()}
-                  class="saas-prompt-input saas-raphael-textarea"
+                  maxlength={if @batch_mode, do: 5_004, else: 1_000}
+                  class="saas-prompt-input saas-workbench-textarea"
                   data-analytics-input="prompt"
-                  data-analytics-context="hero_generator"
+                  data-analytics-context={
+                    if @current_user, do: "hero_generator", else: "hero_generator_guest"
+                  }
                 ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
               </label>
 
-              <span class="saas-raphael-enhance" aria-disabled="true">AI Enhance</span>
-
-              <div class="saas-raphael-footer">
-                <span class="saas-raphael-credit">Credits: <%= @current_user.credits %></span>
-
+              <div class="saas-generator-options">
                 <button
-                  name="submit"
-                  value="generate"
-                  phx-disable-with="Generating..."
-                  class="saas-button saas-button-primary saas-generate-button"
-                  data-analytics-event="text_generation_attempt"
-                  data-analytics-context={
-                    if @prompt_restored?,
-                      do: "hero_generator_restored_prompt",
-                      else: "hero_generator"
-                  }
-                  data-analytics-flow="text_to_sticker"
+                  id="batch-mode-toggle"
+                  type="button"
+                  role="switch"
+                  aria-checked={to_string(@batch_mode)}
+                  class={["saas-batch-toggle", @batch_mode && "active"]}
+                  phx-click="toggle-batch-mode"
                 >
-                  Generate
+                  <span class="saas-toggle-track" aria-hidden="true"><span></span></span>
+                  Batch mode
                 </button>
+                <span>Line breaks stay in one prompt unless Batch mode is on.</span>
               </div>
             </div>
-          </.form>
 
-          <.form
-            :if={is_nil(@current_user)}
-            for={@form}
-            id="prediction-form"
-            phx-change="validate"
-            phx-submit="save"
-            data-analytics-event="generation_started"
-            data-analytics-context="hero_generator_guest"
-            data-analytics-flow="text_to_sticker"
-          >
-            <div class="saas-raphael-input">
-              <div class="saas-raphael-reference">
-                <.face_upload_panel current_user={@current_user} uploads={@uploads} />
+            <div
+              :if={@generator_mode == :portrait}
+              id="portrait-generator-panel"
+              class="saas-generator-panel"
+            >
+              <div class="saas-generator-panel-head">
+                <div>
+                  <span class="saas-generator-kicker">Create from a photo</span>
+                  <h2>Upload a clear portrait</h2>
+                </div>
+                <span class="saas-cost-badge">1 credit</span>
               </div>
 
-              <label class="saas-raphael-prompt" for={@form[:prompt].id}>
-                <span class="saas-prompt-label">Describe the sticker you want to generate</span>
+              <div class="saas-portrait-grid">
+                <.face_upload_panel uploads={@uploads} />
 
-                <textarea
-                  id={@form[:prompt].id}
-                  name={@form[:prompt].name}
-                  placeholder="Try: cute panda eating cookie, kawaii flower, robot mascot...&#10;Add up to 5 prompts, one per line."
-                  required
-                  phx-mounted={JS.focus()}
-                  class="saas-prompt-input saas-raphael-textarea"
-                  data-analytics-input="prompt"
-                  data-analytics-context="hero_generator_guest"
-                ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
-              </label>
+                <div class="saas-portrait-guidance">
+                  <div class="saas-portrait-tip">
+                    <strong>For the best result</strong>
+                    <span>Use a front-facing photo with one person and good lighting.</span>
+                  </div>
 
-              <span class="saas-raphael-enhance" aria-disabled="true">AI Enhance</span>
+                  <label for={@form[:prompt].id}>
+                    <span class="saas-prompt-label">Optional style instructions</span>
+                    <textarea
+                      id={@form[:prompt].id}
+                      name={@form[:prompt].name}
+                      maxlength="1000"
+                      placeholder="Example: kawaii style, warm colors, bold white border"
+                      class="saas-prompt-input saas-portrait-instructions"
+                      data-analytics-input="portrait_prompt"
+                    ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
+                  </label>
+                </div>
+              </div>
+            </div>
 
-              <div class="saas-raphael-footer">
-                <% remaining = guest_trial_remaining(@guest_trial) %>
-                <%= if remaining > 0 do %>
+            <div class="saas-generator-footer">
+              <div class="saas-credit-summary">
+                <%= if @current_user do %>
                   <span class="saas-raphael-credit">
-                    No account needed to try · <%= remaining %> free guest generations left
+                    Available credits: <%= @current_user.credits %>
                   </span>
                 <% else %>
-                  <.link
-                    navigate={~p"/users/register"}
-                    class="saas-raphael-credit"
-                    data-analytics-event="guest_to_signup_click"
-                    data-analytics-context="generator_trial_exhausted"
-                  >
-                    Free trial used · Create an account to keep your stickers
-                  </.link>
+                  <% remaining = guest_trial_remaining(@guest_trial) %>
+                  <%= if remaining > 0 do %>
+                    <span class="saas-raphael-credit">
+                      No account needed · <%= remaining %> free guest generations left
+                    </span>
+                  <% else %>
+                    <.link
+                      navigate={~p"/users/register"}
+                      class="saas-raphael-credit"
+                      data-analytics-event="guest_to_signup_click"
+                      data-analytics-context="generator_trial_exhausted"
+                    >
+                      Free trial used · Create an account to keep your stickers
+                    </.link>
+                  <% end %>
                 <% end %>
-
-                <button
-                  name="submit"
-                  value="generate"
-                  phx-disable-with="Generating..."
-                  class="saas-button saas-button-primary saas-generate-button"
-                  data-analytics-event="text_generation_attempt"
-                  data-analytics-context="hero_generator_guest"
-                  data-analytics-flow="text_to_sticker"
-                >
-                  Generate
-                </button>
+                <span class="saas-credit-safety">Failed generations return the credit.</span>
               </div>
+
+              <button
+                name="submit"
+                value="generate"
+                disabled={@generator_mode == :portrait && @uploads.image.entries == []}
+                phx-disable-with={
+                  if @generator_mode == :portrait,
+                    do: "Preparing portrait...",
+                    else: "Starting generation..."
+                }
+                class="saas-button saas-button-primary saas-generate-button"
+                data-analytics-event={
+                  if @generator_mode == :portrait,
+                    do: "portrait_generation_attempt",
+                    else: "text_generation_attempt"
+                }
+                data-analytics-context={
+                  if @current_user, do: "hero_generator", else: "hero_generator_guest"
+                }
+                data-analytics-flow={
+                  if @generator_mode == :portrait,
+                    do: "portrait_to_sticker",
+                    else: "text_to_sticker"
+                }
+              >
+                <%= if @generator_mode == :portrait,
+                  do: "Generate portrait sticker",
+                  else: "Generate sticker" %>
+              </button>
             </div>
           </.form>
         </div>
@@ -261,6 +332,7 @@
     <div class="saas-container">
       <div class="saas-section-head">
         <h2>Featured AI Stickers</h2>
+
         <p class="saas-section-copy">
           Curated sticker examples help visitors see portrait, character, and animal styles at a
           glance.
@@ -277,8 +349,10 @@
               <div class="saas-sticker-art">
                 <img src={item.image} alt={item.alt} class="saas-showcase-image" />
               </div>
+
               <div class="saas-sticker-meta">
                 <div class="saas-sticker-label"><%= item.label %></div>
+
                 <div class="saas-tag"><%= item.tag %></div>
               </div>
             </.link>
@@ -287,8 +361,10 @@
               <div class="saas-sticker-art">
                 <img src={item.image} alt={item.alt} class="saas-showcase-image" />
               </div>
+
               <div class="saas-sticker-meta">
                 <div class="saas-sticker-label"><%= item.label %></div>
+
                 <div class="saas-tag"><%= item.tag %></div>
               </div>
             </article>
@@ -330,6 +406,7 @@
           <h3>Starter</h3>
 
           <div class="saas-price">$4.99</div>
+
           <p>50 credits for light use, social posts, and quick experiments.</p>
 
           <.link

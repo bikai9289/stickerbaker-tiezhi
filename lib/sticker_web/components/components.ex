@@ -54,7 +54,9 @@ defmodule StickerWeb.Components do
               <%= if @prediction.status in [:failed, nil] do %>
                 <strong><%= status_label(@prediction) %></strong>
                 <span><%= status_hint(@prediction) %></span>
-                <span :if={credit_returned?(@prediction)} class="saas-status-pill">Credit returned</span>
+                <span :if={credit_returned?(@prediction)} class="saas-status-pill">
+                  Credit returned
+                </span>
               <% else %>
                 <span class="saas-card-spinner"></span>
                 <strong><%= status_label(@prediction) %></strong>
@@ -63,19 +65,11 @@ defmodule StickerWeb.Components do
             </div>
           </div>
         <% else %>
-          <button
-            id={"prediction-#{@id}-btn"}
-            class="saas-generated-button"
-            phx-value-name={@prediction.prompt}
-            phx-value-image={@prediction.sticker_output}
-            type="button"
-          >
-            <img
-              src={@prediction.sticker_output}
-              alt={@prediction.prompt}
-              class="saas-generated-image pointer-events-none group-hover:opacity-75"
-            />
-          </button>
+          <img
+            src={@prediction.sticker_output}
+            alt={@prediction.prompt}
+            class="saas-generated-image pointer-events-none group-hover:opacity-75"
+          />
         <% end %>
       </div>
 
@@ -91,17 +85,26 @@ defmodule StickerWeb.Components do
     """
   end
 
-  defp status_label(%{status: :processing}), do: "Processing"
+  defp status_label(%{status: :processing}), do: "Generating"
   defp status_label(%{status: :moderation_succeeded}), do: "Queued"
-  defp status_label(%{status: :starting}), do: "Starting"
+  defp status_label(%{status: :starting, model: "face-to-sticker"}), do: "Preparing portrait"
+  defp status_label(%{status: :starting}), do: "Checking prompt"
   defp status_label(%{status: :failed}), do: "No result"
   defp status_label(%{status: nil}), do: "Unavailable"
   defp status_label(_prediction), do: "Generating"
 
-  defp status_hint(%{status: :processing}), do: "The image service is still working."
+  defp status_hint(%{status: :processing}), do: "The image service is creating your sticker."
   defp status_hint(%{status: :moderation_succeeded}), do: "Queued for image generation."
-  defp status_hint(%{status: :starting}), do: "Generation is being prepared."
-  defp status_hint(%{status: :failed}), do: "Try again or use a clearer portrait."
+
+  defp status_hint(%{status: :starting, model: "face-to-sticker"}),
+    do: "Checking the portrait and preparing the image."
+
+  defp status_hint(%{status: :starting}), do: "Running a safety check before generation."
+
+  defp status_hint(%{status: :failed, model: "face-to-sticker"}),
+    do: "Try again with a clear, front-facing portrait."
+
+  defp status_hint(%{status: :failed}), do: "Try again with a shorter, clearer prompt."
   defp status_hint(%{status: nil}), do: "This older generation did not finish."
   defp status_hint(_prediction), do: "Waiting for the generated image."
 

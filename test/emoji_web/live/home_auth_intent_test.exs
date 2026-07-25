@@ -150,8 +150,8 @@ defmodule StickerWeb.HomeAuthIntentTest do
   end
 
   test "anonymous face upload area keeps file input for the guest trial", %{conn: conn} do
-    conn = get(conn, ~p"/")
-    html = html_response(conn, 200)
+    {:ok, view, _html} = live(conn, ~p"/")
+    html = view |> element("#generator-mode-portrait") |> render_click()
     {:ok, document} = Floki.parse_document(html)
 
     assert Floki.find(document, "[data-analytics-context=\"home_upload_auth_gate\"]") == []
@@ -161,12 +161,9 @@ defmodule StickerWeb.HomeAuthIntentTest do
   test "authenticated face upload area keeps file input", %{conn: conn} do
     user = user_fixture()
 
-    conn =
-      conn
-      |> Plug.Test.init_test_session(%{user_id: user.id, local_user_id: user.public_id})
-      |> get(~p"/")
-
-    html = html_response(conn, 200)
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id, local_user_id: user.public_id})
+    {:ok, view, _html} = live(conn, ~p"/")
+    html = view |> element("#generator-mode-portrait") |> render_click()
     {:ok, document} = Floki.parse_document(html)
 
     assert [_ | _] = Floki.find(document, "input[type=\"file\"][name=\"image\"]")

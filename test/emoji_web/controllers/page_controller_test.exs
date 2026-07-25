@@ -9,7 +9,7 @@ defmodule StickerWeb.PageControllerTest do
     assert html_response(conn, 200) =~ "AI Sticker Maker"
   end
 
-  test "homepage renders a single Raphael-style input panel with one generate action", %{
+  test "homepage renders a focused text generator with one generate action", %{
     conn: conn
   } do
     conn = get(conn, ~p"/")
@@ -25,9 +25,10 @@ defmodule StickerWeb.PageControllerTest do
     assert [_] = Floki.find(document, "a[href=\"#latest\"].saas-hero-secondary")
 
     assert [_] = Floki.find(document, "#generator.saas-generator-workbench")
-    assert [_] = Floki.find(document, ".saas-raphael-input")
-    assert [_] = Floki.find(document, ".saas-raphael-reference")
-    assert [_] = Floki.find(document, ".saas-raphael-prompt")
+    assert [_] = Floki.find(document, "#text-generator-panel.saas-generator-panel")
+    assert [_] = Floki.find(document, ".saas-text-generator")
+    assert [_] = Floki.find(document, "#generator-mode-text[aria-pressed=\"true\"]")
+    assert [_] = Floki.find(document, "#generator-mode-portrait[aria-pressed=\"false\"]")
     assert [] = Floki.find(document, ".saas-workbench-control-bar")
     assert [_ | _] = Floki.find(document, ".saas-workbench-trust .saas-status-chip")
 
@@ -37,15 +38,9 @@ defmodule StickerWeb.PageControllerTest do
                "[data-analytics-event=\"text_generation_attempt\"][data-analytics-flow=\"text_to_sticker\"]"
              )
 
-    assert Floki.text(generate_button) =~ "Generate"
+    assert Floki.text(generate_button) =~ "Generate sticker"
 
-    assert [_] = Floki.find(document, "input[type=\"file\"][name=\"image\"]")
-
-    assert [_] =
-             Floki.find(
-               document,
-               "[data-analytics-event=\"face_upload_attempt\"][data-analytics-context=\"home_upload\"]"
-             )
+    assert [] = Floki.find(document, "input[type=\"file\"][name=\"image\"]")
 
     workbench_text =
       document
@@ -53,8 +48,8 @@ defmodule StickerWeb.PageControllerTest do
       |> Floki.text()
 
     assert workbench_text =~ "3 free guest generations left"
-    assert workbench_text =~ "Upload Image"
-    assert workbench_text =~ "Describe the sticker you want to generate"
+    assert workbench_text =~ "Describe your sticker"
+    assert workbench_text =~ "Line breaks stay in one prompt unless Batch mode is on"
     refute workbench_text =~ "Bake Sticker"
     refute workbench_text =~ "Advanced defaults"
     refute workbench_text =~ "Quality: Standard"
@@ -275,12 +270,6 @@ defmodule StickerWeb.PageControllerTest do
                "[data-analytics-event=\"generation_started\"][data-analytics-context=\"hero_generator_guest\"]"
              )
 
-    assert [_ | _] =
-             Floki.find(
-               document,
-               "[data-analytics-event=\"face_upload_attempt\"][data-analytics-context=\"home_upload\"]"
-             )
-
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"registration_cta_click\"]")
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"login_cta_click\"]")
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"pricing_cta_click\"]")
@@ -340,10 +329,11 @@ defmodule StickerWeb.PageControllerTest do
   test "anonymous homepage shows guest trial credits after assigning local user id", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
-    html = render_hook(view, "assign-user-id", %{"userId" => "guest_home_one"})
+    render_hook(view, "assign-user-id", %{"userId" => "guest_home_one"})
+    html = render(view)
 
     assert html =~ "3 free guest generations left"
-    assert html =~ "No account needed to try"
+    assert html =~ "No account needed"
   end
 
   test "anonymous homepage shows exhausted guest trial state", %{conn: conn} do

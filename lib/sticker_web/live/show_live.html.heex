@@ -10,7 +10,11 @@
         <%= if is_nil(@prediction.sticker_output) do %>
           <div class="saas-detail-loading">
             <span :if={@prediction.status != :failed} class="saas-card-spinner"></span>
-            <strong><%= if @prediction.status == :failed, do: "No sticker was created", else: @prediction.status || :starting %></strong>
+            <strong>
+              <%= if @prediction.status == :failed,
+                do: "No sticker was created",
+                else: @prediction.status || :starting %>
+            </strong>
             <p>
               <%= if @prediction.status == :failed do %>
                 The image service did not return a usable result this time.
@@ -18,9 +22,14 @@
                 Generation can take a few minutes. This page updates automatically.
               <% end %>
             </p>
-            <p :if={@prediction.status == :failed and @prediction.credit_refunded} class="saas-refund-note">
+
+            <p
+              :if={@prediction.status == :failed and @prediction.credit_refunded}
+              class="saas-refund-note"
+            >
               No credit was consumed. The credit has already been returned.
             </p>
+
             <p :if={@prediction.status == :failed} class="saas-section-copy">
               Try regenerating, or upload a clearer front-facing portrait with good lighting.
             </p>
@@ -32,27 +41,29 @@
 
       <div class="saas-detail-panel">
         <p class="saas-legal-kicker">Sticker</p>
+
         <h1><%= @prediction.prompt %></h1>
+
         <p>
           Sticker-ready artwork for chats, social posts, avatars, and print workflows.
         </p>
 
         <div class="saas-delivery-grid">
           <div>
-            <span>Canvas</span>
-            <strong>1024 x 1024 px</strong>
+            <span>Canvas</span> <strong>1024 x 1024 px</strong>
           </div>
+
           <div>
             <span>Output</span>
             <strong><%= String.upcase(@prediction.output_format || "image") %></strong>
           </div>
+
           <div>
-            <span>Background</span>
-            <strong>Sticker-safe</strong>
+            <span>Background</span> <strong>Sticker-safe</strong>
           </div>
+
           <div>
-            <span>Status</span>
-            <strong><%= @prediction.status || :completed %></strong>
+            <span>Status</span> <strong><%= @prediction.status || :completed %></strong>
           </div>
         </div>
 
@@ -68,6 +79,7 @@
           >
             Download <%= String.upcase(@prediction.output_format || "Sticker") %>
           </a>
+
           <a
             :if={@prediction.sticker_output}
             href={~p"/sticker/#{@prediction.id}/download?format=png"}
@@ -79,6 +91,7 @@
           >
             PNG
           </a>
+
           <a
             :if={@prediction.sticker_output}
             href={~p"/sticker/#{@prediction.id}/download?format=webp"}
@@ -90,6 +103,7 @@
           >
             WebP
           </a>
+
           <a
             :if={@prediction.sticker_output}
             href={@prediction.sticker_output}
@@ -102,19 +116,29 @@
           >
             Open Original
           </a>
-          <.link class="saas-button saas-button-ghost" navigate={~p"/?prompt=#{@prediction.prompt}"}>
+
+          <.link
+            class="saas-button saas-button-ghost"
+            navigate={~p"/?prompt=#{@prediction.prompt}"}
+          >
             Regenerate
           </.link>
+
           <.link
             :if={@prediction.status == :failed and @prediction.model == "face-to-sticker"}
             class="saas-button saas-button-ghost"
-            navigate={~p"/#upload"}
+            navigate={~p"/?mode=portrait"}
           >
             Upload Again
           </.link>
-          <.link class="saas-button saas-button-ghost" navigate={~p"/?prompt=#{@prediction.prompt <> " variation"}"}>
+
+          <.link
+            class="saas-button saas-button-ghost"
+            navigate={~p"/?prompt=#{@prediction.prompt <> " variation"}"}
+          >
             Make Variation
           </.link>
+
           <button
             class="saas-button saas-button-ghost"
             phx-click="toggle-favorite"
@@ -122,6 +146,7 @@
           >
             <%= if @prediction.is_favorite, do: "Saved", else: "Save" %>
           </button>
+
           <button
             :if={owns_prediction?(@current_user, @local_user_id, @prediction)}
             class="saas-button saas-button-ghost"
@@ -130,6 +155,7 @@
           >
             Delete
           </button>
+
           <a
             :if={@prediction.status == :failed}
             class="saas-button saas-button-ghost"
@@ -155,13 +181,17 @@
   <div class="saas-container">
     <div class="saas-section-head">
       <h2>Similar Stickers</h2>
+
       <p class="saas-section-copy">Use nearby ideas for variations and new prompts.</p>
     </div>
 
     <.async_result :let={similar_stickers} assign={@similar_stickers}>
       <:loading>
-        <p class="saas-loading"><img src="/images/loading.png" alt="loading" /> Loading similar stickers...</p>
+        <p class="saas-loading">
+          <img src="/images/loading.png" alt="loading" /> Loading similar stickers...
+        </p>
       </:loading>
+
       <:failed :let={_reason}>
         <p class="saas-section-copy">Similar sticker search is unavailable right now.</p>
       </:failed>
