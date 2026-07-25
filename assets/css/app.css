@@ -2267,6 +2267,10 @@ html {
     display: none;
   }
 
+  .saas-user-email {
+    display: none;
+  }
+
   .saas-prompt-row,
   .saas-upload-panel,
   .saas-feature-grid,
