@@ -149,13 +149,13 @@ defmodule StickerWeb.HomeAuthIntentTest do
     assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Signed in successfully"
   end
 
-  test "anonymous face upload area links to registration instead of file input", %{conn: conn} do
+  test "anonymous face upload area keeps file input for the guest trial", %{conn: conn} do
     conn = get(conn, ~p"/")
     html = html_response(conn, 200)
     {:ok, document} = Floki.parse_document(html)
 
-    assert [_ | _] = Floki.find(document, "[data-analytics-context=\"home_upload_auth_gate\"]")
-    assert Floki.find(document, "input[type=\"file\"][name=\"image\"]") == []
+    assert Floki.find(document, "[data-analytics-context=\"home_upload_auth_gate\"]") == []
+    assert [_ | _] = Floki.find(document, "input[type=\"file\"][name=\"image\"]")
   end
 
   test "authenticated face upload area keeps file input", %{conn: conn} do

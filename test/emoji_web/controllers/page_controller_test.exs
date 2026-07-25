@@ -39,10 +39,12 @@ defmodule StickerWeb.PageControllerTest do
 
     assert Floki.text(generate_button) =~ "Generate"
 
+    assert [_] = Floki.find(document, "input[type=\"file\"][name=\"image\"]")
+
     assert [_] =
              Floki.find(
                document,
-               "[data-analytics-event=\"registration_cta_click\"][data-analytics-context=\"home_upload_auth_gate\"]"
+               "[data-analytics-event=\"face_upload_attempt\"][data-analytics-context=\"home_upload\"]"
              )
 
     workbench_text =
@@ -50,7 +52,7 @@ defmodule StickerWeb.PageControllerTest do
       |> Floki.find("#generator")
       |> Floki.text()
 
-    assert workbench_text =~ "3 free credits"
+    assert workbench_text =~ "3 free guest generations left"
     assert workbench_text =~ "Upload Image"
     assert workbench_text =~ "Describe the sticker you want to generate"
     refute workbench_text =~ "Bake Sticker"
@@ -270,13 +272,13 @@ defmodule StickerWeb.PageControllerTest do
     assert [_ | _] =
              Floki.find(
                document,
-               "[data-analytics-event=\"auth_required\"][data-analytics-flow=\"text_to_sticker\"]"
+               "[data-analytics-event=\"generation_started\"][data-analytics-context=\"hero_generator_guest\"]"
              )
 
     assert [_ | _] =
              Floki.find(
                document,
-               "[data-analytics-event=\"registration_cta_click\"][data-analytics-context=\"home_upload_auth_gate\"]"
+               "[data-analytics-event=\"face_upload_attempt\"][data-analytics-context=\"home_upload\"]"
              )
 
     assert [_ | _] = Floki.find(document, "[data-analytics-event=\"registration_cta_click\"]")
