@@ -23,22 +23,30 @@ defmodule StickerWeb.Components do
   attr :id, :string, required: true
   attr :class, :string, default: nil
   attr :prediction, :map, required: true
+  attr :cancel_event, :string, default: nil
 
   def sticker(assigns) do
     ~H"""
-    <div class={@class}>
-      <.image id={@id} prediction={@prediction} />
+    <div class={@class} data-generation-state={prediction_state(@prediction)}>
+      <.image
+        id={@id}
+        prediction={@prediction}
+        cancel_event={@cancel_event}
+      />
     </div>
     """
   end
 
   defp image(assigns) do
-    color_index = Enum.random(0..6)
+    color_index = rem(abs(assigns.prediction.id || 0), length(@bgs))
 
     assigns =
       assigns
       |> assign(:bg, Enum.at(@bgs, color_index))
       |> assign(:text_color, Enum.at(@text_colors, color_index))
+      |> assign(:output, assigns.prediction.sticker_output || assigns.prediction.no_bg_output)
+      |> assign(:active?, active_generation?(assigns.prediction))
+      |> assign(:phase, generation_phase(assigns.prediction))
 
     ~H"""
     <.link navigate={~p"/sticker/#{@prediction.id}"} class="saas-generated-link">
@@ -48,25 +56,33 @@ defmodule StickerWeb.Components do
       </span>
 
       <div class={"saas-generated-frame group #{@bg}"}>
-        <%= if is_nil(@prediction.sticker_output) and is_nil(@prediction.no_bg_output) do %>
+        <%= if is_nil(@output) do %>
           <div class="saas-generated-placeholder">
             <div role="status" class="saas-card-status">
-              <%= if @prediction.status in [:failed, nil] do %>
+              <%= if @active? do %>
+                <span class="saas-card-spinner"></span>
+                <strong><%= status_label(@prediction) %></strong>
+                <span><%= status_hint(@prediction) %></span>
+                <ol class="saas-generation-phases" data-active-phase={@phase} aria-label="Generation progress">
+                  <li data-phase-state={phase_state(@phase, 1)}>Checking input</li>
+                  <li data-phase-state={phase_state(@phase, 2)}>Queued</li>
+                  <li data-phase-state={phase_state(@phase, 3)}>Creating sticker</li>
+                </ol>
+                <p data-slow-message hidden>
+                  This is taking longer than usual. You can keep waiting or cancel for a refund.
+                </p>
+              <% else %>
                 <strong><%= status_label(@prediction) %></strong>
                 <span><%= status_hint(@prediction) %></span>
                 <span :if={credit_returned?(@prediction)} class="saas-status-pill">
                   Credit returned
                 </span>
-              <% else %>
-                <span class="saas-card-spinner"></span>
-                <strong><%= status_label(@prediction) %></strong>
-                <span><%= status_hint(@prediction) %></span>
               <% end %>
             </div>
           </div>
         <% else %>
           <img
-            src={@prediction.sticker_output}
+            src={@output}
             alt={@prediction.prompt}
             class="saas-generated-image pointer-events-none group-hover:opacity-75"
           />
@@ -82,14 +98,48 @@ defmodule StickerWeb.Components do
         </span>
       </div>
     </.link>
+
+    <div
+      :if={
+        (@prediction.status == :succeeded and not is_nil(@output)) or
+          (@active? and not is_nil(@cancel_event))
+      }
+      class="saas-generated-actions"
+    >
+      <.link
+        :if={@prediction.status == :succeeded and not is_nil(@output)}
+        href={~p"/sticker/#{@prediction.id}/download"}
+        data-analytics-event="download_click"
+        data-analytics-context="generation_card"
+        data-analytics-download-type="single"
+        data-analytics-format="original"
+      >
+        Download
+      </.link>
+
+      <details :if={@active? and @cancel_event} class="saas-cancel-confirm">
+        <summary>Cancel &amp; refund</summary>
+        <p>Cancel this generation and return 1 credit?</p>
+        <button
+          type="button"
+          phx-click={@cancel_event}
+          phx-value-id={@prediction.id}
+          phx-disable-with="Canceling..."
+        >
+          Cancel generation
+        </button>
+      </details>
+    </div>
     """
   end
 
-  defp status_label(%{status: :processing}), do: "Generating"
+  defp status_label(%{status: :processing}), do: "Creating sticker"
   defp status_label(%{status: :moderation_succeeded}), do: "Queued"
   defp status_label(%{status: :starting, model: "face-to-sticker"}), do: "Preparing portrait"
-  defp status_label(%{status: :starting}), do: "Checking prompt"
-  defp status_label(%{status: :failed}), do: "No result"
+  defp status_label(%{status: :starting}), do: "Checking input"
+  defp status_label(%{status: :failed}), do: "Generation failed"
+  defp status_label(%{status: :canceled}), do: "Generation canceled"
+  defp status_label(%{status: :succeeded}), do: "Preview unavailable"
   defp status_label(%{status: nil}), do: "Unavailable"
   defp status_label(_prediction), do: "Generating"
 
@@ -105,9 +155,29 @@ defmodule StickerWeb.Components do
     do: "Try again with a clear, front-facing portrait."
 
   defp status_hint(%{status: :failed}), do: "Try again with a shorter, clearer prompt."
+  defp status_hint(%{status: :canceled}), do: "This generation was stopped before completion."
+  defp status_hint(%{status: :succeeded}), do: "The generated file is not available to download."
   defp status_hint(%{status: nil}), do: "This older generation did not finish."
   defp status_hint(_prediction), do: "Waiting for the generated image."
 
-  defp credit_returned?(%{status: :failed, credit_refunded: true}), do: true
+  defp active_generation?(%{status: status}),
+    do: status in [:starting, :moderation_succeeded, :processing]
+
+  defp generation_phase(%{status: :starting}), do: 1
+  defp generation_phase(%{status: :moderation_succeeded}), do: 2
+  defp generation_phase(%{status: :processing}), do: 3
+  defp generation_phase(_prediction), do: nil
+
+  defp phase_state(active_phase, phase) when phase < active_phase, do: "complete"
+  defp phase_state(active_phase, phase) when phase == active_phase, do: "active"
+  defp phase_state(_active_phase, _phase), do: "upcoming"
+
+  defp prediction_state(%{status: nil}), do: "unavailable"
+  defp prediction_state(%{status: status}), do: to_string(status)
+
+  defp credit_returned?(%{status: status, credit_refunded: true})
+       when status in [:failed, :canceled],
+       do: true
+
   defp credit_returned?(_prediction), do: false
 end
