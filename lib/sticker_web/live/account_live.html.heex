@@ -13,15 +13,50 @@
         <div class="saas-account-metric"><%= @current_user.credits %></div>
         <.link class="saas-button saas-button-primary" navigate={~p"/pricing"}>Buy Credits</.link>
       </article>
-      <article class="saas-tile">
+
+      <article :if={@summary_state == :loaded} id="account-summary" class="saas-tile">
         <h3>Generated</h3>
         <div class="saas-account-metric"><%= @counts.completed %></div>
         <.link class="saas-button saas-button-ghost" navigate={~p"/stickers"}>View History</.link>
       </article>
-      <article class="saas-tile">
+      <article :if={@summary_state == :loaded} class="saas-tile">
         <h3>Favorites</h3>
         <div class="saas-account-metric"><%= @counts.favorites %></div>
-        <a class="saas-button saas-button-ghost" href="#favorites">Saved Stickers</a>
+        <.link class="saas-button saas-button-ghost" navigate={~p"/stickers?status=favorites"}>
+          Saved Stickers
+        </.link>
+      </article>
+
+      <article
+        :if={@summary_state == :loading}
+        id="account-summary-loading"
+        class="saas-tile saas-section-loading"
+        aria-label="Loading generation totals"
+      >
+        <h3>Generated</h3>
+        <span class="saas-skeleton saas-skeleton-metric"></span>
+        <span class="saas-skeleton saas-skeleton-control"></span>
+      </article>
+      <article
+        :if={@summary_state == :loading}
+        class="saas-tile saas-section-loading"
+        aria-label="Loading favorite total"
+      >
+        <h3>Favorites</h3>
+        <span class="saas-skeleton saas-skeleton-metric"></span>
+        <span class="saas-skeleton saas-skeleton-control"></span>
+      </article>
+
+      <article :if={@summary_state == :failed} id="account-summary-error" class="saas-tile">
+        <h3>Generated</h3>
+        <p>Totals could not be loaded.</p>
+        <button type="button" class="saas-button saas-button-ghost" phx-click="retry-section" phx-value-section="summary">
+          Retry
+        </button>
+      </article>
+      <article :if={@summary_state == :failed} class="saas-tile">
+        <h3>Favorites</h3>
+        <p>Saved sticker totals are temporarily unavailable.</p>
       </article>
     </div>
   </div>
@@ -34,7 +69,38 @@
       <p class="saas-section-copy">Track active, completed, and failed generations.</p>
     </div>
 
-    <ul id="account-recent" phx-update="stream" class="saas-generated-grid" role="list">
+    <div
+      :if={@recent_state == :loading}
+      id="account-recent-loading"
+      class="saas-generated-grid"
+      role="status"
+      aria-label="Loading recent stickers"
+    >
+      <article :for={_ <- 1..4} class="saas-generated-item saas-skeleton-card">
+        <span class="saas-skeleton saas-skeleton-square"></span>
+        <span class="saas-skeleton saas-skeleton-line"></span>
+      </article>
+    </div>
+
+    <div :if={@recent_state == :failed} id="account-recent-error" class="saas-section-error" role="alert">
+      <strong>Recent stickers could not be loaded.</strong>
+      <p>Your generations are safe. Try loading this section again.</p>
+      <button type="button" class="saas-button saas-button-ghost" phx-click="retry-section" phx-value-section="recent">
+        Retry
+      </button>
+    </div>
+
+    <p :if={@recent_state == :loaded and @recent_empty?} class="saas-empty-state">
+      Your generated stickers will appear here.
+    </p>
+
+    <ul
+      :if={@recent_state == :loaded}
+      id="account-recent"
+      phx-update="stream"
+      class="saas-generated-grid"
+      role="list"
+    >
       <li :for={{id, prediction} <- @streams.recent_predictions} id={id}>
         <div class="saas-history-item">
           <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
@@ -58,7 +124,39 @@
       <p class="saas-section-copy">Favorites stay here for quick download and reuse.</p>
     </div>
 
-    <ul id="account-favorites" phx-update="stream" class="saas-generated-grid" role="list">
+    <div
+      :if={@favorites_state == :loading}
+      id="account-favorites-loading"
+      class="saas-generated-grid"
+      role="status"
+      aria-label="Loading saved stickers"
+    >
+      <article :for={_ <- 1..4} class="saas-generated-item saas-skeleton-card">
+        <span class="saas-skeleton saas-skeleton-square"></span>
+        <span class="saas-skeleton saas-skeleton-line"></span>
+      </article>
+    </div>
+
+    <div :if={@favorites_state == :failed} id="account-favorites-error" class="saas-section-error" role="alert">
+      <strong>Saved stickers could not be loaded.</strong>
+      <p>Try loading this section again.</p>
+      <button type="button" class="saas-button saas-button-ghost" phx-click="retry-section" phx-value-section="favorites">
+        Retry
+      </button>
+    </div>
+
+    <div :if={@favorites_state == :loaded and @favorites_empty?} class="saas-empty-state">
+      <p>You have not saved any stickers yet.</p>
+      <.link class="saas-button saas-button-ghost" navigate={~p"/stickers"}>Browse history</.link>
+    </div>
+
+    <ul
+      :if={@favorites_state == :loaded}
+      id="account-favorites"
+      phx-update="stream"
+      class="saas-generated-grid"
+      role="list"
+    >
       <li :for={{id, prediction} <- @streams.favorite_predictions} id={id}>
         <StickerWeb.Components.sticker id={id} prediction={prediction} class="saas-generated-item" />
       </li>
@@ -73,60 +171,80 @@
       <p class="saas-section-copy">Checkout activity and completed credit purchases for this account.</p>
     </div>
 
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Plan</th>
-            <th>Provider</th>
-            <th>Credits</th>
-            <th>Status</th>
-            <th>Checkout ID</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr :for={attempt <- @payment_attempts}>
-            <td><%= attempt.plan || "credits" %></td>
-            <td><%= attempt.provider || "stripe" %></td>
-            <td><%= attempt.credits %></td>
-            <td><%= checkout_status(attempt) %></td>
-            <td><code><%= attempt.stripe_session_id || "-" %></code></td>
-            <td><%= Calendar.strftime(attempt.inserted_at, "%Y-%m-%d") %></td>
-          </tr>
-          <tr :if={@payment_attempts == []}>
-            <td colspan="6">No checkout attempts yet.</td>
-          </tr>
-        </tbody>
-      </table>
+    <div
+      :if={@payments_state == :loading}
+      id="account-payments-loading"
+      class="admin-table-wrap saas-table-loading"
+      role="status"
+      aria-label="Loading payment records"
+    >
+      <span :for={_ <- 1..3} class="saas-skeleton saas-skeleton-table-row"></span>
     </div>
 
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Plan</th>
-            <th>Provider</th>
-            <th>Credits</th>
-            <th>Status</th>
-            <th>Checkout ID</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr :for={payment <- @payments}>
-            <td><%= payment.plan || "credits" %></td>
-            <td><%= payment.provider || "stripe" %></td>
-            <td><%= payment.credits %></td>
-            <td><%= payment_status(payment) %></td>
-            <td><code><%= payment.stripe_session_id %></code></td>
-            <td><%= Calendar.strftime(payment.inserted_at, "%Y-%m-%d") %></td>
-          </tr>
-          <tr :if={@payments == []}>
-            <td colspan="6">No paid credit purchases yet.</td>
-          </tr>
-        </tbody>
-      </table>
+    <div :if={@payments_state == :failed} id="account-payments-error" class="saas-section-error" role="alert">
+      <strong>Payment records could not be loaded.</strong>
+      <p>Credits and completed purchases are unchanged.</p>
+      <button type="button" class="saas-button saas-button-ghost" phx-click="retry-section" phx-value-section="payments">
+        Retry
+      </button>
+    </div>
+
+    <div :if={@payments_state == :loaded} id="account-payments">
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Plan</th>
+              <th>Provider</th>
+              <th>Credits</th>
+              <th>Status</th>
+              <th>Checkout ID</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={attempt <- @payment_attempts}>
+              <td><%= attempt.plan || "credits" %></td>
+              <td><%= attempt.provider || "stripe" %></td>
+              <td><%= attempt.credits %></td>
+              <td><%= checkout_status(attempt) %></td>
+              <td><code><%= attempt.stripe_session_id || "-" %></code></td>
+              <td><%= Calendar.strftime(attempt.inserted_at, "%Y-%m-%d") %></td>
+            </tr>
+            <tr :if={@payment_attempts == []}>
+              <td colspan="6">No checkout attempts yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Plan</th>
+              <th>Provider</th>
+              <th>Credits</th>
+              <th>Status</th>
+              <th>Checkout ID</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={payment <- @payments}>
+              <td><%= payment.plan || "credits" %></td>
+              <td><%= payment.provider || "stripe" %></td>
+              <td><%= payment.credits %></td>
+              <td><%= payment_status(payment) %></td>
+              <td><code><%= payment.stripe_session_id %></code></td>
+              <td><%= Calendar.strftime(payment.inserted_at, "%Y-%m-%d") %></td>
+            </tr>
+            <tr :if={@payments == []}>
+              <td colspan="6">No paid credit purchases yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </section>
