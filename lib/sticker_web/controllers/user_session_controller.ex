@@ -46,7 +46,8 @@ defmodule StickerWeb.UserSessionController do
   end
 
   def log_in_user(conn, user, opts \\ []) do
-    previous_user_id = get_session(conn, :local_user_id)
+    guest_user_id = get_session(conn, :guest_user_id)
+    previous_user_id = guest_user_id || get_session(conn, :local_user_id)
     Predictions.transfer_user_predictions(previous_user_id, user.public_id)
 
     conn =
@@ -54,6 +55,7 @@ defmodule StickerWeb.UserSessionController do
       |> renew_session()
       |> put_session(:user_id, user.id)
       |> put_session(:local_user_id, user.public_id)
+      |> maybe_put_guest_user_id(guest_user_id)
       |> put_flash(:info, Keyword.get(opts, :info, "Signed in successfully."))
 
     conn =
@@ -70,4 +72,10 @@ defmodule StickerWeb.UserSessionController do
     |> configure_session(renew: true)
     |> clear_session()
   end
+
+  defp maybe_put_guest_user_id(conn, guest_user_id) when is_binary(guest_user_id) do
+    put_session(conn, :guest_user_id, guest_user_id)
+  end
+
+  defp maybe_put_guest_user_id(conn, _guest_user_id), do: conn
 end

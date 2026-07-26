@@ -33,7 +33,9 @@ defmodule StickerWeb.UserRegistrationController do
       user_params =
         user_params
         |> Map.put("signup_ip", AbuseProtection.client_ip(conn))
-        |> put_signup_guest_user_id(get_session(conn, :local_user_id))
+        |> put_signup_guest_user_id(
+          get_session(conn, :guest_user_id) || get_session(conn, :local_user_id)
+        )
 
       case Accounts.register_user(user_params) do
         {:ok, user} ->

@@ -2,6 +2,10 @@ defmodule StickerWeb.GuestIdentityTest do
   use StickerWeb.ConnCase, async: true
 
   import Sticker.AccountsFixtures
+  import Sticker.PredictionsFixtures
+
+  alias Sticker.GuestTrials
+  alias Sticker.Predictions
 
   test "first browser request receives a signed HttpOnly guest cookie", %{conn: conn} do
     conn = get(conn, ~p"/")
@@ -69,5 +73,42 @@ defmodule StickerWeb.GuestIdentityTest do
     assert get_session(conn, :local_user_id) == user.public_id
     assert get_session(conn, :guest_user_id) =~ ~r/^gst_[A-Za-z0-9_-]{32,}$/
     refute get_session(conn, :guest_user_id) == "attacker-selected-id"
+  end
+
+  test "guest identity and allowance survive login, session renewal, and logout", %{conn: conn} do
+    user = user_fixture()
+    first = get(conn, ~p"/")
+    guest_user_id = get_session(first, :guest_user_id)
+    {:ok, _allowance} = GuestTrials.spend_credits(guest_user_id, 1)
+
+    prediction =
+      prediction_fixture(%{
+        local_user_id: guest_user_id,
+        credit_source: "guest",
+        credit_owner_id: guest_user_id
+      })
+
+    login =
+      first
+      |> recycle()
+      |> post(~p"/users/log-in", %{
+        "user" => %{"email" => user.email, "password" => "password123"}
+      })
+
+    assert redirected_to(login, 302) == ~p"/"
+    assert get_session(login, :guest_user_id) == guest_user_id
+    assert get_session(login, :local_user_id) == user.public_id
+    assert Predictions.get_prediction!(prediction.id).local_user_id == user.public_id
+
+    signed_in = login |> recycle() |> get(~p"/")
+    assert get_session(signed_in, :guest_user_id) == guest_user_id
+    assert get_session(signed_in, :local_user_id) == user.public_id
+
+    logout = signed_in |> recycle() |> delete(~p"/users/log-out")
+    anonymous = logout |> recycle() |> get(~p"/")
+
+    assert get_session(anonymous, :guest_user_id) == guest_user_id
+    assert get_session(anonymous, :local_user_id) == guest_user_id
+    assert GuestTrials.get_allowance(guest_user_id).credits_remaining == 2
   end
 end
