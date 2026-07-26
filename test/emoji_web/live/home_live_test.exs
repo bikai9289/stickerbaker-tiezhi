@@ -97,6 +97,13 @@ defmodule StickerWeb.HomeLiveTest do
     assert GuestTrials.get_allowance(guest_user_id).credits_remaining == 1
     assert Repo.aggregate(Attempt, :count) == 1
     assert_receive {:verified, "valid-token", _remote_ip, _request_id}
+
+    render_hook(view, "turnstile-token", %{"token" => "second-valid-token"})
+    html = view |> form("#prediction-form", %{"prompt" => "a final cat"}) |> render_submit()
+
+    assert GuestTrials.get_allowance(guest_user_id).credits_remaining == 0
+    refute html =~ ~s(id="guest-turnstile")
+    assert html =~ "Free trial used"
   end
 
   test "batch request reserves and spends the parsed prompt count", %{conn: conn} do

@@ -52,7 +52,13 @@ defmodule Sticker.GuestGenerationGate do
          ip_hash = GuestAbuse.ip_hash(canonical_ip),
          challenge_reason <- challenge_reason(guest_user_id, ip_hash, now),
          challenge_required? = Turnstile.configured?() and not is_nil(challenge_reason),
-         :ok <- verify_challenge(challenge_required?, attrs[:turnstile_token], canonical_ip, request_id),
+         :ok <-
+           verify_challenge(
+             challenge_required?,
+             attrs[:turnstile_token],
+             canonical_ip,
+             request_id
+           ),
          {:ok, attempt} <-
            GuestAbuse.reserve_attempt(
              %{
@@ -130,10 +136,18 @@ defmodule Sticker.GuestGenerationGate do
     risk = GuestAbuse.risk_snapshot(ip_hash, now)
 
     cond do
-      allowance && allowance.credits_spent > 0 -> :repeat_guest
-      risk.task_count >= 3 -> :ip_velocity
-      risk.distinct_guest_count >= 2 -> :identity_velocity
-      true -> nil
+      (allowance && allowance.credits_spent > 0) or
+          GuestAbuse.guest_has_attempts?(guest_user_id) ->
+        :repeat_guest
+
+      risk.task_count >= 3 ->
+        :ip_velocity
+
+      risk.distinct_guest_count >= 2 ->
+        :identity_velocity
+
+      true ->
+        nil
     end
   end
 

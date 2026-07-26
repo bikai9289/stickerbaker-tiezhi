@@ -653,8 +653,11 @@ defmodule StickerWeb.HomeLive do
     |> push_event("turnstile-reset", %{})
   end
 
-  defp repeat_guest_challenge?(nil, %{credits_spent: credits_spent})
-       when credits_spent > 0,
+  defp repeat_guest_challenge?(nil, %{
+         credits_spent: credits_spent,
+         credits_remaining: credits_remaining
+       })
+       when credits_spent > 0 and credits_remaining > 0,
        do: Turnstile.configured?()
 
   defp repeat_guest_challenge?(_current_user, _guest_trial), do: false

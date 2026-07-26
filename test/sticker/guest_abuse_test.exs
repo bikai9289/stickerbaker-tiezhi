@@ -142,6 +142,24 @@ defmodule Sticker.GuestAbuseTest do
     assert errors_on(changeset).turnstile_verified
   end
 
+  test "reserve_attempt returns a dedicated error instead of raising on malformed attributes" do
+    assert {:error, :invalid_attempt} =
+             GuestAbuse.reserve_attempt(%{
+               request_id: "not-a-uuid",
+               guest_user_id: "bad",
+               ip_hash: "raw-ip",
+               mode: "other",
+               task_count: 6,
+               turnstile_required: false,
+               turnstile_verified: false
+             })
+  end
+
+  test "reserve_attempt rejects non-map input with the dedicated error" do
+    assert {:error, :invalid_attempt} = GuestAbuse.reserve_attempt(nil)
+    assert {:error, :invalid_attempt} = GuestAbuse.reserve_attempt([])
+  end
+
   defp attempt_attrs(ip_hash, index, overrides \\ []) do
     request_id = Ecto.UUID.generate()
 

@@ -26,7 +26,27 @@ defmodule Sticker.GuestAbuse do
     |> Repo.one!()
   end
 
-  def reserve_attempt(attrs, now \\ DateTime.utc_now()) when is_map(attrs) do
+  def guest_has_attempts?(guest_user_id) when is_binary(guest_user_id) do
+    Repo.exists?(from(a in Attempt, where: a.guest_user_id == ^guest_user_id))
+  end
+
+  def guest_has_attempts?(_guest_user_id), do: false
+
+  def reserve_attempt(attrs, now \\ DateTime.utc_now())
+
+  def reserve_attempt(attrs, now) when is_map(attrs) do
+    changeset = Attempt.changeset(%Attempt{}, attrs)
+
+    if changeset.valid? do
+      do_reserve_attempt(attrs, now)
+    else
+      {:error, :invalid_attempt}
+    end
+  end
+
+  def reserve_attempt(_attrs, _now), do: {:error, :invalid_attempt}
+
+  defp do_reserve_attempt(attrs, now) do
     Repo.transaction(fn ->
       request_id = Map.get(attrs, :request_id) || Map.get(attrs, "request_id")
 
@@ -48,7 +68,9 @@ defmodule Sticker.GuestAbuse do
       |> Ecto.Changeset.put_change(:inserted_at, now)
       |> Repo.insert()
       |> case do
-        {:ok, attempt} -> attempt
+        {:ok, attempt} ->
+          attempt
+
         {:error, changeset} ->
           if duplicate_request_id?(changeset) do
             Repo.rollback(:attempt_duplicate)
@@ -71,7 +93,12 @@ defmodule Sticker.GuestAbuse do
 
   defp lock_ip_hash(ip_hash) when is_binary(ip_hash) do
     <<unsigned::unsigned-64, _rest::binary>> = Base.decode16!(ip_hash, case: :mixed)
-    signed = if unsigned > 9_223_372_036_854_775_807, do: unsigned - 18_446_744_073_709_551_616, else: unsigned
+
+    signed =
+      if unsigned > 9_223_372_036_854_775_807,
+        do: unsigned - 18_446_744_073_709_551_616,
+        else: unsigned
+
     Repo.query!("SELECT pg_advisory_xact_lock($1)", [signed])
   end
 

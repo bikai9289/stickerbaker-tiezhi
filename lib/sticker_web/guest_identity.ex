@@ -26,7 +26,7 @@ defmodule StickerWeb.GuestIdentity do
   defp valid_cookie(value) when is_binary(value) do
     value = String.trim(value)
 
-    if Regex.match?(@format, value) or Regex.match?(@legacy_format, value), do: value
+    if valid_guest_id?(value), do: value
   end
 
   defp valid_cookie(_value), do: nil
@@ -43,7 +43,7 @@ defmodule StickerWeb.GuestIdentity do
     case get_session(conn, :local_user_id) do
       value when is_binary(value) ->
         value = String.trim(value)
-        if Regex.match?(@legacy_format, value), do: value
+        if valid_guest_id?(value), do: value
 
       _value ->
         nil
@@ -51,6 +51,11 @@ defmodule StickerWeb.GuestIdentity do
   end
 
   defp legacy_session_guest(_conn), do: nil
+
+  defp valid_guest_id?(value) do
+    not String.starts_with?(value, "usr_") and
+      (Regex.match?(@format, value) or Regex.match?(@legacy_format, value))
+  end
 
   defp new_guest_user_id do
     "gst_" <> Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)

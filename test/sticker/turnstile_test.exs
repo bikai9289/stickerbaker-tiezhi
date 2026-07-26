@@ -44,7 +44,15 @@ defmodule Sticker.TurnstileTest do
     Process.put(
       :turnstile_response,
       {:ok,
-       %{status: 200, body: Jason.encode!(%{success: true, hostname: "ai-sticker-maker.com", action: "sticker_generation"})}}
+       %{
+         status: 200,
+         body:
+           Jason.encode!(%{
+             success: true,
+             hostname: "ai-sticker-maker.com",
+             action: "sticker_generation"
+           })
+       }}
     )
 
     request_id = Ecto.UUID.generate()
@@ -61,13 +69,45 @@ defmodule Sticker.TurnstileTest do
            }
   end
 
+  test "successful verification uses safe hostname and action defaults" do
+    Application.put_env(:sticker, :turnstile,
+      enabled: true,
+      site_key: "site-key",
+      secret_key: "secret-key"
+    )
+
+    Process.put(
+      :turnstile_response,
+      {:ok,
+       %{
+         status: 200,
+         body:
+           Jason.encode!(%{
+             success: true,
+             hostname: "ai-sticker-maker.com",
+             action: "sticker_generation"
+           })
+       }}
+    )
+
+    assert :ok = Turnstile.verify("fresh-token", "203.0.113.20", Ecto.UUID.generate())
+  end
+
   test "missing, expired, invalid, wrong-host, and wrong-action responses map distinctly" do
     enable_turnstile()
 
-    assert {:error, :turnstile_required} = Turnstile.verify("", "203.0.113.21", Ecto.UUID.generate())
+    assert {:error, :turnstile_required} =
+             Turnstile.verify("", "203.0.113.21", Ecto.UUID.generate())
 
-    assert_verify_error(%{"success" => false, "error-codes" => ["timeout-or-duplicate"]}, :turnstile_expired)
-    assert_verify_error(%{"success" => false, "error-codes" => ["invalid-input-response"]}, :turnstile_invalid)
+    assert_verify_error(
+      %{"success" => false, "error-codes" => ["timeout-or-duplicate"]},
+      :turnstile_expired
+    )
+
+    assert_verify_error(
+      %{"success" => false, "error-codes" => ["invalid-input-response"]},
+      :turnstile_invalid
+    )
 
     assert_verify_error(
       %{"success" => true, "hostname" => "evil.example", "action" => "sticker_generation"},
@@ -94,6 +134,18 @@ defmodule Sticker.TurnstileTest do
              Turnstile.verify("token", "203.0.113.22", Ecto.UUID.generate())
 
     Process.put(:turnstile_response, {:ok, %{status: 200, body: "not-json"}})
+
+    assert {:error, :turnstile_invalid} =
+             Turnstile.verify("token", "203.0.113.22", Ecto.UUID.generate())
+
+    Process.put(
+      :turnstile_response,
+      {:ok,
+       %{
+         status: 200,
+         body: Jason.encode!(%{"success" => false, "error-codes" => "invalid-response"})
+       }}
+    )
 
     assert {:error, :turnstile_invalid} =
              Turnstile.verify("token", "203.0.113.22", Ecto.UUID.generate())

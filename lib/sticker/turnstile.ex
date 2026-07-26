@@ -5,7 +5,9 @@ defmodule Sticker.Turnstile do
 
   def validate_config(site_key, secret_key) do
     case {normalize_key(site_key), normalize_key(secret_key)} do
-      {nil, nil} -> {:ok, [enabled: false]}
+      {nil, nil} ->
+        {:ok, [enabled: false]}
+
       {site_key, secret_key} when is_binary(site_key) and is_binary(secret_key) ->
         {:ok, [enabled: true, site_key: site_key, secret_key: secret_key]}
 
@@ -70,13 +72,18 @@ defmodule Sticker.Turnstile do
     hostname = response["hostname"]
     action = response["action"]
 
-    hostname_valid? = is_nil(hostname) or hostname in config[:expected_hostnames]
-    action_valid? = is_nil(action) or action == config[:action]
+    expected_hostnames =
+      config[:expected_hostnames] || ["ai-sticker-maker.com", "www.ai-sticker-maker.com"]
+
+    expected_action = config[:action] || "sticker_generation"
+
+    hostname_valid? = is_nil(hostname) or hostname in expected_hostnames
+    action_valid? = is_nil(action) or action == expected_action
 
     if hostname_valid? and action_valid?, do: :ok, else: {:error, :turnstile_invalid}
   end
 
-  defp map_error_codes(error_codes) do
+  defp map_error_codes(error_codes) when is_list(error_codes) do
     cond do
       "timeout-or-duplicate" in error_codes -> {:error, :turnstile_expired}
       "missing-input-response" in error_codes -> {:error, :turnstile_required}
@@ -84,6 +91,8 @@ defmodule Sticker.Turnstile do
       true -> {:error, :turnstile_invalid}
     end
   end
+
+  defp map_error_codes(_error_codes), do: {:error, :turnstile_invalid}
 
   defp turnstile_config do
     Application.get_env(:sticker, :turnstile, enabled: false)

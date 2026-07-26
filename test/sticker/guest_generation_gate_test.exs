@@ -94,6 +94,27 @@ defmodule Sticker.GuestGenerationGateTest do
     refute_received {:verify, _, _, _}
   end
 
+  test "a prior ledger attempt triggers the repeat challenge even when credit spend rolled back" do
+    enable_turnstile()
+    now = ~U[2026-07-26 02:00:00.000000Z]
+    guest_user_id = "gst_rolled_back_guest"
+    ip = "203.0.113.37"
+    {:ok, allowance} = GuestTrials.get_or_create_allowance(guest_user_id)
+    assert allowance.credits_spent == 0
+
+    assert {:ok, _attempt} =
+             GuestAbuse.reserve_attempt(
+               attempt_attrs(GuestAbuse.ip_hash(ip), guest_user_id, 1),
+               now
+             )
+
+    assert {:ok, %{challenge_required?: true, challenge_reason: :repeat_guest}} =
+             GuestGenerationGate.challenge_requirement(
+               gate_attrs(guest_user_id, ip, mode: :portrait),
+               now
+             )
+  end
+
   test "three recent tasks or two identities challenge a first request" do
     enable_turnstile()
     now = ~U[2026-07-26 02:00:00.000000Z]

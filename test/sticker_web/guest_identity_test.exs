@@ -33,6 +33,18 @@ defmodule StickerWeb.GuestIdentityTest do
     assert Map.has_key?(conn.resp_cookies, "_sticker_guest")
   end
 
+  test "an orphaned account public ID is never migrated into a guest cookie", %{conn: conn} do
+    account_public_id = "usr_orphaned_account_id"
+
+    conn =
+      conn
+      |> init_test_session(%{local_user_id: account_public_id})
+      |> get(~p"/")
+
+    assert get_session(conn, :guest_user_id) =~ ~r/^gst_[A-Za-z0-9_-]{32,}$/
+    refute get_session(conn, :guest_user_id) == account_public_id
+  end
+
   test "verified guest cookie remains stable across requests", %{conn: conn} do
     first = get(conn, ~p"/")
     guest_user_id = get_session(first, :guest_user_id)
