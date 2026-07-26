@@ -20,6 +20,11 @@ defmodule StickerWeb.PageControllerTest do
     assert html_response(conn, 200) =~ "AI Sticker Maker"
   end
 
+  test "POST /api/session cannot set a guest identity", %{conn: conn} do
+    conn = post(conn, "/api/session", %{"local_user_id" => "attacker-selected-id"})
+    assert response(conn, 404)
+  end
+
   test "homepage renders a focused text generator with one generate action", %{
     conn: conn
   } do

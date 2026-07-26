@@ -1,6 +1,5 @@
 defmodule StickerWeb.AdminLive do
   use StickerWeb, :live_view
-  alias Phoenix.PubSub
   alias Sticker.Predictions
 
   def mount(_params, session, socket) do
@@ -149,11 +148,7 @@ defmodule StickerWeb.AdminLive do
     {:noreply, socket}
   end
 
-  def handle_event("assign-user-id", %{"userId" => user_id}, socket) do
-    PubSub.subscribe(Sticker.PubSub, "user:#{user_id}")
-
-    {:noreply, socket |> assign(local_user_id: user_id)}
-  end
+  def handle_event("assign-user-id", _params, socket), do: {:noreply, socket}
 
   def handle_info({:new_prediction, prediction}, socket) do
     {:noreply, socket |> stream_insert(:latest_predictions, prediction, at: 0)}

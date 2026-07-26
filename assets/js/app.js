@@ -27,32 +27,11 @@ import { safeTrack, trackReturnState } from "./launch_analytics.mjs";
 
 let Hooks = {};
 
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-
-Hooks.AssignUserId = {
-  mounted() {
-    const sessionUserId = this.el.dataset.sessionUserId;
-    let userId = sessionUserId || localStorage.getItem("userId");
-    if (!userId) {
-      userId = genId();
-      localStorage.setItem("userId", userId);
-    }
-    this.pushEvent("assign-user-id", { userId: userId });
-    fetch(`/api/session?local_user_id=${encodeURIComponent(userId)}`, {
-      method: "post",
-    });
-  },
-};
-
 Hooks.LaunchAnalytics = {
   mounted() {
-    Hooks.AssignUserId.mounted.call(this);
-
     safeTrack("generator_view", {
       context: "home",
-      authState: this.el.dataset.authState || (this.el.dataset.sessionUserId ? "known" : "anonymous"),
+      authState: this.el.dataset.authState || "anonymous",
     });
 
     this.handleEvent("launch-track", (payload = {}) => {
@@ -156,11 +135,6 @@ function authStateForElement(target) {
   const scopedAuth = target.closest("[data-auth-state]");
   if (scopedAuth?.dataset?.authState) {
     return scopedAuth.dataset.authState;
-  }
-
-  const scopedSession = target.closest("[data-session-user-id]");
-  if (scopedSession) {
-    return scopedSession.dataset.sessionUserId ? "known" : "anonymous";
   }
 
   return undefined;

@@ -1,6 +1,5 @@
 defmodule StickerWeb.HomeLive do
   use StickerWeb, :live_view
-  alias Phoenix.PubSub
   alias Sticker.GenerationLauncher
   alias Sticker.GenerationCredits
   alias Sticker.GuestTrials
@@ -90,18 +89,7 @@ defmodule StickerWeb.HomeLive do
     {:noreply, cancel_upload(socket, :image, ref)}
   end
 
-  def handle_event("assign-user-id", %{"userId" => user_id}, socket) do
-    PubSub.subscribe(Sticker.PubSub, "user:#{user_id}")
-    recent_predictions = home_predictions(user_id)
-    resume_active_predictions(recent_predictions)
-
-    {:noreply,
-     socket
-     |> assign(local_user_id: user_id)
-     |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], user_id))
-     |> assign(:my_eager_ids, eager_prediction_ids(recent_predictions))
-     |> stream(:my_predictions, recent_predictions, reset: true)}
-  end
+  def handle_event("assign-user-id", _params, socket), do: {:noreply, socket}
 
   def handle_event("save", %{"prompt" => prompt}, socket) do
     if socket.assigns.generator_mode == :portrait do

@@ -53,22 +53,7 @@ defmodule StickerWeb.HistoryLive do
     {:ok, socket}
   end
 
-  def handle_event(
-        "assign-user-id",
-        %{"userId" => user_id},
-        %{assigns: %{local_user_id: user_id}} = socket
-      ) do
-    {:noreply, socket}
-  end
-
-  def handle_event("assign-user-id", %{"userId" => user_id}, socket) do
-    {:noreply,
-     socket
-     |> assign(local_user_id: user_id)
-     |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], user_id))
-     |> start_history_page(user_id, socket.assigns.filters)
-     |> start_history_batches(user_id, true)}
-  end
+  def handle_event("assign-user-id", _params, socket), do: {:noreply, socket}
 
   def handle_event("filter", params, socket) do
     filters = %{

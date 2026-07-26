@@ -97,13 +97,13 @@ defmodule StickerWeb.HistoryLiveTest do
            )
   end
 
-  test "assign-user-id is idempotent when the session identity already matches" do
+  test "stale assign-user-id is always a no-op" do
     socket = %Phoenix.LiveView.Socket{
       assigns: %{__changed__: %{}, local_user_id: "same-user"}
     }
 
     assert {:noreply, ^socket} =
-             HistoryLive.handle_event("assign-user-id", %{"userId" => "same-user"}, socket)
+             HistoryLive.handle_event("assign-user-id", %{"userId" => "attacker-user"}, socket)
   end
 
   test "stale history page results do not replace a newer request" do

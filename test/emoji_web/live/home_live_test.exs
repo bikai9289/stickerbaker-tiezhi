@@ -89,10 +89,11 @@ defmodule StickerWeb.HomeLiveTest do
     assert render(view) =~ "The prompt could not pass the safety check."
   end
 
-  test "restores a guest's recent generations when browser identity arrives after mount", %{
+  test "stale assign-user-id cannot replace the server-owned guest identity", %{
     conn: conn
   } do
-    guest_user_id = "guest-restored-after-mount"
+    guest_user_id = "guest_server_owned"
+    attacker_user_id = "guest_attacker_owned"
 
     prediction =
       prediction_fixture(%{
@@ -106,25 +107,26 @@ defmodule StickerWeb.HomeLiveTest do
         credit_owner_id: guest_user_id
       })
 
-    completed_prediction =
+    attacker_prediction =
       prediction_fixture(%{
-        local_user_id: guest_user_id,
-        prompt: "A finished portrait sticker",
+        local_user_id: attacker_user_id,
+        prompt: "An attacker-owned sticker",
         status: :succeeded,
         sticker_output: "https://example.com/finished-portrait.png",
         credit_source: "guest",
-        credit_owner_id: guest_user_id
+        credit_owner_id: attacker_user_id
       })
 
+    conn = init_test_session(conn, %{local_user_id: guest_user_id})
     {:ok, view, html} = live(conn, ~p"/")
 
-    refute html =~ prediction.prompt
-    refute html =~ completed_prediction.prompt
+    assert html =~ prediction.prompt
+    refute html =~ attacker_prediction.prompt
 
-    html = render_hook(view, "assign-user-id", %{"userId" => guest_user_id})
+    html = render_hook(view, "assign-user-id", %{"userId" => attacker_user_id})
 
     assert html =~ prediction.prompt
-    assert html =~ completed_prediction.prompt
+    refute html =~ attacker_prediction.prompt
     assert html =~ "Preparing portrait"
   end
 

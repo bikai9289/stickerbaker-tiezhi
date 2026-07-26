@@ -81,12 +81,6 @@ defmodule StickerWeb.Router do
     get "/terms-of-service", PageController, :terms_of_service
   end
 
-  # Other scopes may use custom stacks.
-  scope "/api", StickerWeb do
-    pipe_through :api
-    post "/session", SessionController, :set
-  end
-
   scope "/webhooks", StickerWeb do
     post "/replicate", ReplicateWebhookController, :handle
     post "/stripe", StripeWebhookController, :handle
