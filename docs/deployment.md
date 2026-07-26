@@ -23,6 +23,9 @@ Add these in GitHub repo settings:
 | `DEPLOY_APP_DIR` | `/opt/stickerbaker` | Absolute project path on the server. |
 | `DEPLOY_RESTART_COMMAND` | `docker compose up -d --build` | Optional custom restart command. The workflow runs `/app/bin/migrate` afterward when a compose file is present. |
 | `DEPLOY_HEALTH_URL` | `https://ai-sticker-maker.com/` | Optional health check URL. |
+| `GUEST_IP_HASH_SECRET` | Random 48-byte base64url value | Required stable HMAC key for the guest network quota. |
+| `TURNSTILE_SITE_KEY` | Cloudflare widget site key | Optional, but must be configured together with `TURNSTILE_SECRET_KEY`. |
+| `TURNSTILE_SECRET_KEY` | Cloudflare widget secret key | Optional, but must be configured together with `TURNSTILE_SITE_KEY`. |
 
 ## Recommended SSH Key Setup
 
@@ -45,6 +48,10 @@ The workflow tries these in order:
 3. `sudo systemctl restart sticker`, if `sticker.service` exists.
 
 Set `DEPLOY_RESTART_COMMAND` when the server uses a custom command.
+
+Before restarting, the workflow atomically updates the three guest-protection variables in the
+server's `.env` file with `0600` permissions. Removing both Turnstile repository secrets disables
+the challenge on the next deployment while keeping the server-issued guest cookie and IP ledger.
 
 ## Manual Deploy
 
