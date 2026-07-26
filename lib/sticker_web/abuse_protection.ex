@@ -12,15 +12,11 @@ defmodule StickerWeb.AbuseProtection do
   @auth_window_seconds 60 * 60
 
   def client_ip(conn) do
-    forwarded_for =
-      conn
-      |> get_req_header("x-forwarded-for")
-      |> List.first()
-
-    forwarded_for
-    |> first_forwarded_ip()
+    conn
+    |> get_req_header("x-forwarded-for")
+    |> rightmost_forwarded_ip()
     |> case do
-      nil -> conn.remote_ip |> :inet.ntoa() |> to_string()
+      nil -> canonical_ip(conn.remote_ip)
       ip -> ip
     end
   end
@@ -69,16 +65,29 @@ defmodule StickerWeb.AbuseProtection do
     end
   end
 
-  defp first_forwarded_ip(nil), do: nil
+  defp rightmost_forwarded_ip(values) do
+    values
+    |> Enum.flat_map(&String.split(&1, ","))
+    |> Enum.reverse()
+    |> Enum.find_value(fn value ->
+      value
+      |> String.trim()
+      |> parse_ip_literal()
+    end)
+  end
 
-  defp first_forwarded_ip(value) do
-    value
-    |> String.split(",", parts: 2)
-    |> hd()
-    |> String.trim()
-    |> case do
-      "" -> nil
-      ip -> ip
+  defp parse_ip_literal(""), do: nil
+
+  defp parse_ip_literal(value) do
+    case :inet.parse_address(String.to_charlist(value)) do
+      {:ok, address} -> canonical_ip(address)
+      {:error, _reason} -> nil
     end
+  end
+
+  defp canonical_ip(address) do
+    address
+    |> :inet.ntoa()
+    |> to_string()
   end
 end
