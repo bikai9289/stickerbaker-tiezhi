@@ -81,6 +81,19 @@ defmodule Sticker.GuestGenerationGateTest do
     assert Repo.one!(Attempt).turnstile_verified
   end
 
+  test "challenge requirement preview does not verify or reserve" do
+    enable_turnstile()
+    guest_user_id = "gst_preview_guest"
+    {:ok, _allowance} = GuestTrials.spend_credits(guest_user_id, 1)
+    attrs = gate_attrs(guest_user_id, "203.0.113.36", mode: :portrait)
+
+    assert {:ok, %{challenge_required?: true, challenge_reason: :repeat_guest}} =
+             GuestGenerationGate.challenge_requirement(attrs)
+
+    assert Repo.aggregate(Attempt, :count) == 0
+    refute_received {:verify, _, _, _}
+  end
+
   test "three recent tasks or two identities challenge a first request" do
     enable_turnstile()
     now = ~U[2026-07-26 02:00:00.000000Z]

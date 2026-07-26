@@ -199,6 +199,21 @@
               </div>
             </div>
 
+            <div
+              :if={@turnstile_required? and @turnstile_site_key}
+              id="guest-turnstile"
+              class="saas-security-check"
+              phx-hook="Turnstile"
+              phx-update="ignore"
+              data-site-key={@turnstile_site_key}
+              data-action="sticker_generation"
+            >
+              <div data-turnstile-container></div>
+            </div>
+            <p :if={@turnstile_required?} class="saas-security-help">
+              Complete the security check to continue.
+            </p>
+
             <div class="saas-generator-footer">
               <div class="saas-credit-summary">
                 <%= if @current_user do %>
@@ -228,7 +243,10 @@
               <button
                 name="submit"
                 value="generate"
-                disabled={@generator_mode == :portrait && @uploads.image.entries == []}
+                disabled={
+                  (@generator_mode == :portrait && @uploads.image.entries == []) or
+                    (@turnstile_required? and @turnstile_token in [nil, ""])
+                }
                 phx-disable-with={
                   if @generator_mode == :portrait,
                     do: "Preparing portrait...",

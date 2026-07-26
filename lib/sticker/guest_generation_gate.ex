@@ -5,6 +5,31 @@ defmodule Sticker.GuestGenerationGate do
 
   @guest_id_format ~r/^[A-Za-z0-9_-]{6,128}$/
 
+  def challenge_requirement(attrs, now \\ DateTime.utc_now())
+
+  def challenge_requirement(%{current_user: current_user}, _now) when not is_nil(current_user) do
+    {:ok, %{challenge_required?: false, challenge_reason: nil}}
+  end
+
+  def challenge_requirement(attrs, now) when is_map(attrs) do
+    with {:ok, guest_user_id} <- validate_guest_user_id(attrs[:guest_user_id]),
+         {:ok, canonical_ip} <- validate_ip(attrs[:canonical_ip]),
+         {:ok, _mode} <- validate_mode(attrs[:mode]),
+         {:ok, task_count} <- validate_task_count(attrs[:task_count]),
+         :ok <- validate_guest_credits(guest_user_id, task_count) do
+      reason = challenge_reason(guest_user_id, GuestAbuse.ip_hash(canonical_ip), now)
+      required? = Turnstile.configured?() and not is_nil(reason)
+
+      {:ok,
+       %{
+         challenge_required?: required?,
+         challenge_reason: if(required?, do: reason)
+       }}
+    end
+  end
+
+  def challenge_requirement(_attrs, _now), do: {:error, :invalid_generation_request}
+
   def authorize(attrs, now \\ DateTime.utc_now())
 
   def authorize(%{current_user: current_user}, _now) when not is_nil(current_user) do

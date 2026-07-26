@@ -2754,3 +2754,13 @@ html {
     padding: 0 16px;
     pointer-events: none;
   }
+.saas-security-check {
+  min-height: 65px;
+  padding: 12px 16px 0;
+}
+
+.saas-security-help {
+  margin: 6px 16px 0;
+  color: #475569;
+  font-size: 0.875rem;
+}

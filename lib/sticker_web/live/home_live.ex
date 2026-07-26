@@ -2,17 +2,32 @@ defmodule StickerWeb.HomeLive do
   use StickerWeb, :live_view
   alias Sticker.GenerationLauncher
   alias Sticker.GenerationCredits
+  alias Sticker.GuestGenerationGate
   alias Sticker.GuestTrials
   alias Sticker.PromptInput
   alias Sticker.Predictions
   alias Sticker.Repo
+  alias Sticker.Turnstile
   alias StickerWeb.SEO, as: PageSEO
 
   @accepted ~w(.jpg .jpeg .png)
   @face_sticker_prompt "A cute, clean portrait sticker with a white border, expressive face, simple background, high quality"
+  @gate_errors [
+    :guest_identity_missing,
+    :guest_credits_exhausted,
+    :guest_ip_limited,
+    :turnstile_required,
+    :turnstile_invalid,
+    :turnstile_expired,
+    :turnstile_unavailable,
+    :attempt_duplicate,
+    :invalid_generation_request
+  ]
 
   def mount(_params, session, socket) do
     local_user_id = session["local_user_id"]
+    guest_user_id = session["guest_user_id"]
+    guest_trial = guest_trial_for(socket.assigns[:current_user], local_user_id)
     recent_predictions = home_predictions(local_user_id)
 
     if connected?(socket) do
@@ -33,7 +48,15 @@ defmodule StickerWeb.HomeLive do
      |> assign(:batch_mode, false)
      |> assign(:prompt_restored?, false)
      |> assign(local_user_id: local_user_id)
-     |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], local_user_id))
+     |> assign(guest_user_id: guest_user_id)
+     |> assign(canonical_ip: session["guest_client_ip"])
+     |> assign(guest_trial: guest_trial)
+     |> assign(request_id: Ecto.UUID.generate())
+     |> assign(turnstile_token: nil)
+     |> assign(turnstile_site_key: Turnstile.site_key())
+     |> assign(
+       turnstile_required?: repeat_guest_challenge?(socket.assigns[:current_user], guest_trial)
+     )
      |> assign(:showcase_items, showcase_items())
      |> assign(:my_eager_ids, eager_prediction_ids(recent_predictions))
      |> stream(:my_predictions, recent_predictions)
@@ -91,6 +114,10 @@ defmodule StickerWeb.HomeLive do
 
   def handle_event("assign-user-id", _params, socket), do: {:noreply, socket}
 
+  def handle_event("turnstile-token", %{"token" => token}, socket) do
+    {:noreply, assign(socket, :turnstile_token, String.trim(to_string(token)))}
+  end
+
   def handle_event("save", %{"prompt" => prompt}, socket) do
     if socket.assigns.generator_mode == :portrait do
       start_portrait_generation(socket)
@@ -124,6 +151,7 @@ defmodule StickerWeb.HomeLive do
     user_id = generation_user_id(socket)
 
     with {:ok, prompts} <- PromptInput.parse(prompt, batch?: socket.assigns.batch_mode),
+         {:ok, _authorization} <- authorize_generation(socket, :text, length(prompts)),
          {:ok, credit_result, predictions} <-
            start_text_predictions(socket.assigns.current_user, user_id, prompts) do
       Enum.each(predictions, &GenerationLauncher.start_text/1)
@@ -138,10 +166,14 @@ defmodule StickerWeb.HomeLive do
       {:noreply,
        socket
        |> assign_credit_result(credit_result)
+       |> complete_generation_request()
        |> assign(form: to_form(%{"prompt" => ""}))
        |> track_guest_generation(credit_result, "text", length(predictions))
        |> put_flash(:info, generation_started_message(predictions))}
     else
+      {:error, reason} when reason in @gate_errors ->
+        generation_gate_error(socket, reason)
+
       {:error, :empty_prompt} ->
         {:noreply, put_flash(socket, :error, "Add at least one sticker prompt.")}
 
@@ -318,12 +350,14 @@ defmodule StickerWeb.HomeLive do
     user_id = generation_user_id(socket)
     prompt = face_sticker_prompt(socket.assigns.form)
 
-    with {:ok, user_id} <- require_generation_user_id(user_id),
+    with :ok <- ensure_generation_challenge(socket, :portrait, 1),
+         {:ok, user_id} <- require_generation_user_id(user_id),
          :ok <- Predictions.check_generation_limits(user_id, 1),
          true <- GenerationCredits.has_credits?(socket.assigns.current_user, user_id, 1),
          %{data_uri: _data_uri} = upload <- uploaded_entry_data(socket, entry),
          :ok <- Sticker.ImageSafety.review(upload.data_uri),
          {:ok, source_image_url} <- save_source_image(upload),
+         {:ok, _authorization} <- authorize_generation(socket, :portrait, 1),
          {:ok, credit_result, prediction} <-
            create_face_prediction(
              socket.assigns.current_user,
@@ -337,11 +371,15 @@ defmodule StickerWeb.HomeLive do
       {:noreply,
        socket
        |> assign_credit_result(credit_result)
+       |> complete_generation_request()
        |> mark_prediction_eager(prediction)
        |> stream_insert(:my_predictions, prediction, at: 0)
        |> track_guest_generation(credit_result, "face", 1)
        |> put_flash(:info, "Face sticker generation started.")}
     else
+      {:error, reason} when reason in @gate_errors ->
+        generation_gate_error(socket, reason)
+
       {:error, :insufficient_credits} ->
         {:noreply,
          put_flash(
@@ -444,9 +482,13 @@ defmodule StickerWeb.HomeLive do
     file_name =
       "source-#{Base.url_encode64(:crypto.strong_rand_bytes(12), padding: false)}.#{extension}"
 
-    {:ok, Sticker.Utils.save_r2_upload(file_name, bytes, content_type)}
+    {:ok, source_image_storage().save_r2_upload(file_name, bytes, content_type)}
   rescue
     _reason -> {:error, :source_image_upload_failed}
+  end
+
+  defp source_image_storage do
+    Application.get_env(:sticker, :source_image_storage, Sticker.Utils)
   end
 
   defp create_face_prediction(current_user, user_id, prompt, upload, source_image_url) do
@@ -502,6 +544,120 @@ defmodule StickerWeb.HomeLive do
   end
 
   defp guest_trial_for(_current_user, _local_user_id), do: nil
+
+  defp authorize_generation(socket, mode, task_count) do
+    GuestGenerationGate.authorize(generation_gate_attrs(socket, mode, task_count))
+  end
+
+  defp ensure_generation_challenge(socket, mode, task_count) do
+    with {:ok, preview} <-
+           GuestGenerationGate.challenge_requirement(
+             generation_gate_attrs(socket, mode, task_count)
+           ) do
+      if preview.challenge_required? and socket.assigns.turnstile_token in [nil, ""] do
+        {:error, :turnstile_required}
+      else
+        :ok
+      end
+    end
+  end
+
+  defp generation_gate_attrs(socket, mode, task_count) do
+    %{
+      current_user: socket.assigns.current_user,
+      guest_user_id: socket.assigns.guest_user_id,
+      canonical_ip: socket.assigns.canonical_ip,
+      request_id: socket.assigns.request_id,
+      mode: mode,
+      task_count: task_count,
+      turnstile_token: socket.assigns.turnstile_token
+    }
+  end
+
+  defp generation_gate_error(socket, :turnstile_required) do
+    {:noreply,
+     socket
+     |> assign(:turnstile_required?, true)
+     |> put_flash(:error, "Complete the security check to continue.")}
+  end
+
+  defp generation_gate_error(socket, reason)
+       when reason in [:turnstile_invalid, :turnstile_expired] do
+    {:noreply,
+     socket
+     |> reset_generation_request(keep_challenge?: true)
+     |> put_flash(:error, "Security check expired. Please try again.")}
+  end
+
+  defp generation_gate_error(socket, :turnstile_unavailable) do
+    {:noreply,
+     socket
+     |> reset_generation_request(keep_challenge?: true)
+     |> put_flash(:error, "Security check is temporarily unavailable. Please try again.")}
+  end
+
+  defp generation_gate_error(socket, :guest_ip_limited) do
+    {:noreply,
+     socket
+     |> reset_generation_request()
+     |> put_flash(
+       :error,
+       "This network has reached its free generation limit for the last 24 hours. Sign in to continue with account credits."
+     )}
+  end
+
+  defp generation_gate_error(socket, :guest_credits_exhausted) do
+    {:noreply,
+     socket
+     |> reset_generation_request()
+     |> put_flash(
+       :error,
+       "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
+     )}
+  end
+
+  defp generation_gate_error(socket, :attempt_duplicate) do
+    recent_predictions = home_predictions(generation_user_id(socket))
+
+    {:noreply,
+     socket
+     |> reset_generation_request()
+     |> assign(:my_eager_ids, eager_prediction_ids(recent_predictions))
+     |> stream(:my_predictions, recent_predictions, reset: true)
+     |> put_flash(:info, "This request was already received. Your latest results were refreshed.")}
+  end
+
+  defp generation_gate_error(socket, _reason) do
+    {:noreply,
+     socket
+     |> reset_generation_request()
+     |> put_flash(
+       :error,
+       "We could not prepare your guest trial. Refresh the page or sign in to continue."
+     )}
+  end
+
+  defp complete_generation_request(socket) do
+    reset_generation_request(socket,
+      keep_challenge?: repeat_guest_challenge?(socket.assigns.current_user, socket.assigns.guest_trial)
+    )
+  end
+
+  defp reset_generation_request(socket, opts \\ []) do
+    keep_challenge? = Keyword.get(opts, :keep_challenge?, false)
+
+    socket
+    |> assign(request_id: Ecto.UUID.generate())
+    |> assign(turnstile_token: nil)
+    |> assign(turnstile_required?: keep_challenge?)
+    |> push_event("turnstile-reset", %{})
+  end
+
+  defp repeat_guest_challenge?(nil, %{credits_spent: credits_spent})
+       when credits_spent > 0,
+       do: Turnstile.configured?()
+
+  defp repeat_guest_challenge?(_current_user, _guest_trial), do: false
 
   defp refresh_credit_assigns(%{assigns: %{current_user: nil}} = socket, user_id) do
     assign(socket, :guest_trial, GuestTrials.get_allowance(user_id))

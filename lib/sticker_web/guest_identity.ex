@@ -1,6 +1,8 @@
 defmodule StickerWeb.GuestIdentity do
   import Plug.Conn
 
+  alias StickerWeb.AbuseProtection
+
   @cookie "_sticker_guest"
   @max_age 365 * 24 * 60 * 60
   @format ~r/^gst_[A-Za-z0-9_-]{32,}$/
@@ -17,6 +19,7 @@ defmodule StickerWeb.GuestIdentity do
     conn
     |> maybe_put_guest_cookie(guest_user_id)
     |> put_session(:guest_user_id, guest_user_id)
+    |> put_session(:guest_client_ip, AbuseProtection.client_ip(conn))
     |> put_session(:local_user_id, generation_user_id(conn, guest_user_id))
   end
 
