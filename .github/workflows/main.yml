@@ -81,6 +81,37 @@ jobs:
               trap - EXIT
             }
 
+            verify_guest_protection_runtime() {
+              if ! has_compose_file; then
+                return
+              fi
+
+              docker compose exec -T app sh -lc '
+                if [ -n "${GUEST_IP_HASH_SECRET:-}" ]; then
+                  echo "GUEST_IP_HASH_SECRET=present"
+                else
+                  echo "GUEST_IP_HASH_SECRET=missing"
+                  exit 1
+                fi
+              '
+
+              if [ -n "$TURNSTILE_SITE_KEY" ]; then
+                docker compose exec -T app sh -lc '
+                  missing=0
+                  for key in TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY; do
+                    eval "value=\${$key:-}"
+                    if [ -n "$value" ]; then
+                      echo "$key=present"
+                    else
+                      echo "$key=missing"
+                      missing=1
+                    fi
+                  done
+                  exit "$missing"
+                '
+              fi
+            }
+
             if [ -z "$APP_DIR" ]; then
               echo "DEPLOY_APP_DIR is required."
               exit 1
@@ -109,6 +140,8 @@ jobs:
               echo "sudo systemctl restart sticker"
               exit 1
             fi
+
+            verify_guest_protection_runtime
 
             if [ -z "$HEALTH_URL" ]; then
               HEALTH_URL="https://ai-sticker-maker.com/"
