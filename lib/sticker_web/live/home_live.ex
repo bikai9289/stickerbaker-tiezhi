@@ -14,10 +14,10 @@ defmodule StickerWeb.HomeLive do
 
   def mount(_params, session, socket) do
     local_user_id = session["local_user_id"]
-    loading_predictions = Predictions.list_loading_predictions(local_user_id)
+    recent_predictions = home_predictions(local_user_id)
 
     if connected?(socket) do
-      Enum.each(loading_predictions, &GenerationLauncher.resume_stale/1)
+      resume_active_predictions(recent_predictions)
     end
 
     {:ok,
@@ -36,8 +36,8 @@ defmodule StickerWeb.HomeLive do
      |> assign(local_user_id: local_user_id)
      |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], local_user_id))
      |> assign(:showcase_items, showcase_items())
-     |> assign(:my_eager_ids, eager_prediction_ids(loading_predictions))
-     |> stream(:my_predictions, loading_predictions)
+     |> assign(:my_eager_ids, eager_prediction_ids(recent_predictions))
+     |> stream(:my_predictions, recent_predictions)
      |> allow_upload(:image,
        accept: @accepted,
        max_entries: 1,
@@ -92,11 +92,15 @@ defmodule StickerWeb.HomeLive do
 
   def handle_event("assign-user-id", %{"userId" => user_id}, socket) do
     PubSub.subscribe(Sticker.PubSub, "user:#{user_id}")
+    recent_predictions = home_predictions(user_id)
+    resume_active_predictions(recent_predictions)
 
     {:noreply,
      socket
      |> assign(local_user_id: user_id)
-     |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], user_id))}
+     |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], user_id))
+     |> assign(:my_eager_ids, eager_prediction_ids(recent_predictions))
+     |> stream(:my_predictions, recent_predictions, reset: true)}
   end
 
   def handle_event("save", %{"prompt" => prompt}, socket) do
@@ -521,6 +525,15 @@ defmodule StickerWeb.HomeLive do
 
   defp eager_prediction_ids(predictions) do
     predictions |> Enum.take(4) |> Enum.map(& &1.id)
+  end
+
+  defp home_predictions(nil), do: []
+  defp home_predictions(user_id), do: Predictions.list_user_recent_predictions(user_id, 12)
+
+  defp resume_active_predictions(predictions) do
+    predictions
+    |> Enum.filter(&(&1.status in [:starting, :moderation_succeeded, :processing]))
+    |> Enum.each(&GenerationLauncher.resume_stale/1)
   end
 
   defp mark_prediction_eager(socket, prediction) do

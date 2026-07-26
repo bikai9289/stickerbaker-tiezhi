@@ -89,6 +89,45 @@ defmodule StickerWeb.HomeLiveTest do
     assert render(view) =~ "The prompt could not pass the safety check."
   end
 
+  test "restores a guest's recent generations when browser identity arrives after mount", %{
+    conn: conn
+  } do
+    guest_user_id = "guest-restored-after-mount"
+
+    prediction =
+      prediction_fixture(%{
+        local_user_id: guest_user_id,
+        prompt: "A portrait sticker still being prepared",
+        status: :starting,
+        model: "face-to-sticker",
+        sticker_output: nil,
+        no_bg_output: nil,
+        credit_source: "guest",
+        credit_owner_id: guest_user_id
+      })
+
+    completed_prediction =
+      prediction_fixture(%{
+        local_user_id: guest_user_id,
+        prompt: "A finished portrait sticker",
+        status: :succeeded,
+        sticker_output: "https://example.com/finished-portrait.png",
+        credit_source: "guest",
+        credit_owner_id: guest_user_id
+      })
+
+    {:ok, view, html} = live(conn, ~p"/")
+
+    refute html =~ prediction.prompt
+    refute html =~ completed_prediction.prompt
+
+    html = render_hook(view, "assign-user-id", %{"userId" => guest_user_id})
+
+    assert html =~ prediction.prompt
+    assert html =~ completed_prediction.prompt
+    assert html =~ "Preparing portrait"
+  end
+
   test "canceling an active generation refunds once and rejects completion races", %{conn: conn} do
     user = user_fixture()
 
