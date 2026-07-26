@@ -23,6 +23,40 @@ end
 config :replicate,
   replicate_api_token: System.get_env("REPLICATE_API_TOKEN")
 
+normalize_secret = fn
+  value when is_binary(value) ->
+    case String.trim(value) do
+      "" -> nil
+      value -> value
+    end
+
+  _value ->
+    nil
+end
+
+turnstile_site_key = normalize_secret.(System.get_env("TURNSTILE_SITE_KEY"))
+turnstile_secret_key = normalize_secret.(System.get_env("TURNSTILE_SECRET_KEY"))
+
+case {turnstile_site_key, turnstile_secret_key} do
+  {nil, nil} ->
+    config :sticker, :turnstile, enabled: false
+
+  {site_key, secret_key} when is_binary(site_key) and is_binary(secret_key) ->
+    config :sticker, :turnstile,
+      enabled: true,
+      site_key: site_key,
+      secret_key: secret_key,
+      expected_hostnames: ["ai-sticker-maker.com", "www.ai-sticker-maker.com"],
+      action: "sticker_generation"
+
+  _partial ->
+    raise "TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY must be configured together"
+end
+
+if guest_ip_hash_secret = normalize_secret.(System.get_env("GUEST_IP_HASH_SECRET")) do
+  config :sticker, :guest_ip_hash_secret, guest_ip_hash_secret
+end
+
 if sentry_dsn = System.get_env("SENTRY_DSN") do
   config :sentry,
     dsn: sentry_dsn,

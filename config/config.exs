@@ -10,6 +10,10 @@ import Config
 config :sticker,
   ecto_repos: [Sticker.Repo]
 
+config :sticker, :turnstile, enabled: false
+config :sticker, :turnstile_verifier, Sticker.Turnstile
+config :sticker, :turnstile_http_client, Sticker.Turnstile.FinchClient
+
 # Configures the endpoint
 config :sticker, StickerWeb.Endpoint,
   url: [host: "localhost"],
