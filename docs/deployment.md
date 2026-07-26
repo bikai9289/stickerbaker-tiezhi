@@ -50,8 +50,10 @@ The workflow tries these in order:
 Set `DEPLOY_RESTART_COMMAND` when the server uses a custom command.
 
 Before restarting, the workflow atomically updates the three guest-protection variables in the
-server's `.env` file with `0600` permissions. Removing both Turnstile repository secrets disables
-the challenge on the next deployment while keeping the server-issued guest cookie and IP ledger.
+server's `.env` file with `0600` permissions. It also creates a dedicated Compose override that
+loads this file into the `app` service while preserving existing Compose overrides. Removing both
+Turnstile repository secrets disables the challenge on the next deployment while keeping the
+server-issued guest cookie and IP ledger.
 
 ## Manual Deploy
 

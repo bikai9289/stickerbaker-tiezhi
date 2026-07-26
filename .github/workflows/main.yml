@@ -48,6 +48,7 @@ jobs:
 
             configure_guest_protection_env() {
               ENV_FILE="$APP_DIR/.env"
+              OVERRIDE_FILE="$APP_DIR/compose.guest-protection.yaml"
 
               if [ -z "$GUEST_IP_HASH_SECRET" ]; then
                 echo "GUEST_IP_HASH_SECRET is required."
@@ -62,7 +63,7 @@ jobs:
 
               umask 077
               TMP_ENV="$(mktemp "$APP_DIR/.env.tmp.XXXXXX")"
-              trap 'rm -f "$TMP_ENV"' EXIT
+              trap 'rm -f "$TMP_ENV" "${TMP_OVERRIDE:-}"' EXIT
 
               if [ -f "$ENV_FILE" ]; then
                 grep -v -E '^(TURNSTILE_SITE_KEY|TURNSTILE_SECRET_KEY|GUEST_IP_HASH_SECRET)=' \
@@ -78,7 +79,42 @@ jobs:
 
               chmod 600 "$TMP_ENV"
               mv "$TMP_ENV" "$ENV_FILE"
+
+              TMP_OVERRIDE="$(mktemp "$APP_DIR/compose.guest-protection.tmp.XXXXXX")"
+              printf '%s\n' \
+                'services:' \
+                '  app:' \
+                '    env_file:' \
+                '      - .env' > "$TMP_OVERRIDE"
+              chmod 600 "$TMP_OVERRIDE"
+              mv "$TMP_OVERRIDE" "$OVERRIDE_FILE"
               trap - EXIT
+            }
+
+            configure_compose_files() {
+              if ! has_compose_file; then
+                return
+              fi
+
+              for candidate in compose.yaml compose.yml docker-compose.yaml docker-compose.yml; do
+                if [ -f "$candidate" ]; then
+                  COMPOSE_FILE="$candidate"
+                  break
+                fi
+              done
+
+              for candidate in \
+                compose.override.yaml \
+                compose.override.yml \
+                docker-compose.override.yaml \
+                docker-compose.override.yml; do
+                if [ -f "$candidate" ]; then
+                  COMPOSE_FILE="$COMPOSE_FILE:$candidate"
+                fi
+              done
+
+              COMPOSE_FILE="$COMPOSE_FILE:$APP_DIR/compose.guest-protection.yaml"
+              export COMPOSE_FILE
             }
 
             verify_guest_protection_runtime() {
@@ -121,6 +157,7 @@ jobs:
             git fetch origin "$BRANCH"
             git reset --hard "origin/$BRANCH"
             configure_guest_protection_env
+            configure_compose_files
 
             if [ -n "$RESTART_COMMAND" ]; then
               sh -lc "$RESTART_COMMAND"
