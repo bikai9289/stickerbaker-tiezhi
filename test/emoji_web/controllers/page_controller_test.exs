@@ -518,10 +518,23 @@ defmodule StickerWeb.PageControllerTest do
       |> Plug.Test.init_test_session(%{local_user_id: local_user_id})
       |> get(~p"/users/register")
 
+    assert get_session(conn, :guest_user_id) == local_user_id
+    assert get_session(conn, :local_user_id) == local_user_id
+    assert Map.has_key?(conn.resp_cookies, "_sticker_guest")
+
+    conn =
+      conn
+      |> recycle()
+      |> get(~p"/users/register")
+
+    assert get_session(conn, :guest_user_id) == local_user_id
+
     captcha_answer = get_session(conn, :captcha_answer)
 
     conn =
-      post(conn, ~p"/users/register", %{
+      conn
+      |> recycle()
+      |> post(~p"/users/register", %{
         "captcha_answer" => captcha_answer,
         "user" => %{"email" => "guest-signup@example.com", "password" => "password123"}
       })
