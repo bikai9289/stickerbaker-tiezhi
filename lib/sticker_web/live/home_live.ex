@@ -40,7 +40,7 @@ defmodule StickerWeb.HomeLive do
        PageSEO.page("/",
          title: "AI Sticker Maker - Free AI Sticker Generator Online",
          description:
-           "Create custom AI stickers from text prompts or portraits. Try 3 free guest generations and download sticker-ready designs online."
+           "Create up to 3 custom AI stickers from text prompts or portraits without an account, then download completed designs as PNG or WebP files."
        )
      )
      |> assign(form: to_form(%{"prompt" => ""}))
@@ -639,7 +639,8 @@ defmodule StickerWeb.HomeLive do
 
   defp complete_generation_request(socket) do
     reset_generation_request(socket,
-      keep_challenge?: repeat_guest_challenge?(socket.assigns.current_user, socket.assigns.guest_trial)
+      keep_challenge?:
+        repeat_guest_challenge?(socket.assigns.current_user, socket.assigns.guest_trial)
     )
   end
 
@@ -780,7 +781,7 @@ defmodule StickerWeb.HomeLive do
           JPG or PNG, up to 8 MB
         </span>
       </label>
-       <.live_file_input upload={@uploads.image} class="sr-only" />
+      <.live_file_input upload={@uploads.image} class="sr-only" />
       <%= for entry <- @uploads.image.entries do %>
         <article class="saas-portrait-preview">
           <figure class="saas-portrait-preview-frame">

@@ -8,7 +8,11 @@
     <div class="saas-container saas-hero-main">
       <div class="saas-hero-intro">
         <div class="saas-hero-copy">
-          <span class="saas-eyebrow">3 free generations - no sign-up required</span>
+          <span class="saas-eyebrow">
+            <%= if @current_user,
+              do: "1 credit per generation - failed generations return it",
+              else: "Create up to 3 stickers - no account required" %>
+          </span>
           <h1>AI Sticker Maker for Custom Stickers</h1>
 
           <p class="saas-lead">
@@ -37,11 +41,13 @@
           </div>
 
           <ul class="saas-hero-proof" aria-label="AI Sticker Maker benefits">
-            <li>3 free guest generations</li>
+            <li :if={is_nil(@current_user)}>No account or payment card required</li>
+
+            <li>Each text or portrait generation uses 1 credit</li>
 
             <li>PNG and WebP downloads</li>
 
-            <li>Failed generations refund credits</li>
+            <li>Failed generations automatically return the credit</li>
           </ul>
         </div>
 
@@ -160,7 +166,7 @@
                   <span class="saas-toggle-track" aria-hidden="true"><span></span></span>
                   Batch mode
                 </button>
-                 <span>Line breaks stay in one prompt unless Batch mode is on.</span>
+                <span>Line breaks stay in one prompt unless Batch mode is on.</span>
               </div>
             </div>
 
@@ -174,7 +180,7 @@
                   <span class="saas-generator-kicker">Create from a photo</span>
                   <h2>Upload a clear portrait</h2>
                 </div>
-                 <span class="saas-cost-badge">1 credit</span>
+                <span class="saas-cost-badge">1 credit</span>
               </div>
 
               <div class="saas-portrait-grid">
@@ -210,6 +216,7 @@
             >
               <div data-turnstile-container></div>
             </div>
+
             <p :if={@turnstile_required?} class="saas-security-help">
               Complete the security check to continue.
             </p>
@@ -237,7 +244,7 @@
                     </.link>
                   <% end %>
                 <% end %>
-                 <span class="saas-credit-safety">Failed generations return the credit.</span>
+                <span class="saas-credit-safety">Failed generations return the credit.</span>
               </div>
 
               <button
@@ -276,9 +283,9 @@
         </div>
 
         <div class="saas-workbench-trust" aria-label="AI Sticker Maker trust signals">
-          <span class="saas-status-chip">Generated examples</span>
+          <span class="saas-status-chip">Text and portrait generation</span>
           <span class="saas-status-chip">Account-linked history and downloads</span>
-          <span class="saas-status-chip">Support and billing help</span>
+          <span class="saas-status-chip">Failed generations return credits</span>
         </div>
       </div>
     </div>
@@ -314,8 +321,8 @@
         <h2>Free AI Sticker Generator Online</h2>
 
         <p class="saas-section-copy">
-          Keep the tool in the first screen: enter a prompt, upload a face, or search sticker
-          ideas without jumping between pages.
+          Create from a text prompt, turn a portrait into a sticker, or browse generated stickers
+          for prompt ideas before making your own.
         </p>
       </div>
 
@@ -341,7 +348,7 @@
 
           <h3>Sticker search</h3>
 
-          <p>Search the generated sticker library once your site has enough saved results.</p>
+          <p>Browse generated stickers for prompt ideas, styles, and subjects.</p>
         </article>
       </div>
     </div>
@@ -396,29 +403,30 @@
   <section id="pricing" class="saas-section saas-section-alt">
     <div class="saas-container">
       <div class="saas-section-head">
-        <h2>Simple credits for AI sticker creation</h2>
+        <h2>Choose a credit pack when you need more</h2>
 
         <p class="saas-section-copy">
-          Start with 3 free credits, then sign in to manage future credits and downloads.
+          Create up to 3 stickers as a guest. Paid packs are one-time purchases for your account,
+          with no subscription.
         </p>
       </div>
 
       <div class="saas-pricing-grid">
         <article class="saas-tile">
-          <h3>Free</h3>
+          <h3>Guest trial</h3>
 
           <div class="saas-price">$0</div>
 
-          <p>3 free credits for testing prompts and trying the AI sticker maker.</p>
+          <p>Up to 3 text or portrait generations. No account or payment card required.</p>
 
-          <.link
+          <a
             class="saas-button saas-button-ghost saas-plan-button"
-            navigate={~p"/users/register"}
-            data-analytics-event="registration_cta_click"
+            href="#generator"
+            data-analytics-event="hero_cta_click"
             data-analytics-context="home_free_plan"
           >
-            Start Free
-          </.link>
+            Create a Free Sticker
+          </a>
         </article>
 
         <article class="saas-tile">
@@ -426,7 +434,7 @@
 
           <div class="saas-price">$4.99</div>
 
-          <p>50 credits for light use, social posts, and quick experiments.</p>
+          <p>One-time purchase of 50 credits for text, portrait, or batch generation.</p>
 
           <.link
             class="saas-button saas-button-primary saas-plan-button"
@@ -443,7 +451,7 @@
 
           <div class="saas-price">$9.99</div>
 
-          <p>150 credits for frequent sticker generation and creative projects.</p>
+          <p>One-time purchase of 150 credits for frequent generation and larger batches.</p>
 
           <.link
             class="saas-button saas-button-ghost saas-plan-button"
@@ -457,9 +465,9 @@
       </div>
 
       <div class="saas-hint-row" aria-label="AI Sticker Maker purchase trust signals">
-        <span class="saas-chip">Secure checkout</span>
-        <span class="saas-chip">Account-linked credits</span>
-        <span class="saas-chip">Refund policy available</span>
+        <span class="saas-chip">No subscription</span>
+        <span class="saas-chip">1 credit per generation</span>
+        <span class="saas-chip">Payment and refund details</span>
       </div>
     </div>
   </section>
@@ -485,20 +493,39 @@
         </details>
 
         <details>
-          <summary>Is this AI sticker generator free?</summary>
+          <summary>How do free generations and credits work?</summary>
 
           <p>
-            New accounts start with 3 free credits. Each text or face sticker generation uses 1
-            credit, and more credits can be added later.
+            Guests can create up to 3 stickers without an account or payment card. Each text or
+            portrait generation uses 1 credit. When you need more, sign in and buy a one-time
+            credit pack. There is no subscription.
           </p>
         </details>
 
         <details>
-          <summary>Why is my sticker still loading?</summary>
+          <summary>What happens if a generation fails?</summary>
 
           <p>
-            AI generation can take time, and public HTTPS webhooks are required in production for
-            reliable completion callbacks.
+            Failed generations automatically return the credit. Try again with a shorter prompt,
+            or use a clear, front-facing portrait with one person and good lighting.
+          </p>
+        </details>
+
+        <details>
+          <summary>Do I need an account?</summary>
+
+          <p>
+            No account is required for the guest trial. Sign in when you want to buy credits and
+            manage account-linked generation history and downloads.
+          </p>
+        </details>
+
+        <details>
+          <summary>Which download formats are available?</summary>
+
+          <p>
+            Completed stickers can be downloaded as PNG or WebP files. Your history also supports
+            individual downloads and batch ZIP downloads for completed results.
           </p>
         </details>
       </div>

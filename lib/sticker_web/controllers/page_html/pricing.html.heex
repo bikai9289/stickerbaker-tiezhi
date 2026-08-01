@@ -6,10 +6,12 @@
   <div class="saas-container">
     <div class="saas-pricing-hero">
       <p class="saas-legal-kicker">Pricing</p>
+
       <h1>Buy AI Sticker Credits</h1>
+
       <p>
-        Try 3 free guest generations. Add more credits with secure checkout, then keep generating
-        text and face stickers from your account.
+        Create up to 3 stickers as a guest. When you need more, buy a one-time credit pack for
+        your account. No subscription.
       </p>
     </div>
 
@@ -20,24 +22,29 @@
 
     <div class="saas-buy-grid">
       <article class="saas-buy-card">
-        <h2>Free</h2>
+        <h2>Guest trial</h2>
         <div class="saas-buy-price">$0</div>
-        <p>3 guest generations before signup, then keep going from your account.</p>
-        <.link
+        <p>
+          Up to 3 text or portrait generations. Each generation uses 1 credit, and no account or
+          payment card is required.
+        </p>
+        <a
           class="saas-button saas-button-ghost"
-          navigate={~p"/users/register"}
-          data-analytics-event="registration_cta_click"
+          href="/#generator"
+          data-analytics-event="hero_cta_click"
           data-analytics-context="pricing_free_plan"
         >
-          Start Free
-        </.link>
+          Create a Free Sticker
+        </a>
       </article>
 
       <article class="saas-buy-card featured">
         <div class="saas-plan-badge">Popular</div>
         <h2>Starter</h2>
         <div class="saas-buy-price">$4.99</div>
-        <p>50 credits for testing prompts, social stickers, and small creative batches.</p>
+        <p>
+          One-time purchase of 50 credits. Each text or portrait generation uses 1 credit.
+        </p>
         <.form
           for={%{}}
           action={~p"/checkout"}
@@ -61,7 +68,9 @@
       <article class="saas-buy-card">
         <h2>Creator</h2>
         <div class="saas-buy-price">$9.99</div>
-        <p>150 credits for frequent generation, variations, and content experiments.</p>
+        <p>
+          One-time purchase of 150 credits for frequent generation and larger creative batches.
+        </p>
         <.form
           for={%{}}
           action={~p"/checkout"}
@@ -84,12 +93,15 @@
     </div>
 
     <div class="saas-buy-note">
-      <strong>Credit purchase confidence:</strong>
-      Secure checkout is handled by the payment provider, and completed payments add credits to
-      the signed-in account. Review <.link navigate={~p"/payment-and-credits"}>
+      <strong>How credits and payment work:</strong>
+      Each paid pack is a one-time purchase, not a subscription. Credits are added to the
+      signed-in account after the payment provider confirms checkout. Failed generations
+      automatically return the credit. Review
+      <.link navigate={~p"/payment-and-credits"}>
         Payment and Credits
       </.link>
-      or <.link navigate={~p"/refund-policy"}>Refund Policy</.link> before you buy.
+      or <.link navigate={~p"/refund-policy"}>Refund Policy</.link>
+      before you buy.
     </div>
   </div>
 </section>

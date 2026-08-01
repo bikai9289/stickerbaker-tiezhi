@@ -33,7 +33,7 @@ defmodule StickerWeb.PageController do
       PageSEO.page("/pricing",
         title: "AI Sticker Maker Pricing - Buy Sticker Credits",
         description:
-          "View AI Sticker Maker pricing, free starter credits, and paid credit packs for text-to-sticker and face-to-sticker generation."
+          "Compare the free guest trial with one-time Starter and Creator credit packs for text-to-sticker and portrait-to-sticker generation."
       )
     )
     |> assign(:checkout, params["checkout"])

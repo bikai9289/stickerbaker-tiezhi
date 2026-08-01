@@ -20,6 +20,48 @@ defmodule StickerWeb.PageControllerTest do
     assert html_response(conn, 200) =~ "AI Sticker Maker"
   end
 
+  test "public copy explains verified credit rules without internal language", %{conn: conn} do
+    homepage = conn |> get(~p"/") |> html_response(200)
+
+    assert homepage =~ "Create up to 3 stickers - no account required"
+    assert homepage =~ "Each text or portrait generation uses 1 credit"
+    assert homepage =~ "Failed generations automatically return the credit"
+    assert homepage =~ "Browse generated stickers for prompt ideas"
+
+    refute homepage =~ "Keep the tool in the first screen"
+    refute homepage =~ "once your site has enough saved results"
+    refute homepage =~ "public HTTPS webhooks"
+    refute homepage =~ "search traffic"
+    refute homepage =~ "future credit-based plans"
+
+    pricing = build_conn() |> get(~p"/pricing") |> html_response(200)
+    {:ok, pricing_document} = Floki.parse_document(pricing)
+
+    pricing_text =
+      pricing_document
+      |> Floki.text()
+      |> String.replace(~r/\s+/, " ")
+
+    assert pricing =~ "one-time credit pack"
+    assert pricing =~ "No subscription"
+    assert pricing =~ "Each text or portrait generation uses 1 credit"
+    assert pricing_text =~ "Failed generations automatically return the credit"
+    assert pricing =~ "Create a Free Sticker"
+  end
+
+  test "signed-in homepage replaces guest offer with account credit guidance", %{conn: conn} do
+    user = user_fixture(%{credits: 12})
+
+    homepage =
+      conn
+      |> Plug.Test.init_test_session(%{user_id: user.id, local_user_id: user.public_id})
+      |> get(~p"/")
+      |> html_response(200)
+
+    assert homepage =~ "1 credit per generation - failed generations return it"
+    refute homepage =~ "Create up to 3 stickers - no account required"
+  end
+
   test "POST /api/session cannot set a guest identity", %{conn: conn} do
     conn = post(conn, "/api/session", %{"local_user_id" => "attacker-selected-id"})
     assert response(conn, 404)
@@ -80,8 +122,8 @@ defmodule StickerWeb.PageControllerTest do
       |> Floki.find(".saas-hero")
       |> Floki.text()
 
-    assert hero_text =~ "3 free generations"
-    assert hero_text =~ "Failed generations refund credits"
+    assert hero_text =~ "Create up to 3 stickers"
+    assert hero_text =~ "Failed generations automatically return the credit"
   end
 
   test "public SEO pages render focused content", %{conn: conn} do
@@ -244,19 +286,18 @@ defmodule StickerWeb.PageControllerTest do
     conn = get(conn, ~p"/")
     body = html_response(conn, 200)
 
-    assert body =~ "Generated examples"
+    assert body =~ "No account or payment card required"
     assert body =~ "PNG and WebP downloads"
-    assert body =~ "Failed generations refund credits"
-    assert body =~ "Support and billing help"
-    assert body =~ "Secure checkout"
-    assert body =~ "Account-linked credits"
-    assert body =~ "Refund policy available"
+    assert body =~ "Failed generations automatically return the credit"
+    assert body =~ "No subscription"
+    assert body =~ "1 credit per generation"
+    assert body =~ "Payment and refund details"
 
     conn = get(build_conn(), ~p"/pricing")
     body = html_response(conn, 200)
 
-    assert body =~ "Credit purchase confidence"
-    assert body =~ "Secure checkout"
+    assert body =~ "How credits and payment work"
+    assert body =~ "one-time purchase"
     assert body =~ "signed-in account"
     assert body =~ "Payment and Credits"
     assert body =~ "Refund Policy"
