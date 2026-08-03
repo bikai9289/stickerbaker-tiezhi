@@ -38,6 +38,51 @@
         </.link>
       <% end %>
     </div>
+
+    <details class="saas-nav-mobile" data-nav-mobile>
+      <summary aria-label="Open navigation menu">
+        <span class="saas-nav-mobile-bars" aria-hidden="true"></span>
+      </summary>
+
+      <nav class="saas-nav-mobile-panel" aria-label="Mobile navigation">
+        <%= if @current_user do %>
+          <span class="saas-nav-mobile-user"><%= @current_user.email %></span>
+        <% end %>
+
+        <a href="/#generator">Generator</a> <a href="/?mode=portrait#generator">Upload</a>
+        <a href="/#latest">Latest</a>
+        <.link
+          navigate={~p"/pricing"}
+          data-analytics-event="pricing_cta_click"
+          data-analytics-context="nav_mobile"
+        >
+          Pricing
+        </.link>
+        <a href="/#faq">FAQ</a>
+
+        <%= if @current_user do %>
+          <.link navigate={~p"/account"}>Account</.link>
+          <.link href={~p"/users/log-out"} method="delete">Sign Out</.link>
+        <% else %>
+          <.link
+            navigate={~p"/users/log-in"}
+            data-analytics-event="login_cta_click"
+            data-analytics-context="nav_mobile"
+          >
+            Sign In
+          </.link>
+
+          <.link
+            class="saas-button saas-button-primary"
+            navigate={~p"/users/register"}
+            data-analytics-event="registration_cta_click"
+            data-analytics-context="nav_mobile"
+          >
+            Create Account
+          </.link>
+        <% end %>
+      </nav>
+    </details>
   </div>
 </header>
 

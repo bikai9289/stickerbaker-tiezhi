@@ -135,6 +135,103 @@ html {
   gap: 10px;
 }
 
+.saas-nav-mobile {
+  position: relative;
+  display: none;
+  justify-self: end;
+}
+
+.saas-nav-mobile > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--saas-line);
+  border-radius: 8px;
+  background: #fff;
+  list-style: none;
+  cursor: pointer;
+}
+
+.saas-nav-mobile > summary::-webkit-details-marker {
+  display: none;
+}
+
+.saas-nav-mobile-bars {
+  position: relative;
+}
+
+.saas-nav-mobile-bars,
+.saas-nav-mobile-bars::before,
+.saas-nav-mobile-bars::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--saas-ink);
+}
+
+.saas-nav-mobile-bars::before,
+.saas-nav-mobile-bars::after {
+  position: absolute;
+  left: 0;
+  content: "";
+}
+
+.saas-nav-mobile-bars::before {
+  top: -6px;
+}
+
+.saas-nav-mobile-bars::after {
+  top: 6px;
+}
+
+.saas-nav-mobile-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+  padding: 10px;
+  border: 1px solid var(--saas-line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--saas-shadow);
+}
+
+.saas-nav-mobile-panel a:not(.saas-button) {
+  padding: 11px 12px;
+  border-radius: 8px;
+  color: var(--saas-ink);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.saas-nav-mobile-panel a:not(.saas-button):hover {
+  background: var(--saas-soft);
+}
+
+.saas-nav-mobile-panel .saas-button {
+  margin-top: 6px;
+}
+
+.saas-nav-mobile-user {
+  max-width: 200px;
+  margin-bottom: 6px;
+  padding: 4px 12px 10px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--saas-line);
+  color: var(--saas-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .saas-user-email {
   max-width: 180px;
   overflow: hidden;
@@ -265,6 +362,12 @@ html {
   border: 8px solid #fff;
   border-radius: 24px;
   box-shadow: 0 22px 55px rgba(24, 32, 51, 0.16);
+}
+
+/* Keep <picture> out of the layout so the img stays a direct grid/flex child. */
+.saas-hero-sticker picture,
+.saas-sticker-art picture {
+  display: contents;
 }
 
 .saas-hero-sticker img {
@@ -2411,11 +2514,24 @@ html {
   }
 
   .saas-nav-inner {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
   }
 
   .saas-nav-links {
     display: none;
+  }
+
+  .saas-nav-mobile {
+    display: block;
+  }
+
+  .saas-nav-actions .saas-button-ghost,
+  .saas-user-email {
+    display: none;
+  }
+
+  .saas-brand {
+    white-space: nowrap;
   }
 
   .saas-feature-grid,
@@ -2514,11 +2630,9 @@ html {
     white-space: nowrap;
   }
 
-  .saas-nav-actions .saas-button-ghost {
-    display: none;
-  }
-
-  .saas-user-email {
+  /* Not enough room for the brand, the primary CTA and the menu button, so
+     the CTA moves into the menu panel. */
+  .saas-nav-actions .saas-button-primary {
     display: none;
   }
 

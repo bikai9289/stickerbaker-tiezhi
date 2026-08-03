@@ -867,6 +867,39 @@ defmodule StickerWeb.HomeLive do
   end
 
   defp showcase_items do
-    Enum.map(showcase_fallbacks(), &Map.put(&1, :type, :fallback))
+    Enum.map(showcase_fallbacks(), fn item ->
+      item
+      |> Map.put(:type, :fallback)
+      |> Map.put(:webp, webp_variant(item.image))
+    end)
+  end
+
+  defp webp_variant("/images/showcase/" <> _ = path) do
+    String.replace_suffix(path, ".png", ".webp")
+  end
+
+  defp webp_variant(_path), do: nil
+
+  attr :src, :string, required: true
+  attr :webp, :string, default: nil
+  attr :alt, :string, required: true
+  attr :class, :string, default: nil
+  attr :loading, :string, default: "lazy"
+
+  defp showcase_image(assigns) do
+    ~H"""
+    <picture>
+      <source :if={@webp} srcset={@webp} type="image/webp" />
+      <img
+        src={@src}
+        alt={@alt}
+        class={@class}
+        width="448"
+        height="448"
+        loading={@loading}
+        decoding="async"
+      />
+    </picture>
+    """
   end
 end

@@ -17,6 +17,15 @@ defmodule StickerWeb.Endpoint do
     websocket: [connect_info: [session: @session_options]],
     longpoll: [connect_info: [session: @session_options]]
 
+  # Images are not content-hashed, so they get a bounded max-age rather than
+  # the immutable one used for digested assets. Filenames change when the
+  # artwork changes.
+  plug Plug.Static,
+    at: "/images",
+    from: {:sticker, "priv/static/images"},
+    gzip: false,
+    cache_control_for_etags: "public, max-age=2592000"
+
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phx.digest

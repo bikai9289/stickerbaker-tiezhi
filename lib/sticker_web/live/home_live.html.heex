@@ -56,7 +56,13 @@
             :for={{item, index} <- Enum.with_index(Enum.take(@showcase_items, 4))}
             class={["saas-hero-sticker", "saas-hero-sticker-#{index + 1}"]}
           >
-            <img src={item.image} alt={item.alt} /> <span><%= item.tag %></span>
+            <.showcase_image
+              src={item.image}
+              webp={item[:webp]}
+              alt={item.alt}
+              loading="eager"
+            />
+            <span><%= item.tag %></span>
           </div>
         </div>
       </div>
@@ -373,7 +379,12 @@
               class="saas-sticker-card saas-real-sticker-card"
             >
               <div class="saas-sticker-art">
-                <img src={item.image} alt={item.alt} class="saas-showcase-image" />
+                <.showcase_image
+                  src={item.image}
+                  webp={item[:webp]}
+                  alt={item.alt}
+                  class="saas-showcase-image"
+                />
               </div>
 
               <div class="saas-sticker-meta">
@@ -385,7 +396,12 @@
           <% else %>
             <article class="saas-sticker-card saas-fallback-sticker-card">
               <div class="saas-sticker-art">
-                <img src={item.image} alt={item.alt} class="saas-showcase-image" />
+                <.showcase_image
+                  src={item.image}
+                  webp={item[:webp]}
+                  alt={item.alt}
+                  class="saas-showcase-image"
+                />
               </div>
 
               <div class="saas-sticker-meta">

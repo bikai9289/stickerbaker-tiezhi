@@ -234,6 +234,25 @@ document.addEventListener("change", (event) => {
   trackPromptInput(event.target);
 });
 
+// The mobile menu is a <details> element, which stays open across LiveView
+// navigation and outside clicks unless closed explicitly.
+document.addEventListener("click", (event) => {
+  const menu = document.querySelector("[data-nav-mobile][open]");
+  if (!menu) return;
+
+  const summary = event.target.closest("summary");
+  if (summary && menu.contains(summary)) return;
+
+  menu.open = false;
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+
+  const menu = document.querySelector("[data-nav-mobile][open]");
+  if (menu) menu.open = false;
+});
+
 window.addEventListener("phx:generation-cancel-result", (event) => {
   safeTrack("generation_cancel_result", {
     context: event.detail?.context,
