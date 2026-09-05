@@ -277,6 +277,7 @@ defmodule StickerWeb.HomeLive do
   def handle_info({:prediction_failed, prediction}, socket) do
     {:noreply,
      socket
+     |> refresh_credit_assigns(generation_user_id(socket))
      |> mark_prediction_eager(prediction)
      |> stream_insert(:my_predictions, prediction, at: 0)
      |> put_flash(
@@ -288,6 +289,7 @@ defmodule StickerWeb.HomeLive do
   def handle_info({:prediction_completed, prediction}, socket) do
     {:noreply,
      socket
+     |> refresh_credit_assigns(generation_user_id(socket))
      |> mark_prediction_eager(prediction)
      |> stream_insert(:my_predictions, prediction)
      |> put_flash(:info, "Sticker generated! Click it to download.")}
