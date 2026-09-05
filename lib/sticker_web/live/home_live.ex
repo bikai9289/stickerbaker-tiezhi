@@ -9,6 +9,7 @@ defmodule StickerWeb.HomeLive do
   alias Sticker.Repo
   alias Sticker.Turnstile
   alias StickerWeb.SEO, as: PageSEO
+  alias StickerWeb.StructuredData
 
   @accepted ~w(.jpg .jpeg .png)
   @face_sticker_prompt "A cute, clean portrait sticker with a white border, expressive face, simple background, high quality"
@@ -43,6 +44,7 @@ defmodule StickerWeb.HomeLive do
            "Create up to 3 custom AI stickers from text prompts or portraits without an account, then download completed designs as PNG or WebP files."
        )
      )
+     |> assign(:structured_data, StructuredData.for_home())
      |> assign(form: to_form(%{"prompt" => ""}))
      |> assign(:generator_mode, :text)
      |> assign(:batch_mode, false)

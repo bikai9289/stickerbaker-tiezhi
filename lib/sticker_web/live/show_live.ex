@@ -57,7 +57,7 @@ defmodule StickerWeb.ShowLive do
          title: "AI Sticker: #{prediction.prompt}",
          description:
            "View and download an AI generated sticker for #{prediction.prompt}. Use it as sticker inspiration or regenerate a variation.",
-         image: prediction.sticker_output || "/og.webp"
+         image: PageSEO.absolute_image_url(prediction.sticker_output)
        )
      )}
   end

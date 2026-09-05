@@ -1,5 +1,6 @@
 defmodule StickerWeb.SEO do
   @base_url "https://ai-sticker-maker.com"
+  @og_image_path "/og.webp"
 
   use SEO,
     json_library: Jason,
@@ -11,12 +12,12 @@ defmodule StickerWeb.SEO do
           "Create up to 3 custom stickers from text or portraits without an account, then download completed designs as PNG or WebP files.",
         site_name: "AI Sticker Maker",
         locale: "en_US",
-        image: "/og.webp"
+        image: @base_url <> @og_image_path
       ),
     twitter:
       SEO.Twitter.build(
         card: :summary,
-        summary_card_image: "/og.webp"
+        summary_card_image: @base_url <> @og_image_path
       )
 
   def site_config(_conn) do
@@ -38,7 +39,7 @@ defmodule StickerWeb.SEO do
     %{
       title: title,
       description: description,
-      image: Keyword.get(opts, :image, "/og.webp"),
+      image: absolute_image_url(Keyword.get(opts, :image)),
       canonical_url: @base_url <> path,
       url: @base_url <> path,
       robots: Keyword.get(opts, :robots)
@@ -50,6 +51,18 @@ defmodule StickerWeb.SEO do
   end
 
   def base_url, do: @base_url
+
+  def og_image_url, do: @base_url <> @og_image_path
+
+  def absolute_image_url(nil), do: og_image_url()
+
+  def absolute_image_url(url) when is_binary(url) do
+    cond do
+      String.starts_with?(url, "https://") or String.starts_with?(url, "http://") -> url
+      String.starts_with?(url, "/") -> @base_url <> url
+      true -> @base_url <> "/" <> url
+    end
+  end
 
   defp normalize_path(path) when is_binary(path) do
     if String.starts_with?(path, "/"), do: path, else: "/" <> path

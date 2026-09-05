@@ -72,6 +72,9 @@ defmodule StickerWeb.Router do
     get "/anime-avatar-sticker", PageController, :anime_avatar_sticker
     get "/kawaii-sticker-maker", PageController, :kawaii_sticker_maker
     get "/transparent-sticker-maker", PageController, :transparent_sticker_maker
+    get "/ai-sticker-generator", PageController, :ai_sticker_generator
+    get "/christmas-ai-sticker-maker", PageController, :christmas_ai_sticker_maker
+    get "/ai-christmas-sticker-generator", PageController, :ai_christmas_sticker_generator
     get "/contact", PageController, :contact
     get "/payment-and-credits", PageController, :payment_and_credits
     get "/privacy-policy", PageController, :privacy_policy

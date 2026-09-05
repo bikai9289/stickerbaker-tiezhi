@@ -27,6 +27,9 @@ defmodule StickerWeb.PageControllerTest do
     assert homepage =~ "Each text or portrait generation uses 1 credit"
     assert homepage =~ "Failed generations automatically return the credit"
     assert homepage =~ "Browse generated stickers for prompt ideas"
+    assert homepage =~ "FAQPage"
+    assert homepage =~ "no sign up"
+    assert homepage =~ ~s(content="https://ai-sticker-maker.com/og.webp")
 
     refute homepage =~ "Keep the tool in the first screen"
     refute homepage =~ "once your site has enough saved results"
@@ -199,6 +202,27 @@ defmodule StickerWeb.PageControllerTest do
     body = html_response(conn, 200)
     assert body =~ "Transparent Sticker Maker"
     assert body =~ "PNG, WebP, and transparent background notes"
+
+    conn = get(build_conn(), ~p"/ai-sticker-generator")
+    body = html_response(conn, 200)
+    assert body =~ "AI Sticker Generator"
+    assert body =~ "Free, no sign up"
+    assert body =~ "FAQPage"
+    assert body =~ "HowTo"
+    assert body =~ "/christmas-ai-sticker-maker"
+
+    conn = get(build_conn(), ~p"/christmas-ai-sticker-maker")
+    body = html_response(conn, 200)
+    assert body =~ "Christmas AI Sticker Maker"
+    assert body =~ "Can I make Christmas stickers with AI?"
+    assert body =~ "/ai-christmas-sticker-generator"
+    assert body =~ "FAQPage"
+
+    conn = get(build_conn(), ~p"/ai-christmas-sticker-generator")
+    body = html_response(conn, 200)
+    assert body =~ "AI Christmas Sticker Generator"
+    assert body =~ "Is the Christmas sticker generator free?"
+    assert body =~ "/christmas-ai-sticker-maker"
   end
 
   test "sitemap includes public SEO landing pages", %{conn: conn} do
@@ -216,6 +240,9 @@ defmodule StickerWeb.PageControllerTest do
     assert body =~ "/anime-avatar-sticker"
     assert body =~ "/kawaii-sticker-maker"
     assert body =~ "/transparent-sticker-maker"
+    assert body =~ "/ai-sticker-generator"
+    assert body =~ "/christmas-ai-sticker-maker"
+    assert body =~ "/ai-christmas-sticker-generator"
     refute body =~ "/account"
     refute body =~ "/admin"
     refute body =~ "/users/register"
@@ -251,7 +278,14 @@ defmodule StickerWeb.PageControllerTest do
       {~p"/sticker-maker-online", "Sticker Maker Online - Create AI Stickers",
        "https://ai-sticker-maker.com/sticker-maker-online"},
       {~p"/anime-avatar-sticker", "Anime Avatar Sticker Generator",
-       "https://ai-sticker-maker.com/anime-avatar-sticker"}
+       "https://ai-sticker-maker.com/anime-avatar-sticker"},
+      {~p"/ai-sticker-generator", "AI Sticker Generator - Free, No Sign Up",
+       "https://ai-sticker-maker.com/ai-sticker-generator"},
+      {~p"/christmas-ai-sticker-maker", "Christmas AI Sticker Maker - Make Holiday Stickers",
+       "https://ai-sticker-maker.com/christmas-ai-sticker-maker"},
+      {~p"/ai-christmas-sticker-generator",
+       "AI Christmas Sticker Generator - Free Holiday Stickers",
+       "https://ai-sticker-maker.com/ai-christmas-sticker-generator"}
     ]
 
     for {path, expected_title, canonical} <- pages do

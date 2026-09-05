@@ -2,6 +2,7 @@ defmodule StickerWeb.PageController do
   use StickerWeb, :controller
 
   alias StickerWeb.SEO, as: PageSEO
+  alias StickerWeb.StructuredData
 
   def home(conn, _params) do
     conn
@@ -332,6 +333,92 @@ defmodule StickerWeb.PageController do
     |> render(:transparent_sticker_maker)
   end
 
+  def ai_sticker_generator(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/ai-sticker-generator",
+        title: "AI Sticker Generator - Free, No Sign Up",
+        description:
+          "Use a free AI sticker generator with no sign up for 3 guest generations. Create stickers from text or portraits and download PNG or WebP files."
+      )
+    )
+    |> assign_structured_data("/ai-sticker-generator", "AI Sticker Generator",
+      steps: [
+        "Open the generator. No sign up is required for the 3 free guest generations.",
+        "Write a short prompt or upload a portrait, then generate the sticker.",
+        "Each generation uses 1 credit. Failed generations return the credit automatically.",
+        "Download completed stickers as PNG or WebP from history."
+      ],
+      faqs: [
+        {"Is this AI sticker generator free?",
+         "Yes. Guests can create up to 3 stickers for free with no sign up and no payment card."},
+        {"Do I need an account to generate stickers?",
+         "No. The guest trial works without an account. Sign in later if you want to buy credits and keep account-linked history."},
+        {"What can I generate?",
+         "You can generate prompt-based stickers, portrait stickers, avatars, mascots, and small batches."}
+      ]
+    )
+    |> render(:ai_sticker_generator)
+  end
+
+  def christmas_ai_sticker_maker(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/christmas-ai-sticker-maker",
+        title: "Christmas AI Sticker Maker - Make Holiday Stickers",
+        description:
+          "Make Christmas stickers with AI. Generate holiday characters, cozy icons, and festive reaction stickers from a prompt. Try 3 free generations with no sign up."
+      )
+    )
+    |> assign_structured_data("/christmas-ai-sticker-maker", "Christmas AI Sticker Maker",
+      steps: [
+        "Describe a Christmas subject such as a cozy tree, gift mascot, or festive portrait.",
+        "Add holiday style words like clean border, snowy colors, or cute winter icon.",
+        "Generate one sticker or a small set of holiday prompts.",
+        "Download PNG or WebP files for chats, cards, and social posts."
+      ],
+      faqs: [
+        {"Can I make Christmas stickers with AI?",
+         "Yes. Write a holiday prompt or upload a festive portrait and generate a sticker-style image."},
+        {"Do I need to sign up?",
+         "No. Guests can try 3 Christmas sticker generations without an account."},
+        {"What Christmas sticker ideas work well?",
+         "Keep one subject: a cocoa mug, tree ornament character, gift box mascot, or cozy winter portrait."}
+      ]
+    )
+    |> render(:christmas_ai_sticker_maker)
+  end
+
+  def ai_christmas_sticker_generator(conn, _params) do
+    conn
+    |> SEO.assign(
+      PageSEO.page("/ai-christmas-sticker-generator",
+        title: "AI Christmas Sticker Generator - Free Holiday Stickers",
+        description:
+          "Generate Christmas stickers with AI from text prompts. Create festive icons, winter characters, and holiday reactions. Free to try with no sign up."
+      )
+    )
+    |> assign_structured_data(
+      "/ai-christmas-sticker-generator",
+      "AI Christmas Sticker Generator",
+      steps: [
+        "Enter a Christmas sticker prompt with one subject and a holiday mood.",
+        "Generate without signing up if you still have guest credits.",
+        "Retry or vary the prompt for a small holiday sticker set.",
+        "Download completed PNG or WebP stickers from history."
+      ],
+      faqs: [
+        {"How do I generate Christmas stickers with AI?",
+         "Describe one festive subject, add a sticker style, and generate. Short prompts stay cleaner at small sizes."},
+        {"Is the Christmas sticker generator free?",
+         "Guests get 3 free generations with no sign up. Extra generations use one-time credit packs."},
+        {"Can I make a holiday sticker pack?",
+         "Yes. Add one Christmas prompt per line in batch mode to generate a small matching set."}
+      ]
+    )
+    |> render(:ai_christmas_sticker_generator)
+  end
+
   def privacy_policy(conn, _params) do
     conn
     |> SEO.assign(
@@ -384,6 +471,9 @@ defmodule StickerWeb.PageController do
       {"/anime-avatar-sticker", "2026-06-25", "0.8"},
       {"/kawaii-sticker-maker", "2026-06-13", "0.8"},
       {"/transparent-sticker-maker", "2026-06-13", "0.8"},
+      {"/ai-sticker-generator", "2026-09-05", "0.9"},
+      {"/christmas-ai-sticker-maker", "2026-09-05", "0.8"},
+      {"/ai-christmas-sticker-generator", "2026-09-05", "0.8"},
       {"/search", "2026-06-13", "0.7"},
       {"/contact", "2026-06-13", "0.5"},
       {"/payment-and-credits", "2026-06-13", "0.5"},
@@ -430,59 +520,6 @@ defmodule StickerWeb.PageController do
   end
 
   defp assign_structured_data(conn, path, name, opts) do
-    assign(conn, :structured_data, [
-      breadcrumb_schema(path, name),
-      how_to_schema(name, Keyword.fetch!(opts, :steps)),
-      faq_schema(Keyword.fetch!(opts, :faqs))
-    ])
-  end
-
-  defp breadcrumb_schema(path, name) do
-    %{
-      "@context" => "https://schema.org",
-      "@type" => "BreadcrumbList",
-      "itemListElement" => [
-        %{
-          "@type" => "ListItem",
-          "position" => 1,
-          "name" => "AI Sticker Maker",
-          "item" => "https://ai-sticker-maker.com/"
-        },
-        %{
-          "@type" => "ListItem",
-          "position" => 2,
-          "name" => name,
-          "item" => "https://ai-sticker-maker.com#{path}"
-        }
-      ]
-    }
-  end
-
-  defp how_to_schema(name, steps) do
-    %{
-      "@context" => "https://schema.org",
-      "@type" => "HowTo",
-      "name" => "How to use #{name}",
-      "step" =>
-        Enum.with_index(steps, 1)
-        |> Enum.map(fn {text, position} ->
-          %{"@type" => "HowToStep", "position" => position, "text" => text}
-        end)
-    }
-  end
-
-  defp faq_schema(faqs) do
-    %{
-      "@context" => "https://schema.org",
-      "@type" => "FAQPage",
-      "mainEntity" =>
-        Enum.map(faqs, fn {question, answer} ->
-          %{
-            "@type" => "Question",
-            "name" => question,
-            "acceptedAnswer" => %{"@type" => "Answer", "text" => answer}
-          }
-        end)
-    }
+    assign(conn, :structured_data, StructuredData.for_page(path, name, opts))
   end
 end
