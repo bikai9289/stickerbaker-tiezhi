@@ -97,6 +97,33 @@ defmodule StickerWeb.HistoryLiveTest do
            )
   end
 
+  test "history live view is subscribed to its own PubSub updates without a refresh", %{
+    conn: conn
+  } do
+    user = user_fixture()
+    conn = Plug.Test.init_test_session(conn, %{user_id: user.id, local_user_id: user.public_id})
+    {:ok, view, _html} = live(conn, ~p"/stickers")
+    _html = render_async(view, 1_000)
+
+    prediction =
+      prediction_fixture(%{
+        local_user_id: user.public_id,
+        prompt: "history sticker finished in the background",
+        status: :succeeded
+      })
+
+    # Regression test: HistoryLive used to never subscribe to "user:<id>", so
+    # completions delivered via PubSub (the real webhook/task path) never
+    # reached the live view until the page was refreshed.
+    Phoenix.PubSub.broadcast(
+      Sticker.PubSub,
+      "user:#{user.public_id}",
+      {:prediction_completed, prediction}
+    )
+
+    assert render(view) =~ "history sticker finished in the background"
+  end
+
   test "stale assign-user-id is always a no-op" do
     socket = %Phoenix.LiveView.Socket{
       assigns: %{__changed__: %{}, local_user_id: "same-user"}

@@ -299,6 +299,36 @@ defmodule StickerWeb.HomeLiveTest do
     assert render(view) =~ "The prompt could not pass the safety check."
   end
 
+  test "guest homepage live view is subscribed to its own PubSub updates without a refresh", %{
+    conn: conn
+  } do
+    conn = get(conn, ~p"/")
+    guest_user_id = get_session(conn, :guest_user_id)
+    {:ok, view, _html} = live(recycle(conn), ~p"/")
+
+    prediction =
+      prediction_fixture(%{
+        local_user_id: guest_user_id,
+        prompt: "A sticker finished in the background",
+        status: :succeeded,
+        sticker_output: "https://example.com/background-finished.png",
+        credit_source: "guest",
+        credit_owner_id: guest_user_id
+      })
+
+    # This mirrors how the real webhook/task pipeline delivers completion: a
+    # PubSub broadcast to "user:<id>", not a direct message to the view pid.
+    # Regression test for a bug where HomeLive never subscribed to this topic,
+    # so guests only saw finished stickers after manually refreshing the page.
+    Phoenix.PubSub.broadcast(
+      Sticker.PubSub,
+      "user:#{guest_user_id}",
+      {:prediction_completed, prediction}
+    )
+
+    assert render(view) =~ "A sticker finished in the background"
+  end
+
   test "stale assign-user-id cannot replace the server-owned guest identity", %{
     conn: conn
   } do

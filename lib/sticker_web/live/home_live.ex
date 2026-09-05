@@ -32,6 +32,10 @@ defmodule StickerWeb.HomeLive do
     recent_predictions = home_predictions(local_user_id)
 
     if connected?(socket) do
+      if is_binary(local_user_id) do
+        Phoenix.PubSub.subscribe(Sticker.PubSub, "user:#{local_user_id}")
+      end
+
       resume_active_predictions(recent_predictions)
     end
 

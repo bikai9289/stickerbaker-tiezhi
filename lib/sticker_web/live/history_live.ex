@@ -42,6 +42,8 @@ defmodule StickerWeb.HistoryLive do
 
     socket =
       if connected?(socket) and is_binary(local_user_id) do
+        Phoenix.PubSub.subscribe(Sticker.PubSub, "user:#{local_user_id}")
+
         socket
         |> assign(guest_trial: guest_trial_for(socket.assigns[:current_user], local_user_id))
         |> start_history_page(local_user_id, filters)
@@ -250,6 +252,15 @@ defmodule StickerWeb.HistoryLive do
     {:noreply, socket}
   end
 
+  def handle_info({event, prediction}, socket)
+      when event in [:prediction_loading, :prediction_completed, :prediction_failed] do
+    {:noreply,
+     socket
+     |> mark_history_eager(prediction)
+     |> stream_insert(:predictions, prediction, at: 0)
+     |> start_history_batches(socket.assigns.local_user_id, false)}
+  end
+
   def selected?(selected_ids, id), do: MapSet.member?(selected_ids, id)
 
   def selected_ids_param(selected_ids) do
@@ -326,6 +337,15 @@ defmodule StickerWeb.HistoryLive do
 
   defp eager_prediction_ids(predictions) do
     predictions |> Enum.take(4) |> Enum.map(& &1.id)
+  end
+
+  defp mark_history_eager(socket, prediction) do
+    eager_ids =
+      [prediction.id | socket.assigns.history_eager_ids]
+      |> Enum.uniq()
+      |> Enum.take(4)
+
+    assign(socket, :history_eager_ids, eager_ids)
   end
 
   defp assign_page(socket, page) do

@@ -10,6 +10,10 @@ defmodule StickerWeb.BatchLive do
     local_user_id = session["local_user_id"]
     {batch, predictions} = load_batch(local_user_id, batch_id)
 
+    if connected?(socket) and is_binary(local_user_id) do
+      Phoenix.PubSub.subscribe(Sticker.PubSub, "user:#{local_user_id}")
+    end
+
     {:ok,
      socket
      |> SEO.assign(
@@ -66,6 +70,15 @@ defmodule StickerWeb.BatchLive do
   def handle_info({:retry_sticker, prediction}, socket) do
     StickerWeb.PredictionRetry.start(prediction)
     {:noreply, socket}
+  end
+
+  def handle_info({event, prediction}, socket)
+      when event in [:prediction_loading, :prediction_completed, :prediction_failed] do
+    if prediction.batch_id == socket.assigns.batch_id do
+      {:noreply, refresh_batch(socket)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def failed_reason(prediction) do
