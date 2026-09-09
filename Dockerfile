@@ -78,6 +78,8 @@ ARG BUILD_REVISION=local
 ARG BUILD_TIME=unknown
 LABEL org.opencontainers.image.revision=$BUILD_REVISION
 LABEL org.opencontainers.image.created=$BUILD_TIME
+ENV BUILD_REVISION=$BUILD_REVISION
+ENV BUILD_TIME=$BUILD_TIME
 
 RUN apt-get update -y \
   && apt-get install -y libstdc++6 openssl libncurses5 locales imagemagick ca-certificates \
