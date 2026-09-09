@@ -55,10 +55,9 @@ defmodule StickerWeb.ReplicateWebhookController do
                 )
 
               broadcast(user_id, {:prediction_failed, prediction})
-
               broadcast(
                 user_id,
-                {:moderation_failed, "AI generated safety rating: #{10 - rating}/10"}
+                {:moderation_failed, "Safety check blocked this prompt: #{10 - rating}/10"}
               )
             end
           end

@@ -46,7 +46,16 @@ defmodule StickerWeb.PredictionRetry do
   end
 
   def start(prediction) do
-    Predictions.moderate(prediction.prompt, prediction.local_user_id, prediction.id)
+    case Predictions.moderate(prediction.prompt, prediction.local_user_id, prediction.id) do
+      {:error, reason} ->
+        Predictions.fail_prediction_and_refund(prediction, :moderation_start, reason)
+
+      _response ->
+        :ok
+    end
+  rescue
+    reason ->
+      Predictions.fail_prediction_and_refund(prediction, :moderation_start, reason)
   end
 
   defp header_content_type(headers) do

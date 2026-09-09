@@ -89,6 +89,40 @@ assert.equal(guestPayload.generation_mode, "text");
 assert.equal(guestPayload.prompt_count, 2);
 assert.equal(guestPayload.remaining_trial_credits, 1);
 assert.equal(guestPayload.prompt, undefined);
+const retryPayload = launchEventPayload(
+  "generation_retry_attempt",
+  {
+    context: "home_failed_card",
+    authState: "known",
+    flow: "text_to_sticker",
+    recoveryAction: "retry",
+    prompt: "private prompt",
+    predictionId: "59",
+    failureReason: "timeout",
+  },
+  { location: { pathname: "/", search: "" }, document: { referrer: "" } },
+);
+
+assert.equal(retryPayload.event_context, "home_failed_card");
+assert.equal(retryPayload.auth_state, "known");
+assert.equal(retryPayload.flow, "text_to_sticker");
+assert.equal(retryPayload.recovery_action, "retry");
+assert.equal(retryPayload.prompt, undefined);
+assert.equal(retryPayload.predictionId, undefined);
+assert.equal(retryPayload.failureReason, undefined);
+
+const failurePayload = launchEventPayload(
+  "generation_failed",
+  {
+    context: "home_failed_card",
+    recoveryAction: "edit_prompt",
+    imageUrl: "https://example.com/private.webp",
+  },
+  { location: { pathname: "/", search: "" }, document: { referrer: "" } },
+);
+
+assert.equal(failurePayload.recovery_action, "edit_prompt");
+assert.equal(failurePayload.imageUrl, undefined);
 
 assert.equal(launchEventPayload("unknown_event", {}, {
   location: { pathname: "/", search: "" },

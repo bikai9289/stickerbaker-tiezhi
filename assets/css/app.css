@@ -532,6 +532,12 @@ html {
   font-weight: 800;
 }
 
+.saas-prompt-meter {
+  color: var(--saas-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .saas-raphael-textarea {
   min-height: 122px;
   height: 100%;
@@ -574,6 +580,41 @@ html {
   gap: 14px;
   min-width: 0;
   white-space: nowrap;
+}
+
+.saas-home-recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.saas-mini-button,
+.saas-example-use {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid #d8e5ff;
+  border-radius: 8px;
+  padding: 7px 11px;
+  background: #fff;
+  color: var(--saas-ink);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.saas-mini-button:hover,
+.saas-example-use:hover {
+  border-color: #8cb7ff;
+  color: var(--saas-primary);
+}
+
+.saas-example-use {
+  width: calc(100% - 24px);
+  margin: 0 12px 12px;
 }
 
 .saas-raphael-credit {

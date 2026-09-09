@@ -96,7 +96,7 @@
 
             <div class="saas-workbench-links">
               <.link navigate={~p"/search"}>Browse prompt ideas</.link>
-              <span class="saas-workbench-note">Square PNG or WebP</span>
+              <span class="saas-workbench-note">1024 x 1024 px by default - PNG/WebP downloads</span>
             </div>
           </div>
 
@@ -152,12 +152,18 @@
                   }
                   required
                   maxlength={if @batch_mode, do: 5_004, else: 1_000}
+                  phx-mounted={JS.focus()}
+                  phx-hook="PromptCounter"
                   class="saas-prompt-input saas-workbench-textarea"
                   data-analytics-input="prompt"
                   data-analytics-context={
                     if @current_user, do: "hero_generator", else: "hero_generator_guest"
                   }
+                  data-prompt-counter={"#{@form[:prompt].id}-counter"}
                 ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
+                <span class="saas-prompt-meter">
+                  <span id={"#{@form[:prompt].id}-counter"}>0</span>/<%= if @batch_mode, do: "5,004", else: "1,000" %> characters
+                </span>
               </label>
 
               <div class="saas-generator-options">
@@ -303,7 +309,7 @@
         <h2>Your Sticker Generations</h2>
 
         <p class="saas-section-copy">
-          Your current session results appear here while stickers are baking.
+          Your current session results appear here while stickers are generating or need attention.
         </p>
       </div>
 
@@ -316,6 +322,40 @@
             cancel_event="cancel-generation"
             eager={prediction.id in @my_eager_ids}
           />
+
+          <div :if={failed_or_canceled?(prediction)} class="saas-home-recovery-actions">
+            <button
+              :if={retryable_home_prediction?(prediction)}
+              type="button"
+              phx-click="retry"
+              phx-value-id={prediction.id}
+              class="saas-mini-button"
+              data-analytics-event="generation_retry_attempt"
+              data-analytics-context="home_failed_card"
+              data-analytics-flow="text_to_sticker"
+              data-analytics-recovery-action="retry"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              phx-click="edit-failed-prompt"
+              phx-value-prompt={prediction.prompt}
+              class="saas-mini-button"
+              data-analytics-event="generation_retry_attempt"
+              data-analytics-context="home_failed_card"
+              data-analytics-flow="text_to_sticker"
+              data-analytics-recovery-action="edit_prompt"
+            >
+              Edit prompt
+            </button>
+            <.link class="saas-mini-button" navigate={~p"/sticker/#{prediction.id}"}>
+              Details
+            </.link>
+            <a class="saas-mini-button" href="mailto:support@ai-sticker-maker.com">
+              Support
+            </a>
+          </div>
         </li>
       </ul>
     </div>
@@ -409,6 +449,18 @@
 
                 <div class="saas-tag"><%= item.tag %></div>
               </div>
+              <button
+                type="button"
+                class="saas-example-use"
+                phx-click="use-example-prompt"
+                phx-value-prompt={item.prompt}
+                data-analytics-event="example_prompt_selected"
+                data-analytics-context="featured_examples"
+                data-analytics-flow="text_to_sticker"
+                data-analytics-recovery-action="seed_prompt"
+              >
+                Use prompt
+              </button>
             </article>
           <% end %>
         <% end %>

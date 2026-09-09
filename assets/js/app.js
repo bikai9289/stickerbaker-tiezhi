@@ -133,6 +133,27 @@ Hooks.PreviewImage = {
   },
 };
 
+Hooks.PromptCounter = {
+  mounted() {
+    this.updateCount = () => {
+      const targetId = this.el.dataset.promptCounter;
+      const target = targetId && document.getElementById(targetId);
+      if (target) target.textContent = String((this.el.value || "").length);
+    };
+
+    this.el.addEventListener("input", this.updateCount);
+    this.updateCount();
+  },
+
+  updated() {
+    this.updateCount?.();
+  },
+
+  destroyed() {
+    this.el.removeEventListener("input", this.updateCount);
+  },
+};
+
 function authStateForElement(target) {
   const scopedAuth = target.closest("[data-auth-state]");
   if (scopedAuth?.dataset?.authState) {

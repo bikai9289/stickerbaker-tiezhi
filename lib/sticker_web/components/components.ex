@@ -66,8 +66,19 @@ defmodule StickerWeb.Components do
       >
         <%= if is_nil(@output) do %>
           <div class="saas-generated-placeholder">
-            <div role="status" class="saas-card-status">
-              <%= if @active? do %>
+            <div
+              role="status"
+              class="saas-card-status"
+              data-analytics-event={if @prediction.status == :failed, do: "generation_failed"}
+              data-analytics-context={if @prediction.status == :failed, do: "result_card"}
+              data-analytics-flow={if @prediction.status == :failed, do: "text_to_sticker"}
+              data-analytics-recovery-action={if @prediction.status == :failed, do: "view_recovery"}
+            >
+              <%= if @prediction.status in [:failed, nil] do %>
+                <strong><%= status_label(@prediction) %></strong>
+                <span><%= status_hint(@prediction) %></span>
+                <span :if={credit_returned?(@prediction)} class="saas-status-pill">Credit returned</span>
+              <% else %>
                 <span class="saas-card-spinner"></span>
                 <strong><%= status_label(@prediction) %></strong>
                 <span><%= status_hint(@prediction) %></span>
@@ -169,7 +180,6 @@ defmodule StickerWeb.Components do
 
   defp status_hint(%{status: :processing}), do: "The image service is creating your sticker."
   defp status_hint(%{status: :moderation_succeeded}), do: "Queued for image generation."
-
   defp status_hint(%{status: :starting, model: "face-to-sticker"}),
     do: "Checking the portrait and preparing the image."
 
@@ -178,7 +188,7 @@ defmodule StickerWeb.Components do
   defp status_hint(%{status: :failed, model: "face-to-sticker"}),
     do: "Try again with a clear, front-facing portrait."
 
-  defp status_hint(%{status: :failed}), do: "Try again with a shorter, clearer prompt."
+  defp status_hint(%{status: :failed}), do: "Retry or edit the prompt."
   defp status_hint(%{status: :canceled}), do: "This generation was stopped before completion."
   defp status_hint(%{status: :succeeded}), do: "The generated file is not available to download."
   defp status_hint(%{status: nil}), do: "This older generation did not finish."

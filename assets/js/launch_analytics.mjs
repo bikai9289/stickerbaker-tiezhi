@@ -122,6 +122,24 @@ export const launchFunnelEvents = {
     requiredParams: ["page_path", "source"],
     optionalParams: [...baseOptionalParams, "auth_state", "flow"],
   },
+  generation_failed: {
+    keyEvent: true,
+    trigger: "Frontend observes a failed sticker result",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state", "flow", "recovery_action"],
+  },
+  generation_retry_attempt: {
+    keyEvent: true,
+    trigger: "Visitor retries a failed generation",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state", "flow", "recovery_action"],
+  },
+  example_prompt_selected: {
+    keyEvent: false,
+    trigger: "Visitor uses a featured example to seed the generator prompt",
+    requiredParams: ["page_path", "source"],
+    optionalParams: [...baseOptionalParams, "auth_state", "flow", "recovery_action"],
+  },
   download_click: {
     keyEvent: true,
     trigger: "Visitor clicks a sticker download control",
@@ -178,6 +196,7 @@ const allowedDetailKeys = new Set([
   "promptLineCount",
   "promptCount",
   "remainingTrialCredits",
+  "recoveryAction",
   "restoredPrompt",
 ]);
 
@@ -193,6 +212,7 @@ const detailPayloadKeys = {
   promptLineCount: "prompt_line_count",
   promptCount: "prompt_count",
   remainingTrialCredits: "remaining_trial_credits",
+  recoveryAction: "recovery_action",
   restoredPrompt: "restored_prompt",
 };
 

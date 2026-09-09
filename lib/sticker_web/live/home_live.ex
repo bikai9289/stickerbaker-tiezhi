@@ -13,6 +13,7 @@ defmodule StickerWeb.HomeLive do
 
   @accepted ~w(.jpg .jpeg .png)
   @face_sticker_prompt "A cute, clean portrait sticker with a white border, expressive face, simple background, high quality"
+  @max_prompt_length 1_000
   @gate_errors [
     :guest_identity_missing,
     :guest_credits_exhausted,
@@ -38,7 +39,6 @@ defmodule StickerWeb.HomeLive do
 
       resume_active_predictions(recent_predictions)
     end
-
     {:ok,
      socket
      |> SEO.assign(
@@ -173,12 +173,12 @@ defmodule StickerWeb.HomeLive do
        socket
        |> assign_credit_result(credit_result)
        |> complete_generation_request()
-       |> assign(form: to_form(%{"prompt" => ""}))
        |> track_guest_generation(credit_result, "text", length(predictions))
        |> put_flash(:info, generation_started_message(predictions))}
     else
       {:error, reason} when reason in @gate_errors ->
         generation_gate_error(socket, reason)
+         |> put_flash(:info, generation_started_message(predictions))}
 
       {:error, :empty_prompt} ->
         {:noreply, put_flash(socket, :error, "Add at least one sticker prompt.")}
@@ -249,13 +249,19 @@ defmodule StickerWeb.HomeLive do
     if prediction.moderation_score < 9 do
       {:noreply,
        socket
-       |> put_flash(:info, "AI generated safety rating:  #{10 - prediction.moderation_score}/10")
+       |> put_flash(
+         :info,
+         "Safety check passed: #{10 - prediction.moderation_score}/10. Generating the sticker now."
+       )
        |> mark_prediction_eager(prediction)
        |> stream_insert(:my_predictions, prediction)}
     else
       {:noreply,
        socket
-       |> put_flash(:error, "AI generated safety rating:  #{10 - prediction.moderation_score}/10")}
+       |> put_flash(
+         :error,
+         "Safety check blocked this prompt: #{10 - prediction.moderation_score}/10."
+       )}
     end
   end
 
@@ -282,8 +288,32 @@ defmodule StickerWeb.HomeLive do
      |> stream_insert(:my_predictions, prediction, at: 0)
      |> put_flash(
        :error,
-       "Image generation failed or timed out. Try a simpler prompt or generate again."
+       "Image generation failed or timed out. Your credit was returned when eligible. Retry or edit the prompt."
      )}
+  end
+
+  def handle_event("edit-failed-prompt", %{"prompt" => prompt}, socket) do
+    {:noreply,
+     socket
+     |> assign(form: to_form(%{"prompt" => prompt}))
+     |> put_flash(:info, "Prompt restored. Edit it, then generate again.")}
+  end
+
+  def handle_event("use-example-prompt", %{"prompt" => prompt}, socket) do
+    {:noreply, assign(socket, form: to_form(%{"prompt" => prompt}))}
+  end
+
+  def handle_event("retry", %{"id" => id}, socket) do
+    case Predictions.retry_user_prediction(id, socket.assigns.local_user_id) do
+      {:ok, _prediction} -> retry_prediction(socket, id)
+      {:error, :not_retryable} ->
+        {:noreply, put_flash(socket, :error, "This older upload sticker has no saved source image. Upload it again.")}
+    end
+  end
+
+  def handle_info({:retry_sticker, prediction}, socket) do
+    StickerWeb.PredictionRetry.start(prediction)
+    {:noreply, socket}
   end
 
   def handle_info({:prediction_completed, prediction}, socket) do
@@ -298,6 +328,50 @@ defmodule StickerWeb.HomeLive do
   def handle_info({:moderation_failed, message}, socket) do
     {:noreply, put_flash(socket, :error, message)}
   end
+
+  defp retry_prediction(socket, id) do
+    user_id = socket.assigns.local_user_id
+
+    case GenerationCredits.spend(socket.assigns.current_user, user_id, 1) do
+      {:ok, credit_result} ->
+        case Predictions.restart_user_prediction(id, user_id, credit_attrs(credit_result)) do
+          {:ok, prediction} ->
+            send(self(), {:retry_sticker, prediction})
+
+            {:noreply,
+             socket
+             |> assign_credit_result(credit_result)
+             |> mark_prediction_eager(prediction)
+             |> stream_insert(:my_predictions, prediction, at: 0)
+             |> put_flash(:info, "Retry started. 1 credit was used.")}
+
+          {:error, _reason} ->
+            {:ok, refreshed} =
+              GenerationCredits.refund(credit_result.credit_source, credit_result.credit_owner_id, 1)
+
+            {:noreply,
+             socket
+             |> assign_credit_result(refresh_credit_result(credit_result, refreshed))
+             |> put_flash(:error, "Could not restart this sticker. Your credit was refunded.")}
+        end
+
+      {:error, :guest_insufficient_credits} ->
+        {:noreply, put_flash(socket, :error, "No guest trial generations left to retry this sticker.")}
+
+      {:error, :insufficient_credits} ->
+        {:noreply, put_flash(socket, :error, "Not enough credits to retry this sticker.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Could not restart this sticker: #{inspect(reason)}")}
+    end
+  end
+
+  defp credit_attrs(credit_result) do
+    %{credit_source: credit_result.credit_source, credit_owner_id: credit_result.credit_owner_id}
+  end
+
+  defp home_predictions(nil), do: []
+  defp home_predictions(user_id), do: Predictions.list_user_recent_predictions(user_id, 12)
 
   defp start_text_predictions(_current_user, _user_id, []), do: {:error, :empty_prompt}
   defp start_text_predictions(nil, nil, _prompts), do: {:error, :missing_guest_identity}
@@ -349,6 +423,11 @@ defmodule StickerWeb.HomeLive do
 
   defp generation_started_message(predictions),
     do: "#{length(predictions)} sticker generations started."
+
+  def failed_or_canceled?(prediction), do: prediction.status in [:failed, :canceled]
+  def retryable_home_prediction?(%{model: "face-to-sticker", source_image_url: nil}), do: false
+  def retryable_home_prediction?(prediction), do: failed_or_canceled?(prediction)
+  def max_prompt_length, do: @max_prompt_length
 
   defp batch_id do
     "batch-" <> Base.url_encode64(:crypto.strong_rand_bytes(8), padding: false)
@@ -827,49 +906,57 @@ defmodule StickerWeb.HomeLive do
         image: "/images/showcase/red-haired-avatar.png",
         alt: "Red-haired character avatar sticker example",
         label: "Red-Haired Avatar",
-        tag: "Avatar"
+        tag: "Avatar",
+        prompt: "red-haired character avatar sticker, expressive smile, clean white border"
       },
       %{
         image: "/images/showcase/cute-girl-cats.png",
         alt: "Cute girl with cats sticker example",
         label: "Cute Girl & Cats",
-        tag: "People"
+        tag: "People",
+        prompt: "cute girl with cats, cozy sticker style, soft colors, white border"
       },
       %{
         image: "/images/showcase/stylish-couple.png",
         alt: "Stylish couple sticker example",
         label: "Stylish Couple",
-        tag: "Couple"
+        tag: "Couple",
+        prompt: "stylish couple portrait sticker, friendly pose, crisp outline"
       },
       %{
         image: "/images/showcase/hanfu-portrait.png",
         alt: "Traditional outfit portrait sticker example",
         label: "Hanfu Portrait",
-        tag: "Avatar"
+        tag: "Avatar",
+        prompt: "traditional outfit portrait sticker, elegant expression, clean border"
       },
       %{
         image: "/images/showcase/anime-boy-avatar.png",
         alt: "Anime boy avatar sticker example",
         label: "Anime Boy",
-        tag: "Avatar"
+        tag: "Avatar",
+        prompt: "anime boy avatar sticker, bright eyes, simple background, white outline"
       },
       %{
         image: "/images/showcase/bearded-character.png",
         alt: "Bearded character portrait sticker example",
         label: "Bearded Character",
-        tag: "People"
+        tag: "People",
+        prompt: "bearded character sticker, warm smile, bold outline, sticker-ready"
       },
       %{
         image: "/images/showcase/banana-cat.png",
         alt: "Cute cat holding a banana sticker example",
         label: "Banana Cat",
-        tag: "Animal"
+        tag: "Animal",
+        prompt: "cute cat holding a banana, playful mascot sticker, clean white border"
       },
       %{
         image: "/images/showcase/calico-cat.png",
         alt: "Calico cat portrait sticker example",
         label: "Calico Cat",
-        tag: "Animal"
+        tag: "Animal",
+        prompt: "calico cat portrait sticker, cheerful face, soft shadow, simple background"
       }
     ]
   end

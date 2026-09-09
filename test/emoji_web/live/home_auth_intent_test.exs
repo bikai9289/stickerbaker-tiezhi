@@ -9,6 +9,52 @@ defmodule StickerWeb.HomeAuthIntentTest do
   @valid_prompt "cute panda eating cookie"
   @long_prompt String.duplicate("sticker ", 180)
 
+  test "authenticated homepage keeps the submitted prompt recoverable after submit", %{
+    conn: conn
+  } do
+    user = user_fixture()
+
+    conn =
+      Plug.Test.init_test_session(conn, %{user_id: user.id, local_user_id: user.public_id})
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    html =
+      view
+      |> form("#prediction-form", %{"prompt" => @valid_prompt})
+      |> render_submit()
+
+    assert html =~ @valid_prompt
+    assert html =~ "Sticker generation started."
+  end
+
+  test "homepage renders failed prediction recovery after refresh", %{conn: conn} do
+    user = user_fixture()
+
+    Predictions.create_prediction(%{
+      local_user_id: user.public_id,
+      prompt: @valid_prompt,
+      status: :failed,
+      credit_refunded: true,
+      failure_stage: "generation",
+      failure_reason: "timeout"
+    })
+
+    conn =
+      conn
+      |> Plug.Test.init_test_session(%{user_id: user.id, local_user_id: user.public_id})
+      |> get(~p"/")
+
+    html = html_response(conn, 200)
+    {:ok, document} = Floki.parse_document(html)
+
+    assert html =~ @valid_prompt
+    assert html =~ "Credit returned"
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"generation_retry_attempt\"]")
+    assert [_ | _] = Floki.find(document, "[phx-click=\"edit-failed-prompt\"]")
+    assert [_ | _] = Floki.find(document, "[data-analytics-event=\"generation_failed\"]")
+  end
+
   test "anonymous text submit stores pending prompt and redirects to registration", %{conn: conn} do
     conn = post(conn, ~p"/users/pending-prompt", %{"prompt" => @valid_prompt})
 
