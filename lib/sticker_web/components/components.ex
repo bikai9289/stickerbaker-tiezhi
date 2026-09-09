@@ -50,6 +50,8 @@ defmodule StickerWeb.Components do
       |> assign(:output, assigns.prediction.sticker_output || assigns.prediction.no_bg_output)
       |> assign(:active?, active_generation?(assigns.prediction))
       |> assign(:phase, generation_phase(assigns.prediction))
+      |> assign(:failed_state, assigns.prediction.status == :failed)
+      |> assign(:empty_failed_state, assigns.prediction.status == :failed or is_nil(assigns.prediction.status))
 
     ~H"""
     <.link navigate={~p"/sticker/#{@prediction.id}"} class="saas-generated-link">
@@ -69,12 +71,12 @@ defmodule StickerWeb.Components do
             <div
               role="status"
               class="saas-card-status"
-              data-analytics-event={if @prediction.status == :failed, do: "generation_failed", else: nil}
-              data-analytics-context={if @prediction.status == :failed, do: "result_card", else: nil}
-              data-analytics-flow={if @prediction.status == :failed, do: "text_to_sticker", else: nil}
-              data-analytics-recovery-action={if @prediction.status == :failed, do: "view_recovery", else: nil}
+              data-analytics-event={if @failed_state, do: "generation_failed", else: nil}
+              data-analytics-context={if @failed_state, do: "result_card", else: nil}
+              data-analytics-flow={if @failed_state, do: "text_to_sticker", else: nil}
+              data-analytics-recovery-action={if @failed_state, do: "view_recovery", else: nil}
             >
-              <%= if @prediction.status in [:failed, nil] do %>
+              <%= if @empty_failed_state do %>
                 <strong><%= status_label(@prediction) %></strong>
                 <span><%= status_hint(@prediction) %></span>
                 <span :if={credit_returned?(@prediction)} class="saas-status-pill">Credit returned</span>
@@ -94,12 +96,6 @@ defmodule StickerWeb.Components do
                 <p data-slow-message hidden>
                   This is taking longer than usual. You can keep waiting or cancel for a refund.
                 </p>
-              <% else %>
-                <strong><%= status_label(@prediction) %></strong>
-                <span><%= status_hint(@prediction) %></span>
-                <span :if={credit_returned?(@prediction)} class="saas-status-pill">
-                  Credit returned
-                </span>
               <% end %>
             </div>
           </div>
