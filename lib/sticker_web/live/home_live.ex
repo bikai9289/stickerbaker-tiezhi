@@ -120,17 +120,26 @@ defmodule StickerWeb.HomeLive do
 
   def handle_event("assign-user-id", _params, socket), do: {:noreply, socket}
 
-  def handle_event("turnstile-token", %{"token" => token}, socket) do
-    {:noreply, assign(socket, :turnstile_token, String.trim(to_string(token)))}
+  def handle_event("turnstile-token", %{"token" => token}, socket)
+      when is_binary(token) and byte_size(token) <= 2048 do
+    {:noreply, assign(socket, :turnstile_token, String.trim(token))}
   end
 
-  def handle_event("save", %{"prompt" => prompt}, socket) do
+  def handle_event("turnstile-token", _params, socket),
+    do: {:noreply, assign(socket, :turnstile_token, nil)}
+
+  def handle_event("save", %{"prompt" => prompt}, socket) when is_binary(prompt) do
+    socket = assign(socket, form: to_form(%{"prompt" => prompt}))
+
     if socket.assigns.generator_mode == :portrait do
       start_portrait_generation(socket)
     else
       start_text_generation(socket, prompt)
     end
   end
+
+  def handle_event("save", _params, socket),
+    do: {:noreply, generation_flash(socket, :error, "Add a valid sticker prompt.")}
 
   def handle_event("cancel-generation", %{"id" => id}, socket) do
     user_id = generation_user_id(socket)
@@ -143,13 +152,13 @@ defmodule StickerWeb.HomeLive do
          |> mark_prediction_eager(prediction)
          |> stream_insert(:my_predictions, prediction)
          |> push_event("generation-cancel-result", %{context: "home", outcome: "canceled"})
-         |> put_flash(:info, "Generation canceled. 1 credit was returned.")}
+         |> generation_flash(:info, "Generation canceled. 1 credit was returned.")}
 
       {:error, :not_cancelable} ->
         {:noreply,
          socket
          |> push_event("generation-cancel-result", %{context: "home", outcome: "not_cancelable"})
-         |> put_flash(:error, "This generation has already finished or stopped.")}
+         |> generation_flash(:error, "This generation has already finished or stopped.")}
     end
   end
 
@@ -174,24 +183,23 @@ defmodule StickerWeb.HomeLive do
        |> assign_credit_result(credit_result)
        |> complete_generation_request()
        |> track_guest_generation(credit_result, "text", length(predictions))
-       |> put_flash(:info, generation_started_message(predictions))}
+       |> generation_flash(:info, generation_started_message(predictions))}
     else
       {:error, reason} when reason in @gate_errors ->
         generation_gate_error(socket, reason)
-         |> put_flash(:info, generation_started_message(predictions))}
 
       {:error, :empty_prompt} ->
-        {:noreply, put_flash(socket, :error, "Add at least one sticker prompt.")}
+        {:noreply, generation_flash(socket, :error, "Add at least one sticker prompt.")}
 
       {:error, :prompt_too_long} ->
-        {:noreply, put_flash(socket, :error, "Each prompt must be 1,000 characters or fewer.")}
+        {:noreply, generation_flash(socket, :error, "Each prompt must be 1,000 characters or fewer.")}
 
       {:error, :too_many_prompts} ->
-        {:noreply, put_flash(socket, :error, "Batch mode supports up to 5 prompts at a time.")}
+        {:noreply, generation_flash(socket, :error, "Batch mode supports up to 5 prompts at a time.")}
 
       {:error, :insufficient_credits} ->
         {:noreply,
-         put_flash(
+         generation_flash(
            socket,
            :error,
            "You have used your free credits. Visit Pricing to buy more credits."
@@ -199,7 +207,7 @@ defmodule StickerWeb.HomeLive do
 
       {:error, :guest_insufficient_credits} ->
         {:noreply,
-         put_flash(
+         generation_flash(
            socket,
            :error,
            "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
@@ -207,7 +215,7 @@ defmodule StickerWeb.HomeLive do
 
       {:error, :missing_guest_identity} ->
         {:noreply,
-         put_flash(
+         generation_flash(
            socket,
            :error,
            "We could not prepare your guest trial. Refresh the page or sign in to continue."
@@ -215,7 +223,7 @@ defmodule StickerWeb.HomeLive do
 
       {:error, :invalid_guest_identity} ->
         {:noreply,
-         put_flash(
+         generation_flash(
            socket,
            :error,
            "We could not prepare your guest trial. Refresh the page or sign in to continue."
@@ -223,11 +231,11 @@ defmodule StickerWeb.HomeLive do
 
       {:error, :rate_limited} ->
         {:noreply,
-         put_flash(socket, :error, "Daily generation limit reached. Try again tomorrow.")}
+         generation_flash(socket, :error, "Daily generation limit reached. Try again tomorrow.")}
 
       {:error, :active_limited} ->
         {:noreply,
-         put_flash(
+         generation_flash(
            socket,
            :error,
            "Too many stickers are already processing. Wait for a few to finish."
@@ -237,11 +245,11 @@ defmodule StickerWeb.HomeLive do
         {:noreply,
          socket
          |> assign_credit_result(credit_result)
-         |> put_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
+         |> generation_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
 
       {:error, :create_failed} ->
         {:noreply,
-         put_flash(socket, :error, "Could not start sticker generation. No credit was charged.")}
+         generation_flash(socket, :error, "Could not start sticker generation. No credit was charged.")}
     end
   end
 
@@ -249,7 +257,7 @@ defmodule StickerWeb.HomeLive do
     if prediction.moderation_score < 9 do
       {:noreply,
        socket
-       |> put_flash(
+       |> generation_flash(
          :info,
          "Safety check passed: #{10 - prediction.moderation_score}/10. Generating the sticker now."
        )
@@ -258,7 +266,7 @@ defmodule StickerWeb.HomeLive do
     else
       {:noreply,
        socket
-       |> put_flash(
+       |> generation_flash(
          :error,
          "Safety check blocked this prompt: #{10 - prediction.moderation_score}/10."
        )}
@@ -277,7 +285,7 @@ defmodule StickerWeb.HomeLive do
      socket
      |> mark_prediction_eager(prediction)
      |> stream_insert(:my_predictions, prediction, at: 0)
-     |> put_flash(:info, "Sticker is processing. This can take a little while.")}
+     |> generation_flash(:info, "Sticker is processing. This can take a little while.")}
   end
 
   def handle_info({:prediction_failed, prediction}, socket) do
@@ -286,7 +294,7 @@ defmodule StickerWeb.HomeLive do
      |> refresh_credit_assigns(generation_user_id(socket))
      |> mark_prediction_eager(prediction)
      |> stream_insert(:my_predictions, prediction, at: 0)
-     |> put_flash(
+     |> generation_flash(
        :error,
        "Image generation failed or timed out. Your credit was returned when eligible. Retry or edit the prompt."
      )}
@@ -296,7 +304,7 @@ defmodule StickerWeb.HomeLive do
     {:noreply,
      socket
      |> assign(form: to_form(%{"prompt" => prompt}))
-     |> put_flash(:info, "Prompt restored. Edit it, then generate again.")}
+     |> generation_flash(:info, "Prompt restored. Edit it, then generate again.")}
   end
 
   def handle_event("use-example-prompt", %{"prompt" => prompt}, socket) do
@@ -307,7 +315,7 @@ defmodule StickerWeb.HomeLive do
     case Predictions.retry_user_prediction(id, socket.assigns.local_user_id) do
       {:ok, _prediction} -> retry_prediction(socket, id)
       {:error, :not_retryable} ->
-        {:noreply, put_flash(socket, :error, "This older upload sticker has no saved source image. Upload it again.")}
+        {:noreply, generation_flash(socket, :error, "This older upload sticker has no saved source image. Upload it again.")}
     end
   end
 
@@ -322,11 +330,11 @@ defmodule StickerWeb.HomeLive do
      |> refresh_credit_assigns(generation_user_id(socket))
      |> mark_prediction_eager(prediction)
      |> stream_insert(:my_predictions, prediction)
-     |> put_flash(:info, "Sticker generated! Click it to download.")}
+     |> generation_flash(:info, "Sticker generated! Click it to download.")}
   end
 
   def handle_info({:moderation_failed, message}, socket) do
-    {:noreply, put_flash(socket, :error, message)}
+    {:noreply, generation_flash(socket, :error, message)}
   end
 
   defp retry_prediction(socket, id) do
@@ -343,7 +351,7 @@ defmodule StickerWeb.HomeLive do
              |> assign_credit_result(credit_result)
              |> mark_prediction_eager(prediction)
              |> stream_insert(:my_predictions, prediction, at: 0)
-             |> put_flash(:info, "Retry started. 1 credit was used.")}
+             |> generation_flash(:info, "Retry started. 1 credit was used.")}
 
           {:error, _reason} ->
             {:ok, refreshed} =
@@ -352,17 +360,17 @@ defmodule StickerWeb.HomeLive do
             {:noreply,
              socket
              |> assign_credit_result(refresh_credit_result(credit_result, refreshed))
-             |> put_flash(:error, "Could not restart this sticker. Your credit was refunded.")}
+             |> generation_flash(:error, "Could not restart this sticker. Your credit was refunded.")}
         end
 
       {:error, :guest_insufficient_credits} ->
-        {:noreply, put_flash(socket, :error, "No guest trial generations left to retry this sticker.")}
+        {:noreply, generation_flash(socket, :error, "No guest trial generations left to retry this sticker.")}
 
       {:error, :insufficient_credits} ->
-        {:noreply, put_flash(socket, :error, "Not enough credits to retry this sticker.")}
+        {:noreply, generation_flash(socket, :error, "Not enough credits to retry this sticker.")}
 
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Could not restart this sticker: #{inspect(reason)}")}
+        {:noreply, generation_flash(socket, :error, "Could not restart this sticker: #{inspect(reason)}")}
     end
   end
 
@@ -462,14 +470,14 @@ defmodule StickerWeb.HomeLive do
        |> mark_prediction_eager(prediction)
        |> stream_insert(:my_predictions, prediction, at: 0)
        |> track_guest_generation(credit_result, "face", 1)
-       |> put_flash(:info, "Face sticker generation started.")}
+       |> generation_flash(:info, "Face sticker generation started.")}
     else
       {:error, reason} when reason in @gate_errors ->
         generation_gate_error(socket, reason)
 
       {:error, :insufficient_credits} ->
         {:noreply,
-         put_flash(
+         generation_flash(
            socket,
            :error,
            "You have used your free credits. Visit Pricing to buy more credits."
@@ -478,11 +486,11 @@ defmodule StickerWeb.HomeLive do
       false ->
         discard_uploaded_entry(socket, entry)
 
-        {:noreply, put_flash(socket, :error, insufficient_credit_message(socket))}
+        {:noreply, generation_flash(socket, :error, insufficient_credit_message(socket))}
 
       {:error, :guest_insufficient_credits} ->
         {:noreply,
-         put_flash(
+         generation_flash(
            socket,
            :error,
            "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
@@ -492,7 +500,7 @@ defmodule StickerWeb.HomeLive do
         discard_uploaded_entry(socket, entry)
 
         {:noreply,
-         put_flash(
+         generation_flash(
            socket,
            :error,
            "We could not prepare your guest trial. Refresh the page or sign in to continue."
@@ -502,7 +510,7 @@ defmodule StickerWeb.HomeLive do
         discard_uploaded_entry(socket, entry)
 
         {:noreply,
-         put_flash(
+         generation_flash(
            socket,
            :error,
            "We could not prepare your guest trial. Refresh the page or sign in to continue."
@@ -512,43 +520,43 @@ defmodule StickerWeb.HomeLive do
         discard_uploaded_entry(socket, entry)
 
         {:noreply,
-         put_flash(socket, :error, "Daily generation limit reached. Try again tomorrow.")}
+         generation_flash(socket, :error, "Daily generation limit reached. Try again tomorrow.")}
 
       {:error, :active_limited} ->
         discard_uploaded_entry(socket, entry)
 
         {:noreply,
-         put_flash(
+         generation_flash(
            socket,
            :error,
            "Too many stickers are already processing. Wait for a few to finish."
          )}
 
       {:error, :invalid_image} ->
-        {:noreply, put_flash(socket, :error, "Upload a valid JPG or PNG portrait under 8 MB.")}
+        {:noreply, generation_flash(socket, :error, "Upload a valid JPG or PNG portrait under 8 MB.")}
 
       {:error, :unsafe_image} ->
         {:noreply,
-         put_flash(socket, :error, "This upload cannot be used for sticker generation.")}
+         generation_flash(socket, :error, "This upload cannot be used for sticker generation.")}
 
       {:error, :review_failed} ->
-        {:noreply, put_flash(socket, :error, "Image safety review failed. Try again later.")}
+        {:noreply, generation_flash(socket, :error, "Image safety review failed. Try again later.")}
 
       {:error, :source_image_upload_failed} ->
-        {:noreply, put_flash(socket, :error, "Could not upload that portrait. Please try again.")}
+        {:noreply, generation_flash(socket, :error, "Could not upload that portrait. Please try again.")}
 
       {:error, :create_failed, credit_result} ->
         {:noreply,
          socket
          |> assign_credit_result(credit_result)
-         |> put_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
+         |> generation_flash(:error, "Could not start sticker generation. Your credit was refunded.")}
     end
   end
 
   defp start_portrait_generation(socket) do
     case socket.assigns.uploads.image.entries do
       [entry] -> generate_face_sticker_from_upload(socket, entry)
-      [] -> {:noreply, put_flash(socket, :error, "Choose a JPG or PNG portrait first.")}
+      [] -> {:noreply, generation_flash(socket, :error, "Choose a JPG or PNG portrait first.")}
     end
   end
 
@@ -665,7 +673,7 @@ defmodule StickerWeb.HomeLive do
     {:noreply,
      socket
      |> assign(:turnstile_required?, true)
-     |> put_flash(:error, "Complete the security check to continue.")}
+     |> generation_flash(:error, "Complete the security check to continue.")}
   end
 
   defp generation_gate_error(socket, reason)
@@ -673,21 +681,21 @@ defmodule StickerWeb.HomeLive do
     {:noreply,
      socket
      |> reset_generation_request(keep_challenge?: true)
-     |> put_flash(:error, "Security check expired. Please try again.")}
+     |> generation_flash(:error, "Security check expired. Please try again.")}
   end
 
   defp generation_gate_error(socket, :turnstile_unavailable) do
     {:noreply,
      socket
      |> reset_generation_request(keep_challenge?: true)
-     |> put_flash(:error, "Security check is temporarily unavailable. Please try again.")}
+     |> generation_flash(:error, "Security check is temporarily unavailable. Please try again.")}
   end
 
   defp generation_gate_error(socket, :guest_ip_limited) do
     {:noreply,
      socket
      |> reset_generation_request()
-     |> put_flash(
+     |> generation_flash(
        :error,
        "This network has reached its free generation limit for the last 24 hours. Sign in to continue with account credits."
      )}
@@ -697,7 +705,7 @@ defmodule StickerWeb.HomeLive do
     {:noreply,
      socket
      |> reset_generation_request()
-     |> put_flash(
+     |> generation_flash(
        :error,
        "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
      )}
@@ -711,14 +719,14 @@ defmodule StickerWeb.HomeLive do
      |> reset_generation_request()
      |> assign(:my_eager_ids, eager_prediction_ids(recent_predictions))
      |> stream(:my_predictions, recent_predictions, reset: true)
-     |> put_flash(:info, "This request was already received. Your latest results were refreshed.")}
+     |> generation_flash(:info, "This request was already received. Your latest results were refreshed.")}
   end
 
   defp generation_gate_error(socket, _reason) do
     {:noreply,
      socket
      |> reset_generation_request()
-     |> put_flash(
+     |> generation_flash(
        :error,
        "We could not prepare your guest trial. Refresh the page or sign in to continue."
      )}
@@ -996,5 +1004,9 @@ defmodule StickerWeb.HomeLive do
       />
     </picture>
     """
+  end
+  defp generation_flash(socket, kind, message) do
+    opposite = if kind == :error, do: :info, else: :error
+    socket |> clear_flash(opposite) |> put_flash(kind, message)
   end
 end

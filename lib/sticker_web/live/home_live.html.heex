@@ -135,7 +135,7 @@
                 </span>
               </div>
 
-              <label class="saas-text-generator" for={@form[:prompt].id}>
+              <label id="prompt-field" phx-hook="PromptCounter" class="saas-text-generator" for={@form[:prompt].id}>
                 <span class="saas-prompt-label">
                   <%= if @batch_mode,
                     do: "Enter up to 5 prompts, one per line",
@@ -162,7 +162,7 @@
                   data-prompt-counter={"#{@form[:prompt].id}-counter"}
                 ><%= Phoenix.HTML.Form.normalize_value("textarea", @form[:prompt].value) %></textarea>
                 <span class="saas-prompt-meter">
-                  <span id={"#{@form[:prompt].id}-counter"}>0</span>/<%= if @batch_mode, do: "5,004", else: "1,000" %> characters
+                  <span id={"#{@form[:prompt].id}-counter"}><%= String.length(to_string(@form[:prompt].value || "")) %></span>/<%= if @batch_mode, do: "5,004", else: "1,000" %> characters
                 </span>
               </label>
 
@@ -227,6 +227,8 @@
               data-action="sticker_generation"
             >
               <div data-turnstile-container></div>
+              <p data-turnstile-status role="status" aria-live="polite">Loading security check…</p>
+              <button type="button" data-turnstile-retry hidden>Retry security check</button>
             </div>
 
             <p :if={@turnstile_required?} class="saas-security-help">

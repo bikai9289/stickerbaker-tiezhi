@@ -58,6 +58,10 @@ COPY assets assets
 RUN mix assets.deploy
 
 # Compile the release
+ARG BUILD_REVISION=local
+ARG BUILD_TIME=unknown
+ENV BUILD_REVISION=$BUILD_REVISION
+ENV BUILD_TIME=$BUILD_TIME
 RUN mix compile
 
 # Changes to config/runtime.exs don't require recompiling the code
@@ -69,6 +73,11 @@ RUN mix release
 # start a new build stage so that the final image will only contain
 # the compiled release and other runtime necessities
 FROM ${RUNNER_IMAGE}
+
+ARG BUILD_REVISION=local
+ARG BUILD_TIME=unknown
+LABEL org.opencontainers.image.revision=$BUILD_REVISION
+LABEL org.opencontainers.image.created=$BUILD_TIME
 
 RUN apt-get update -y \
   && apt-get install -y libstdc++6 openssl libncurses5 locales imagemagick ca-certificates \

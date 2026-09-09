@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import { PromptCounter } from "./prompt_counter.mjs";
+const listeners = new Map();
+const input = {value: "猫😀", dataset: {promptCounter: "counter"}};
+const counter = {textContent: ""};
+globalThis.document = {getElementById: () => counter};
+const ctx = {...PromptCounter, el: {querySelector: () => input, addEventListener: (e,f) => listeners.set(e,f), removeEventListener: e => listeners.delete(e)}};
+ctx.mounted(); assert.equal(counter.textContent, "2");
+input.value = "a pasted prompt"; listeners.get("input")(); assert.equal(counter.textContent, "15");
+input.value = "restored"; ctx.updated(); assert.equal(counter.textContent, "8");
+input.value = ""; ctx.updated(); assert.equal(counter.textContent, "0");
+ctx.destroyed(); assert.equal(listeners.size, 0);
+console.log("prompt counter input, restore and lifecycle tests passed");

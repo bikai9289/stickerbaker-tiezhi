@@ -58,6 +58,50 @@ defmodule StickerWeb.HomeLiveTest do
     :ok
   end
 
+  test "submission and async failure retain the prompt and replace stale notices", %{conn: conn} do
+    conn = get(conn, ~p"/")
+    guest_id = get_session(conn, :guest_user_id)
+    {:ok, view, _} = live(recycle(conn), ~p"/")
+    view |> form("#prediction-form", %{"prompt" => "a persistent cat"}) |> render_submit()
+    assert has_element?(view, "textarea#prompt", "a persistent cat")
+    [prediction] = Predictions.list_user_recent_predictions(guest_id, 12)
+    send(view.pid, {:prediction_loading, prediction})
+    assert render(view) =~ "Sticker is processing"
+    send(view.pid, {:prediction_failed, %{prediction | status: :failed}})
+    html = render(view)
+    assert html =~ "Image generation failed or timed out"
+    refute html =~ "Sticker is processing"
+    assert has_element?(view, "textarea#prompt", "a persistent cat")
+    send(view.pid, {:prediction_loading, prediction})
+    refute render(view) =~ "Image generation failed or timed out"
+  end
+
+  test "malformed challenge and submission payloads do not crash or charge", %{conn: conn} do
+    conn = get(conn, ~p"/")
+    guest_id = get_session(conn, :guest_user_id)
+    {:ok, view, _} = live(recycle(conn), ~p"/")
+    for payload <- [%{}, %{"token" => []}, %{"token" => String.duplicate("x", 2049)}] do
+      render_hook(view, "turnstile-token", payload)
+    end
+    render_hook(view, "save", %{"prompt" => %{}})
+    assert render(view) =~ "Add a valid sticker prompt."
+    assert GuestTrials.get_allowance(guest_id).credits_remaining == 3
+    assert Predictions.list_user_recent_predictions(guest_id, 12) == []
+  end
+
+  test "examples and restored text update the counter without generating", %{conn: conn} do
+    {:ok, view, html} = live(conn, ~p"/?prompt=hello")
+    assert html =~ Sticker.BuildInfo.revision()
+    assert has_element?(view, "#prompt-counter", "5")
+    assert has_element?(view, "[phx-click='use-example-prompt']", "Use prompt")
+    html = render_hook(view, "use-example-prompt", %{"prompt" => "cat"})
+    assert html =~ "cat"
+    assert has_element?(view, "#prompt-counter", "3")
+    view |> element("#batch-mode-toggle") |> render_click()
+    assert has_element?(view, "textarea[maxlength='5004']")
+    assert has_element?(view, "#prompt-counter", "3")
+  end
+
   test "first low-risk guest text request reserves one task and spends one credit", %{conn: conn} do
     conn = get(conn, ~p"/")
     guest_user_id = get_session(conn, :guest_user_id)

@@ -50,7 +50,7 @@
         <% end %>
 
         <a href="/#generator">Generator</a> <a href="/?mode=portrait#generator">Upload</a>
-        <a href="/#latest">Latest</a>
+        <a href="/#latest">Featured</a>
         <.link
           navigate={~p"/pricing"}
           data-analytics-event="pricing_cta_click"
@@ -162,5 +162,8 @@
 
   <div class="saas-container saas-copyright">
     &copy; 2026 AI-Sticker-Maker.com. All rights reserved.
+    <small id="build-version" title={"Built " <> Sticker.BuildInfo.built_at()}>
+      Build <%= Sticker.BuildInfo.revision() %>
+    </small>
   </div>
 </footer>

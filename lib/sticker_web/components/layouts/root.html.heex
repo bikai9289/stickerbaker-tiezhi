@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="build-revision" content={Sticker.BuildInfo.revision()} />
     <meta name="csrf-token" content={get_csrf_token()} />
     <meta
       name="google-site-verification"
@@ -24,6 +25,7 @@
     </script>
     <script
       :if={Sticker.Turnstile.configured?()}
+      data-turnstile-script
       defer
       src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
     >

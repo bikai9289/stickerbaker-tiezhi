@@ -25,9 +25,11 @@ import FileSaver from "../vendor/file-saver";
 import Hammer from "../vendor/hammer.js";
 import { safeTrack, trackReturnState } from "./launch_analytics.mjs";
 import { createTurnstileHook } from "./turnstile_hook.mjs";
+import { PromptCounter } from "./prompt_counter.mjs";
 
 let Hooks = {};
 Hooks.Turnstile = createTurnstileHook();
+Hooks.PromptCounter = PromptCounter;
 
 Hooks.LaunchAnalytics = {
   mounted() {
