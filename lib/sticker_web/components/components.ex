@@ -33,7 +33,7 @@ defmodule StickerWeb.Components do
       class={@class}
       data-generation-state={prediction_state(@prediction)}
       data-generation-context="generation_card"
-      phx-hook={if active_generation?(@prediction), do: "GenerationStatus"}
+      phx-hook={if active_generation?(@prediction), do: "GenerationStatus", else: nil}
     >
       <.image id={@id} prediction={@prediction} cancel_event={@cancel_event} eager={@eager} />
     </div>
