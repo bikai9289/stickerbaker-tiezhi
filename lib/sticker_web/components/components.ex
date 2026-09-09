@@ -69,10 +69,10 @@ defmodule StickerWeb.Components do
             <div
               role="status"
               class="saas-card-status"
-              data-analytics-event={if @prediction.status == :failed, do: "generation_failed"}
-              data-analytics-context={if @prediction.status == :failed, do: "result_card"}
-              data-analytics-flow={if @prediction.status == :failed, do: "text_to_sticker"}
-              data-analytics-recovery-action={if @prediction.status == :failed, do: "view_recovery"}
+              data-analytics-event={if @prediction.status == :failed, do: "generation_failed", else: nil}
+              data-analytics-context={if @prediction.status == :failed, do: "result_card", else: nil}
+              data-analytics-flow={if @prediction.status == :failed, do: "text_to_sticker", else: nil}
+              data-analytics-recovery-action={if @prediction.status == :failed, do: "view_recovery", else: nil}
             >
               <%= if @prediction.status in [:failed, nil] do %>
                 <strong><%= status_label(@prediction) %></strong>
