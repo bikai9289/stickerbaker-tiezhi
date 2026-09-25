@@ -41,6 +41,16 @@ landing pages, guest-generation messaging, internal navigation, and Christmas pa
 - Did not add paid link placements or external backlink purchases. Those require separate risk and
   sourcing review and are outside the application deployment.
 
+### Photo Page Replacement
+
+- Replaced the Photo to Sticker HEEx body with the supplied full-page content structure, adapted to
+  the repository's root layout and component syntax.
+- Kept TDK, canonical, OG, Twitter, BreadcrumbList, HowTo, and FAQPage generation in the existing
+  Phoenix SEO/structured-data pipeline instead of duplicating raw `<head>` and JSON-LD markup.
+- Kept the current working portrait generator CTA because the proposed reusable LiveComponent does
+  not yet exist; no non-runnable component call was introduced.
+- Synchronized the controller's HowTo and seven FAQ entries with the visible Photo page copy.
+
 ## Deferred Work
 
 The reusable generator LiveComponent remains a separate development task. The current generator is

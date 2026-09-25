@@ -92,26 +92,26 @@ defmodule StickerWeb.PageController do
     )
     |> assign_structured_data("/photo-to-sticker", "Photo to Sticker - Free, No Sign Up",
       steps: [
-        "Open the photo generator. No account is required for the 3 free guest generations.",
-        "Choose a clear photo with one main subject, good lighting, and minimal blur.",
-        "Add a short sticker prompt such as clean border, cute avatar, or reaction sticker.",
-        "Generate the sticker, then download the result as PNG or WebP."
+        "Upload a JPG or PNG photo up to 8 MB. No account is required for 3 free guest generations.",
+        "Add an optional prompt to steer the style, or leave it blank for the default sticker look.",
+        "Generate. Each photo generation uses 1 credit and failed generations return the credit.",
+        "Download the sticker as PNG or WebP, then resize it for the app where you plan to use it."
       ],
       faqs: [
-        {"What kind of photo works best?",
-         "A clear portrait or subject-focused photo with simple lighting and one main subject works best."},
-        {"Can I turn any photo into a sticker?",
-         "The generator is strongest for portraits, characters, pets, and simple subjects rather than crowded scenes."},
-        {"Where do photo sticker results go?",
-         "Your results stay in sticker history, where you can download, retry, or favorite them. Signing in keeps them attached to your account."},
-        {"How large can my photo upload be?",
-         "Upload a JPG or PNG photo up to 8 MB. Clear, subject-focused images usually produce the strongest sticker shapes."},
-        {"What prompt should I add to a photo?",
-         "Describe the expression, outline, color mood, or use case, such as cute avatar, bold reaction, clean border, or simple background."},
-        {"Should I choose PNG or WebP?",
-         "Choose PNG when you plan to edit the image. Choose WebP when a smaller web or chat file is more useful."},
-        {"Can I use a group photo?",
-         "You can try one, but a single clear subject is easier for the generator to recognize than a crowded group or distant scene."}
+        {"How do I turn a photo into a sticker?",
+         "Upload a JPG or PNG photo, add an optional prompt, and generate. The finished sticker appears in your history as a PNG or WebP file."},
+        {"What photo formats and sizes can I upload?",
+         "Upload JPG or PNG images up to 8 MB. Use the largest clear version available; compressed screenshots give the generator less detail."},
+        {"How many photos can I convert for free?",
+         "Guests get 3 free generations with no sign up. Each photo generation uses 1 credit."},
+        {"Do I need an account to turn a photo into a sticker?",
+         "No. Guest results remain available through the current guest identity. Sign in to buy credits and attach eligible results to your account."},
+        {"What happens if a generation fails?",
+         "The credit is returned automatically. Upload-based stickers save a private source image so a failed generation can be retried without uploading again."},
+        {"Can I use photo stickers commercially?",
+         "Review the terms of service for the current usage terms before using generated stickers in paid or branded work."},
+        {"Can I turn a photo into a WhatsApp sticker directly?",
+         "Not in one step. Generate and download here first, then resize and convert the file to the destination platform's current requirements."}
       ]
     )
     |> render(:photo_to_sticker)
