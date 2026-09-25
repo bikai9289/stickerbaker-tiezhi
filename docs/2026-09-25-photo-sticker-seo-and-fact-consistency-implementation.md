@@ -60,6 +60,8 @@ landing pages, guest-generation messaging, internal navigation, and Christmas pa
 - Synchronized both pages' visible FAQ, HowTo, title, description, and sitemap `lastmod` values.
 - Restored concrete WhatsApp and Discord dimensions and file-size limits on Photo and Online pages.
 - Changed the global Twitter card to `summary_large_image` to match the absolute OG image.
+- Removed the duplicate short feature-card grids from the Online and Custom Sticker pages so each
+  major H2 appears only once; the expanded sections remain the single source of visible content.
 
 ## Deferred Work
 
