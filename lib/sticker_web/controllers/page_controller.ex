@@ -379,7 +379,15 @@ defmodule StickerWeb.PageController do
         {"Do I need an account to generate stickers?",
          "No. Guests can create up to 3 stickers without an account and can access generated results through the current guest identity. Sign in to buy credits and attach eligible guest-generated stickers to your account later."},
         {"What can I generate?",
-         "You can generate prompt-based stickers, portrait stickers, avatars, mascots, and small batches."}
+         "You can generate prompt-based stickers, portrait stickers, avatars, mascots, and small batches."},
+        {"How do I write a good sticker prompt?",
+         "Start with one subject, then add an emotion, pose, style, border, and simple background. Short prompts are easier to refine than crowded scene descriptions."},
+        {"Can I generate a sticker from a portrait?",
+         "Yes. Switch to portrait mode and upload a clear JPG or PNG with one visible face, good lighting, and minimal blur."},
+        {"What is the difference between PNG and WebP?",
+         "PNG is convenient for editing and compatibility. WebP is usually smaller for websites, previews, and chat workflows."},
+        {"Do failed generations use a credit?",
+         "A failed generation automatically returns its credit. You can retry with a shorter prompt or a clearer portrait."}
       ]
     )
     |> render(:ai_sticker_generator)
@@ -407,7 +415,15 @@ defmodule StickerWeb.PageController do
         {"Do I need to sign up?",
          "No. Guests can try 3 Christmas sticker generations without an account."},
         {"What Christmas sticker ideas work well?",
-         "Keep one subject: a cocoa mug, tree ornament character, gift box mascot, or cozy winter portrait."}
+         "Keep one subject: a cocoa mug, tree ornament character, gift box mascot, or cozy winter portrait."},
+        {"What should I include in a Christmas sticker prompt?",
+         "Name one holiday subject, then add an emotion, action, palette, and simple sticker style. For example, try a cheerful gingerbread cookie waving with a clean white border."},
+        {"Can I make a matching Christmas sticker set?",
+         "Yes. Repeat the same border, palette, and style words while changing the subject or emotion. Batch mode supports one Christmas prompt per line for a small set."},
+        {"Can I use a portrait for a Christmas sticker?",
+         "Yes. Upload a clear portrait and add a festive style prompt for a holiday avatar or reaction. No account is required for the 3 free guest generations."},
+        {"Which download format should I use?",
+         "PNG is convenient for editing and compatibility. WebP is usually smaller for websites, previews, and chats."}
       ]
     )
     |> render(:christmas_ai_sticker_maker)

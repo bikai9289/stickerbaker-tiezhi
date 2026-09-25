@@ -62,6 +62,10 @@ landing pages, guest-generation messaging, internal navigation, and Christmas pa
 - Changed the global Twitter card to `summary_large_image` to match the absolute OG image.
 - Removed the duplicate short feature-card grids from the Online and Custom Sticker pages so each
   major H2 appears only once; the expanded sections remain the single source of visible content.
+- Added Christmas platform requirements, the Photo to Sticker cross-link, Related tools/FAQ headings,
+  and synchronized Christmas and AI Generator visible FAQs with their JSON-LD data.
+- Removed the AI Generator's homepage self-equivalence wording and linked platform requirements to
+  the Photo page instead.
 
 ## Deferred Work
 

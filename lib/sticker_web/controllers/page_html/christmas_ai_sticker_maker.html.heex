@@ -105,15 +105,38 @@
       <p>
         You can create a Christmas sticker from a phone or desktop browser. Text prompts are useful
         when you want a mascot, object, or fictional holiday character. Portrait mode is useful for
-        a festive avatar or reaction based on a clear photo. In either case, review the output at
+        <.link navigate={~p"/photo-to-sticker"}>Photo to sticker</.link> mode is useful for a festive avatar or reaction based on a clear photo. In either case, review the output at
         the size where people will actually see it before choosing a favorite.
       </p>
 
       <p>
         PNG is a practical download for editing and broad compatibility. WebP is usually smaller
-        for websites, previews, and chats. Platform upload tools may add their own requirements for
-        dimensions, transparency, animation, and file size, so check the destination platform before
-        building a complete pack.
+        for websites, previews, and chats. Chat platforms apply their own dimensions, formats,
+        transparency, and file-size rules, which are listed in the section below.
+      </p>
+    </section>
+
+    <section class="saas-seo-block">
+      <h2>Christmas stickers for WhatsApp, Telegram and Discord</h2>
+      <p>
+        Putting a holiday sticker into a chat app is separate from generating it. Outputs are
+        typically 1024 x 1024 px, while the platforms below ask for smaller artwork in their own
+        formats, so plan on one resize pass after downloading.
+      </p>
+      <p>
+        Telegram's sticker creation guide accepts PNG or WebP with one side at exactly 512 pixels
+        and the other at 512 pixels or less. Telegram recommends transparency, while some import
+        workflows add transparency and file-size requirements, so check the upload method you use.
+      </p>
+      <p>
+        WhatsApp asks for stickers at exactly 512 x 512 px in WebP, with a transparent background,
+        each static file under 100 KB and animated files up to 500 KB, plus a tray icon. A pack needs
+        at least 3 stickers and can hold up to 30.
+      </p>
+      <p>
+        Discord custom stickers must be exactly 320 x 320 px - PNG for static or APNG for animated -
+        at 512 KB or less. Transparency is recommended rather than required, and custom uploads need
+        a server with Boosts. Confirm current platform limits before finalizing a holiday pack.
       </p>
     </section>
 
@@ -126,13 +149,16 @@
         festive sticker from a prompt, start on the generator.
       </p>
 
+      <h2>Related tools</h2>
       <div class="saas-related-links">
+        <.link navigate={~p"/photo-to-sticker"}>Photo to Sticker</.link>
         <.link navigate={~p"/ai-sticker-generator"}>AI Sticker Generator</.link>
         <.link navigate={~p"/reaction-sticker-maker"}>Reaction Sticker Maker</.link>
         <.link navigate={~p"/kawaii-sticker-maker"}>Kawaii Sticker Maker</.link>
       </div>
     </section>
 
+    <h2>Christmas AI sticker maker FAQ</h2>
     <div class="saas-faq">
       <details open>
         <summary>Can I make Christmas stickers with AI?</summary>
