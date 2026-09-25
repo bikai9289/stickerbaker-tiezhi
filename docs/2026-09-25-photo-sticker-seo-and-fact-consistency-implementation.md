@@ -27,6 +27,20 @@ landing pages, guest-generation messaging, internal navigation, and Christmas pa
 - Added a generated-content and usage-rights section to Terms without claiming commercial rights.
 - Updated controller tests for the new metadata, sitemap exclusion, related-link exclusion, and 301.
 
+### Follow-up Content Pass
+
+- Updated Face to Sticker title and description to match the Guest-friendly Photo page.
+- Expanded Photo to Sticker structured and visible FAQs from 3 to 7 and simplified the history
+  explanation for normal readers.
+- Updated homepage, Face to Sticker, Photo to Sticker, AI Sticker Generator, Christmas, and Terms
+  sitemap `lastmod` values to `2026-09-25`.
+- Replaced the homepage section heading `Free AI Sticker Generator Online` with a broader
+  text/photo creation heading so the homepage does not compete directly with the generator intent.
+- Expanded Photo to Sticker, AI Sticker Generator, and Christmas pages with additional use cases,
+  mobile guidance, platform/file notes, prompt examples, and visible FAQs.
+- Did not add paid link placements or external backlink purchases. Those require separate risk and
+  sourcing review and are outside the application deployment.
+
 ## Deferred Work
 
 The reusable generator LiveComponent remains a separate development task. The current generator is

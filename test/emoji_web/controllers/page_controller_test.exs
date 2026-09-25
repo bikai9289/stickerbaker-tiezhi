@@ -265,7 +265,7 @@ defmodule StickerWeb.PageControllerTest do
        "https://ai-sticker-maker.com/pricing"},
       {~p"/search", "AI Sticker Search - Find Sticker Ideas Online",
        "https://ai-sticker-maker.com/search"},
-      {~p"/face-to-sticker", "Face to Sticker AI Generator",
+      {~p"/face-to-sticker", "Face to Sticker - Free, No Sign Up",
        "https://ai-sticker-maker.com/face-to-sticker"},
       {~p"/photo-to-sticker", "Photo to Sticker - Free, No Sign Up",
        "https://ai-sticker-maker.com/photo-to-sticker"},

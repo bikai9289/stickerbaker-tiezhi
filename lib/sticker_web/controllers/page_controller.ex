@@ -57,9 +57,9 @@ defmodule StickerWeb.PageController do
     conn
     |> SEO.assign(
       PageSEO.page("/face-to-sticker",
-        title: "Face to Sticker AI Generator",
+        title: "Face to Sticker - Free, No Sign Up",
         description:
-          "Turn a portrait into a sticker-style image with the AI face to sticker generator. Upload a face, use 1 credit, and download the result."
+          "Turn a portrait into a sticker with no sign up. Get 3 free guest generations, portrait tips, and PNG or WebP downloads."
       )
     )
     |> assign_structured_data("/face-to-sticker", "Face to Sticker AI Generator",
@@ -103,7 +103,15 @@ defmodule StickerWeb.PageController do
         {"Can I turn any photo into a sticker?",
          "The generator is strongest for portraits, characters, pets, and simple subjects rather than crowded scenes."},
         {"Where do photo sticker results go?",
-         "Completed photo stickers are associated with the current guest identity or signed-in account and support the available history, retry, favorite, and download actions."}
+         "Your results stay in sticker history, where you can download, retry, or favorite them. Signing in keeps them attached to your account."},
+        {"How large can my photo upload be?",
+         "Upload a JPG or PNG photo up to 8 MB. Clear, subject-focused images usually produce the strongest sticker shapes."},
+        {"What prompt should I add to a photo?",
+         "Describe the expression, outline, color mood, or use case, such as cute avatar, bold reaction, clean border, or simple background."},
+        {"Should I choose PNG or WebP?",
+         "Choose PNG when you plan to edit the image. Choose WebP when a smaller web or chat file is more useful."},
+        {"Can I use a group photo?",
+         "You can try one, but a single clear subject is easier for the generator to recognize than a crowded group or distant scene."}
       ]
     )
     |> render(:photo_to_sticker)
@@ -435,10 +443,10 @@ defmodule StickerWeb.PageController do
     base_url = "https://ai-sticker-maker.com"
 
     paths = [
-      {"/", "2026-06-13", "1.0"},
+      {"/", "2026-09-25", "1.0"},
       {"/pricing", "2026-06-13", "0.8"},
-      {"/face-to-sticker", "2026-06-13", "0.9"},
-      {"/photo-to-sticker", "2026-06-25", "0.9"},
+      {"/face-to-sticker", "2026-09-25", "0.9"},
+      {"/photo-to-sticker", "2026-09-25", "0.9"},
       {"/custom-sticker-maker", "2026-06-13", "0.9"},
       {"/reaction-sticker-maker", "2026-06-25", "0.8"},
       {"/cute-sticker-ideas", "2026-06-13", "0.8"},
@@ -447,14 +455,14 @@ defmodule StickerWeb.PageController do
       {"/anime-avatar-sticker", "2026-06-25", "0.8"},
       {"/kawaii-sticker-maker", "2026-06-13", "0.8"},
       {"/transparent-sticker-maker", "2026-06-13", "0.8"},
-      {"/ai-sticker-generator", "2026-09-05", "0.9"},
+      {"/ai-sticker-generator", "2026-09-25", "0.9"},
       {"/christmas-ai-sticker-maker", "2026-09-25", "0.8"},
       {"/search", "2026-06-13", "0.7"},
       {"/contact", "2026-06-13", "0.5"},
       {"/payment-and-credits", "2026-06-13", "0.5"},
       {"/privacy-policy", "2026-06-13", "0.4"},
       {"/refund-policy", "2026-06-13", "0.5"},
-      {"/terms-of-service", "2026-06-13", "0.4"},
+      {"/terms-of-service", "2026-09-25", "0.4"},
       {"/sitemap", "2026-06-13", "0.3"}
     ]
 
