@@ -8,7 +8,7 @@ defmodule StickerWeb.PageController do
     conn
     |> SEO.assign(
       PageSEO.page("/",
-        title: "AI Sticker Maker - Free AI Sticker Generator Online",
+        title: "AI Sticker Maker - Make Custom Stickers from Text or Photo",
         description:
           "Create custom AI stickers from text prompts or portraits. Try 3 free guest generations and download sticker-ready designs online."
       )
@@ -64,7 +64,7 @@ defmodule StickerWeb.PageController do
     )
     |> assign_structured_data("/face-to-sticker", "Face to Sticker AI Generator",
       steps: [
-        "Sign in so your free or paid credits can be checked before generation.",
+        "Open the portrait generator. No account is required for the 3 free guest generations.",
         "Upload a clear portrait with one visible face and good lighting.",
         "Add an optional style prompt, then let the face to sticker workflow generate automatically.",
         "Open history to download PNG or WebP, save favorites, or create another version."
@@ -73,7 +73,7 @@ defmodule StickerWeb.PageController do
         {"What makes a good face to sticker upload?",
          "A bright portrait with one clear face, natural expression, and minimal blur works best."},
         {"Does face to sticker use credits?",
-         "Yes. Each portrait generation uses 1 credit after login, and failed generations refund the credit."},
+         "Yes. Each portrait generation uses 1 credit, including the 3 free guest generations. Failed generations refund the credit."},
         {"Can I retry a failed face sticker?",
          "Yes. New upload-based face stickers save a private source image so failed generations can be retried from history."}
       ]
@@ -85,17 +85,17 @@ defmodule StickerWeb.PageController do
     conn
     |> SEO.assign(
       PageSEO.page("/photo-to-sticker",
-        title: "Photo to Sticker AI Generator",
+        title: "Photo to Sticker - Free, No Sign Up",
         description:
-          "Turn a photo or portrait into a sticker-style image. Learn photo tips, prompt examples, credit use, and PNG or WebP download options."
+          "Turn a photo into a sticker with no sign up. Get 3 free guest generations, photo tips, prompt examples, and PNG or WebP downloads."
       )
     )
-    |> assign_structured_data("/photo-to-sticker", "Photo to Sticker AI Generator",
+    |> assign_structured_data("/photo-to-sticker", "Photo to Sticker - Free, No Sign Up",
       steps: [
-        "Sign in so the app can check free or paid credits before generation.",
+        "Open the photo generator. No account is required for the 3 free guest generations.",
         "Choose a clear photo with one main subject, good lighting, and minimal blur.",
         "Add a short sticker prompt such as clean border, cute avatar, or reaction sticker.",
-        "Generate the sticker, then download PNG or WebP from history."
+        "Generate the sticker, then download the result as PNG or WebP."
       ],
       faqs: [
         {"What kind of photo works best?",
@@ -103,7 +103,7 @@ defmodule StickerWeb.PageController do
         {"Can I turn any photo into a sticker?",
          "The generator is strongest for portraits, characters, pets, and simple subjects rather than crowded scenes."},
         {"Where do photo sticker results go?",
-         "Completed photo stickers appear in sticker history with retry, favorite, and download options."}
+         "Completed photo stickers are associated with the current guest identity or signed-in account and support the available history, retry, favorite, and download actions."}
       ]
     )
     |> render(:photo_to_sticker)
@@ -353,7 +353,7 @@ defmodule StickerWeb.PageController do
         {"Is this AI sticker generator free?",
          "Yes. Guests can create up to 3 stickers for free with no sign up and no payment card."},
         {"Do I need an account to generate stickers?",
-         "No. The guest trial works without an account. Sign in later if you want to buy credits and keep account-linked history."},
+         "No. Guests can create up to 3 stickers without an account and can access generated results through the current guest identity. Sign in to buy credits and attach eligible guest-generated stickers to your account later."},
         {"What can I generate?",
          "You can generate prompt-based stickers, portrait stickers, avatars, mascots, and small batches."}
       ]
@@ -390,33 +390,7 @@ defmodule StickerWeb.PageController do
   end
 
   def ai_christmas_sticker_generator(conn, _params) do
-    conn
-    |> SEO.assign(
-      PageSEO.page("/ai-christmas-sticker-generator",
-        title: "AI Christmas Sticker Generator - Free Holiday Stickers",
-        description:
-          "Generate Christmas stickers with AI from text prompts. Create festive icons, winter characters, and holiday reactions. Free to try with no sign up."
-      )
-    )
-    |> assign_structured_data(
-      "/ai-christmas-sticker-generator",
-      "AI Christmas Sticker Generator",
-      steps: [
-        "Enter a Christmas sticker prompt with one subject and a holiday mood.",
-        "Generate without signing up if you still have guest credits.",
-        "Retry or vary the prompt for a small holiday sticker set.",
-        "Download completed PNG or WebP stickers from history."
-      ],
-      faqs: [
-        {"How do I generate Christmas stickers with AI?",
-         "Describe one festive subject, add a sticker style, and generate. Short prompts stay cleaner at small sizes."},
-        {"Is the Christmas sticker generator free?",
-         "Guests get 3 free generations with no sign up. Extra generations use one-time credit packs."},
-        {"Can I make a holiday sticker pack?",
-         "Yes. Add one Christmas prompt per line in batch mode to generate a small matching set."}
-      ]
-    )
-    |> render(:ai_christmas_sticker_generator)
+    redirect(conn, status: 301, to: ~p"/christmas-ai-sticker-maker")
   end
 
   def privacy_policy(conn, _params) do
@@ -472,8 +446,7 @@ defmodule StickerWeb.PageController do
       {"/kawaii-sticker-maker", "2026-06-13", "0.8"},
       {"/transparent-sticker-maker", "2026-06-13", "0.8"},
       {"/ai-sticker-generator", "2026-09-05", "0.9"},
-      {"/christmas-ai-sticker-maker", "2026-09-05", "0.8"},
-      {"/ai-christmas-sticker-generator", "2026-09-05", "0.8"},
+      {"/christmas-ai-sticker-maker", "2026-09-25", "0.8"},
       {"/search", "2026-06-13", "0.7"},
       {"/contact", "2026-06-13", "0.5"},
       {"/payment-and-credits", "2026-06-13", "0.5"},

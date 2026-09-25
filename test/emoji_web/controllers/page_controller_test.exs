@@ -143,7 +143,7 @@ defmodule StickerWeb.PageControllerTest do
 
     conn = get(build_conn(), ~p"/photo-to-sticker")
     body = html_response(conn, 200)
-    assert body =~ "Photo to Sticker AI Generator"
+    assert body =~ "Turn Any Photo into a Sticker"
     assert body =~ "How to turn a photo into a sticker"
     assert body =~ "Photo sticker prompt examples"
     assert body =~ "/ai-avatar-sticker"
@@ -215,14 +215,12 @@ defmodule StickerWeb.PageControllerTest do
     body = html_response(conn, 200)
     assert body =~ "Christmas AI Sticker Maker"
     assert body =~ "Can I make Christmas stickers with AI?"
-    assert body =~ "/ai-christmas-sticker-generator"
+    refute body =~ "/ai-christmas-sticker-generator"
     assert body =~ "FAQPage"
 
     conn = get(build_conn(), ~p"/ai-christmas-sticker-generator")
-    body = html_response(conn, 200)
-    assert body =~ "AI Christmas Sticker Generator"
-    assert body =~ "Is the Christmas sticker generator free?"
-    assert body =~ "/christmas-ai-sticker-maker"
+    assert response(conn, 301) == ""
+    assert redirected_to(conn, 301) == ~p"/christmas-ai-sticker-maker"
   end
 
   test "sitemap includes public SEO landing pages", %{conn: conn} do
@@ -242,7 +240,7 @@ defmodule StickerWeb.PageControllerTest do
     assert body =~ "/transparent-sticker-maker"
     assert body =~ "/ai-sticker-generator"
     assert body =~ "/christmas-ai-sticker-maker"
-    assert body =~ "/ai-christmas-sticker-generator"
+    refute body =~ "/ai-christmas-sticker-generator"
     refute body =~ "/account"
     refute body =~ "/admin"
     refute body =~ "/users/register"
@@ -261,7 +259,7 @@ defmodule StickerWeb.PageControllerTest do
 
   test "core public pages render unique SEO metadata and one h1", %{conn: _conn} do
     pages = [
-      {~p"/", "AI Sticker Maker - Free AI Sticker Generator Online",
+      {~p"/", "AI Sticker Maker - Make Custom Stickers from Text or Photo",
        "https://ai-sticker-maker.com/"},
       {~p"/pricing", "AI Sticker Maker Pricing - Buy Sticker Credits",
        "https://ai-sticker-maker.com/pricing"},
@@ -269,7 +267,7 @@ defmodule StickerWeb.PageControllerTest do
        "https://ai-sticker-maker.com/search"},
       {~p"/face-to-sticker", "Face to Sticker AI Generator",
        "https://ai-sticker-maker.com/face-to-sticker"},
-      {~p"/photo-to-sticker", "Photo to Sticker AI Generator",
+      {~p"/photo-to-sticker", "Photo to Sticker - Free, No Sign Up",
        "https://ai-sticker-maker.com/photo-to-sticker"},
       {~p"/custom-sticker-maker", "Custom Sticker Maker Online",
        "https://ai-sticker-maker.com/custom-sticker-maker"},
@@ -282,10 +280,7 @@ defmodule StickerWeb.PageControllerTest do
       {~p"/ai-sticker-generator", "AI Sticker Generator - Free, No Sign Up",
        "https://ai-sticker-maker.com/ai-sticker-generator"},
       {~p"/christmas-ai-sticker-maker", "Christmas AI Sticker Maker - Make Holiday Stickers",
-       "https://ai-sticker-maker.com/christmas-ai-sticker-maker"},
-      {~p"/ai-christmas-sticker-generator",
-       "AI Christmas Sticker Generator - Free Holiday Stickers",
-       "https://ai-sticker-maker.com/ai-christmas-sticker-generator"}
+       "https://ai-sticker-maker.com/christmas-ai-sticker-maker"}
     ]
 
     for {path, expected_title, canonical} <- pages do

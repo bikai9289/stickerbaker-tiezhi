@@ -22,7 +22,7 @@ defmodule StickerWeb.SEO do
 
   def site_config(_conn) do
     SEO.Site.build(
-      default_title: "AI Sticker Maker - Free AI Sticker Generator Online",
+      default_title: "AI Sticker Maker - Make Custom Stickers from Text or Photo",
       description:
         "Create up to 3 custom stickers from text or portraits without an account, then download completed designs as PNG or WebP files.",
       theme_color: "#ff6b1a",

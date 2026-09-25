@@ -27,7 +27,7 @@ defmodule StickerWeb.StructuredData do
         {"What happens if a generation fails?",
          "Failed generations automatically return the credit. Try again with a shorter prompt, or use a clear, front-facing portrait with one person and good lighting."},
         {"Do I need an account?",
-         "No account is required for the guest trial. Sign in when you want to buy credits and manage account-linked generation history and downloads."},
+         "No account is required for the guest trial. Guest results remain available through the current guest identity; sign in to buy credits and attach eligible results to your account."},
         {"Which download formats are available?",
          "Completed stickers can be downloaded as PNG or WebP files. Your history also supports individual downloads and batch ZIP downloads for completed results."}
       ])

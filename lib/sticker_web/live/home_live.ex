@@ -43,7 +43,7 @@ defmodule StickerWeb.HomeLive do
      socket
      |> SEO.assign(
        PageSEO.page("/",
-         title: "AI Sticker Maker - Free AI Sticker Generator Online",
+         title: "AI Sticker Maker - Make Custom Stickers from Text or Photo",
          description:
            "Create up to 3 custom AI stickers from text prompts or portraits without an account, then download completed designs as PNG or WebP files."
        )
