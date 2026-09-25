@@ -272,11 +272,11 @@ defmodule StickerWeb.PageControllerTest do
        "https://ai-sticker-maker.com/face-to-sticker"},
       {~p"/photo-to-sticker", "Photo to Sticker - Free, No Sign Up",
        "https://ai-sticker-maker.com/photo-to-sticker"},
-      {~p"/custom-sticker-maker", "Custom Sticker Maker Online",
+      {~p"/custom-sticker-maker", "Custom Sticker Maker - Free, No Sign Up",
        "https://ai-sticker-maker.com/custom-sticker-maker"},
       {~p"/reaction-sticker-maker", "Reaction Sticker Maker for Chat Stickers",
        "https://ai-sticker-maker.com/reaction-sticker-maker"},
-      {~p"/sticker-maker-online", "Sticker Maker Online - Create AI Stickers",
+      {~p"/sticker-maker-online", "Sticker Maker Online - Free, No Sign Up",
        "https://ai-sticker-maker.com/sticker-maker-online"},
       {~p"/anime-avatar-sticker", "Anime Avatar Sticker Generator",
        "https://ai-sticker-maker.com/anime-avatar-sticker"},
@@ -304,7 +304,7 @@ defmodule StickerWeb.PageControllerTest do
       assert [%{"content" => ^expected_title}] =
                meta_attrs(document, "meta[name=\"twitter:title\"]")
 
-      assert [%{"content" => "summary"}] = meta_attrs(document, "meta[name=\"twitter:card\"]")
+      assert [%{"content" => "summary_large_image"}] = meta_attrs(document, "meta[name=\"twitter:card\"]")
       assert [%{"content" => _}] = meta_attrs(document, "meta[name=\"twitter:image\"]")
       assert meta_attrs(document, "meta[name=\"twitter:site\"]") == []
       assert meta_attrs(document, "meta[name=\"twitter:creator\"]") == []

@@ -121,25 +121,33 @@ defmodule StickerWeb.PageController do
     conn
     |> SEO.assign(
       PageSEO.page("/custom-sticker-maker",
-        title: "Custom Sticker Maker Online",
+        title: "Custom Sticker Maker - Free, No Sign Up",
         description:
-          "Create custom stickers online from prompts or portraits. Use AI Sticker Maker to generate sticker-ready artwork and variations."
+          "Create custom stickers from prompts, portraits, or product photos. Get 3 free guest generations with no sign up and download PNG, WebP, or original files."
       )
     )
-    |> assign_structured_data("/custom-sticker-maker", "Custom Sticker Maker Online",
+    |> assign_structured_data("/custom-sticker-maker", "Custom Sticker Maker - Free, No Sign Up",
       steps: [
-        "Write a short prompt with the subject, mood, and sticker style.",
-        "Generate one sticker or add up to 5 prompts on separate lines for a small batch.",
-        "Review completed, failed, and processing results in sticker history.",
-        "Download original, PNG, or WebP files depending on your design workflow."
+        "Choose one main subject, such as a pet, mascot, product, character, object, or portrait.",
+        "Add a style such as cute, clean, bold outline, white border, or simple background.",
+        "Describe the mood or action, then generate one sticker or a small prompt batch.",
+        "Use history to retry failed prompts, favorite strong results, and download files."
       ],
       faqs: [
         {"How do I write a custom sticker prompt?",
-         "Start with the subject, then add mood, style, border, and simple background details."},
+         "Start with the subject, then add mood, style, and use case. Try cheerful coffee cup mascot, clean white border, cute reaction sticker, simple background."},
         {"Can I make custom sticker batches?",
-         "Yes. Add one prompt per line and the history page groups the results into a batch."},
+         "Add multiple prompts on separate lines. History groups generated stickers into batches, shows progress, and supports batch download."},
         {"What format should I download?",
-         "Use PNG for editing compatibility, WebP for smaller web assets, or original to keep the source format."}
+         "PNG is useful for editing and broad compatibility. WebP is smaller for websites and social assets. Original keeps the generated format."},
+        {"Do I need an account to make a custom sticker?",
+         "No. Guests can try 3 custom generations with no sign up, and each generation uses 1 credit."},
+        {"What happens if a custom generation fails?",
+         "The credit is returned automatically, and the prompt stays in history so you can retry it without typing it again."},
+        {"Can I make a sticker from my own photo?",
+         "Yes. Upload a JPG or PNG up to 8 MB, such as a pet, product, or portrait, and add a short style prompt."},
+        {"Can I use custom stickers commercially?",
+         "Review the current terms of service before using generated stickers in paid or branded work, since usage terms can change."}
       ]
     )
     |> render(:custom_sticker_maker)
@@ -205,17 +213,17 @@ defmodule StickerWeb.PageController do
     conn
     |> SEO.assign(
       PageSEO.page("/sticker-maker-online",
-        title: "Sticker Maker Online - Create AI Stickers",
+        title: "Sticker Maker Online - Free, No Sign Up",
         description:
-          "Use an online sticker maker to create AI stickers from prompts or portraits, manage credits, download files, and build sticker batches."
+          "Make stickers online from a prompt or portrait. Get 3 free guest generations with no sign up, no install, and PNG, WebP, or original downloads."
       )
     )
-    |> assign_structured_data("/sticker-maker-online", "Sticker Maker Online",
+    |> assign_structured_data("/sticker-maker-online", "Sticker Maker Online - Free, No Sign Up",
       steps: [
-        "Open the generator and enter a prompt or upload a portrait.",
-        "Check credits before generation starts automatically.",
-        "Track progress in history, including processing, failed, canceled, and completed stickers.",
-        "Download individual stickers or batch ZIP files in original, PNG, or WebP format."
+        "Start with text to sticker for an idea, object, mascot, or reaction.",
+        "Use face or photo to sticker for an avatar-style result from a picture.",
+        "Track processing and failed stickers in history, then retry or cancel when needed.",
+        "Select completed stickers and download single files or batch ZIP packages."
       ],
       faqs: [
         {"What can I make with the online sticker maker?",
@@ -223,7 +231,15 @@ defmodule StickerWeb.PageController do
         {"Can I manage generated stickers?",
          "Yes. History supports search, filters, favorites, delete, retry, cancel, and batch detail pages."},
         {"Is this online sticker maker credit based?",
-         "Yes. Visitors can try up to 3 free guest generations, and each generation uses 1 credit."}
+         "Yes. Guests can try 3 generations before signup, and each generation uses 1 credit. A failed generation returns its credit."},
+        {"Do I need to install anything or create an account?",
+         "No. It runs in the browser with nothing to install, and the 3 free guest generations need no account."},
+        {"What formats can I download?",
+         "Original, PNG, or WebP. PNG is safer for editing, WebP is smaller for the web, and original keeps the generated format."},
+        {"Can I make several stickers at once?",
+         "Yes. Add one prompt per line to run a small batch, then track progress and failed items in history. Each generation uses 1 credit."},
+        {"What size do stickers need to be for Discord or WhatsApp?",
+         "Discord custom stickers must be 320 x 320 px PNG or APNG within 512 KB. WhatsApp stickers must be 512 x 512 px WebP with transparency and static files under 100 KB. Resize after downloading."}
       ]
     )
     |> render(:sticker_maker_online)
@@ -447,10 +463,10 @@ defmodule StickerWeb.PageController do
       {"/pricing", "2026-06-13", "0.8"},
       {"/face-to-sticker", "2026-09-25", "0.9"},
       {"/photo-to-sticker", "2026-09-25", "0.9"},
-      {"/custom-sticker-maker", "2026-06-13", "0.9"},
+      {"/custom-sticker-maker", "2026-09-25", "0.9"},
       {"/reaction-sticker-maker", "2026-06-25", "0.8"},
       {"/cute-sticker-ideas", "2026-06-13", "0.8"},
-      {"/sticker-maker-online", "2026-06-13", "0.9"},
+      {"/sticker-maker-online", "2026-09-25", "0.9"},
       {"/ai-avatar-sticker", "2026-06-13", "0.8"},
       {"/anime-avatar-sticker", "2026-06-25", "0.8"},
       {"/kawaii-sticker-maker", "2026-06-13", "0.8"},

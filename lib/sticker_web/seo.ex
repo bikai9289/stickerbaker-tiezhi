@@ -16,7 +16,7 @@ defmodule StickerWeb.SEO do
       ),
     twitter:
       SEO.Twitter.build(
-        card: :summary,
+        card: :summary_large_image,
         summary_card_image: @base_url <> @og_image_path
       )
 

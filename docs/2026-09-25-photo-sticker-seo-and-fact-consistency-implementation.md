@@ -51,6 +51,16 @@ landing pages, guest-generation messaging, internal navigation, and Christmas pa
   not yet exist; no non-runnable component call was introduced.
 - Synchronized the controller's HowTo and seven FAQ entries with the visible Photo page copy.
 
+### Online and Custom Sticker Pages
+
+- Expanded `/sticker-maker-online` and `/custom-sticker-maker` to 7 FAQ entries and 10 prompt
+  examples/templates each.
+- Added digital-versus-printing intent guidance, workflow sections, platform specifications, and
+  clearer guest-credit/download explanations.
+- Synchronized both pages' visible FAQ, HowTo, title, description, and sitemap `lastmod` values.
+- Restored concrete WhatsApp and Discord dimensions and file-size limits on Photo and Online pages.
+- Changed the global Twitter card to `summary_large_image` to match the absolute OG image.
+
 ## Deferred Work
 
 The reusable generator LiveComponent remains a separate development task. The current generator is
