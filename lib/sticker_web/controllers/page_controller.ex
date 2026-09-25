@@ -390,7 +390,9 @@ defmodule StickerWeb.PageController do
   end
 
   def ai_christmas_sticker_generator(conn, _params) do
-    redirect(conn, status: 301, to: ~p"/christmas-ai-sticker-maker")
+    conn
+    |> put_status(:moved_permanently)
+    |> redirect(to: ~p"/christmas-ai-sticker-maker")
   end
 
   def privacy_policy(conn, _params) do
