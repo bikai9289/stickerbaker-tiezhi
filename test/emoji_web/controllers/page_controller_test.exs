@@ -23,12 +23,12 @@ defmodule StickerWeb.PageControllerTest do
   test "public copy explains verified credit rules without internal language", %{conn: conn} do
     homepage = conn |> get(~p"/") |> html_response(200)
 
-    assert homepage =~ "Create up to 3 stickers - no account required"
+    assert homepage =~ "Sign up for 1 free credit to start creating"
     assert homepage =~ "Each text or portrait generation uses 1 credit"
     assert homepage =~ "Failed generations automatically return the credit"
     assert homepage =~ "Browse generated stickers for prompt ideas"
     assert homepage =~ "FAQPage"
-    assert homepage =~ "no sign up"
+    assert homepage =~ "Sign up for 1 free credit"
     assert homepage =~ ~s(content="https://ai-sticker-maker.com/og.webp")
 
     refute homepage =~ "Keep the tool in the first screen"
@@ -49,7 +49,7 @@ defmodule StickerWeb.PageControllerTest do
     assert pricing =~ "No subscription"
     assert pricing =~ "Each text or portrait generation uses 1 credit"
     assert pricing_text =~ "Failed generations automatically return the credit"
-    assert pricing =~ "Create a Free Sticker"
+    assert pricing =~ "Create an account"
   end
 
   test "signed-in homepage replaces guest offer with account credit guidance", %{conn: conn} do
@@ -62,7 +62,7 @@ defmodule StickerWeb.PageControllerTest do
       |> html_response(200)
 
     assert homepage =~ "1 credit per generation - failed generations return it"
-    refute homepage =~ "Create up to 3 stickers - no account required"
+    refute homepage =~ "Sign up for 1 free credit to start creating"
   end
 
   test "POST /api/session cannot set a guest identity", %{conn: conn} do
@@ -108,7 +108,7 @@ defmodule StickerWeb.PageControllerTest do
       |> Floki.find("#generator")
       |> Floki.text()
 
-    assert workbench_text =~ "3 free guest generations left"
+    assert workbench_text =~ "Sign up for 1 free credit to keep generating"
     assert workbench_text =~ "Describe your sticker"
     assert workbench_text =~ "Line breaks stay in one prompt unless Batch mode is on"
     refute workbench_text =~ "Bake Sticker"
@@ -209,7 +209,7 @@ defmodule StickerWeb.PageControllerTest do
     conn = get(build_conn(), ~p"/ai-sticker-generator")
     body = html_response(conn, 200)
     assert body =~ "AI Sticker Generator"
-    assert body =~ "Free, no sign up"
+    assert body =~ "1 free credit on signup"
     assert body =~ "FAQPage"
     assert body =~ "HowTo"
     assert body =~ "/christmas-ai-sticker-maker"
@@ -268,19 +268,19 @@ defmodule StickerWeb.PageControllerTest do
        "https://ai-sticker-maker.com/pricing"},
       {~p"/search", "AI Sticker Search - Find Sticker Ideas Online",
        "https://ai-sticker-maker.com/search"},
-      {~p"/face-to-sticker", "Face to Sticker - Free, No Sign Up",
+      {~p"/face-to-sticker", "Face to Sticker - 1 Free Credit on Signup",
        "https://ai-sticker-maker.com/face-to-sticker"},
-      {~p"/photo-to-sticker", "Photo to Sticker - Free, No Sign Up",
+      {~p"/photo-to-sticker", "Photo to Sticker - 1 Free Credit on Signup",
        "https://ai-sticker-maker.com/photo-to-sticker"},
-      {~p"/custom-sticker-maker", "Custom Sticker Maker - Free, No Sign Up",
+      {~p"/custom-sticker-maker", "Custom Sticker Maker - 1 Free Credit on Signup",
        "https://ai-sticker-maker.com/custom-sticker-maker"},
       {~p"/reaction-sticker-maker", "Reaction Sticker Maker for Chat Stickers",
        "https://ai-sticker-maker.com/reaction-sticker-maker"},
-      {~p"/sticker-maker-online", "Sticker Maker Online - Free, No Sign Up",
+      {~p"/sticker-maker-online", "Sticker Maker Online - 1 Free Credit on Signup",
        "https://ai-sticker-maker.com/sticker-maker-online"},
       {~p"/anime-avatar-sticker", "Anime Avatar Sticker Generator",
        "https://ai-sticker-maker.com/anime-avatar-sticker"},
-      {~p"/ai-sticker-generator", "AI Sticker Generator - Free, No Sign Up",
+      {~p"/ai-sticker-generator", "AI Sticker Generator - 1 Free Credit on Signup",
        "https://ai-sticker-maker.com/ai-sticker-generator"},
       {~p"/christmas-ai-sticker-maker", "Christmas AI Sticker Maker - Make Holiday Stickers",
        "https://ai-sticker-maker.com/christmas-ai-sticker-maker"}
@@ -421,19 +421,17 @@ defmodule StickerWeb.PageControllerTest do
     render_hook(view, "assign-user-id", %{"userId" => "guest_home_one"})
     html = render(view)
 
-    assert html =~ "3 free guest generations left"
-    assert html =~ "No account needed"
+    assert html =~ "Sign up for 1 free credit to keep generating"
   end
 
   test "anonymous homepage shows exhausted guest trial state", %{conn: conn} do
     local_user_id = "guest_home_empty"
-    {:ok, _allowance} = Sticker.GuestTrials.spend_credits(local_user_id, 3)
+    Sticker.GuestTrialHelpers.seed_guest_credits(local_user_id, 0)
 
     conn = Plug.Test.init_test_session(conn, %{local_user_id: local_user_id})
     {:ok, _view, html} = live(conn, ~p"/")
 
-    assert html =~ "Free trial used"
-    assert html =~ "Create an account to keep your stickers"
+    assert html =~ "Sign up for 1 free credit to keep generating"
   end
 
   test "batch download without selection redirects to history", %{conn: conn} do
@@ -584,11 +582,12 @@ defmodule StickerWeb.PageControllerTest do
     assert redirected_to(conn, 302) == ~p"/?registration=confirmed"
 
     user = Sticker.Accounts.get_user_by_email("new-user@example.com")
-    assert user.credits == 3
+    assert user.credits == 1
   end
 
   test "registration confirmation grants only remaining guest trial credits", %{conn: conn} do
     local_user_id = "guest_signup_one"
+    Sticker.GuestTrialHelpers.seed_guest_credits(local_user_id, 3)
     {:ok, _allowance} = Sticker.GuestTrials.spend_credits(local_user_id, 2)
 
     conn =

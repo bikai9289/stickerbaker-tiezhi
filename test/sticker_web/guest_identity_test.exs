@@ -91,6 +91,7 @@ defmodule StickerWeb.GuestIdentityTest do
     user = user_fixture()
     first = get(conn, ~p"/")
     guest_user_id = get_session(first, :guest_user_id)
+    seed_guest_credits(guest_user_id, 3)
     {:ok, _allowance} = GuestTrials.spend_credits(guest_user_id, 1)
 
     prediction =

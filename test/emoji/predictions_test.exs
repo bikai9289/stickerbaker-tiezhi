@@ -1,6 +1,8 @@
 defmodule Sticker.PredictionsTest do
   use Sticker.DataCase
 
+  import Sticker.GuestTrialHelpers
+
   import Ecto.Query
   alias Sticker.Predictions
   alias Sticker.Repo
@@ -374,6 +376,7 @@ defmodule Sticker.PredictionsTest do
 
     test "fail_prediction_and_refund/1 refunds guest credits to the guest ledger" do
       local_user_id = "guest_failed_one"
+      seed_guest_credits(local_user_id, 3)
       {:ok, guest_trial} = Sticker.GuestTrials.spend_credits(local_user_id, 1)
       assert guest_trial.credits_remaining == 2
 
@@ -416,7 +419,7 @@ defmodule Sticker.PredictionsTest do
 
       {:ok, user} = Sticker.Accounts.confirm_user(user.confirmation_token)
 
-      assert user.credits == 3
+      assert user.credits == 1
       assert Sticker.Accounts.confirmed?(user)
       assert user.confirmation_token == nil
     end
@@ -526,6 +529,7 @@ defmodule Sticker.PredictionsTest do
 
     test "cancel_user_prediction/2 refunds guest-funded predictions to the guest ledger" do
       local_user_id = "guest_cancel_one"
+      seed_guest_credits(local_user_id, 3)
       {:ok, guest_trial} = Sticker.GuestTrials.spend_credits(local_user_id, 1)
       assert guest_trial.credits_remaining == 2
 

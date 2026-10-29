@@ -10,7 +10,7 @@ defmodule StickerWeb.PageController do
       PageSEO.page("/",
         title: "AI Sticker Maker - Make Custom Stickers from Text or Photo",
         description:
-          "Create custom AI stickers from text prompts or portraits. Try 3 free guest generations and download sticker-ready designs online."
+          "Create custom AI stickers from text prompts or portraits. Sign up for 1 free credit and download sticker-ready designs online."
       )
     )
     |> render(:home, layout: false)
@@ -34,7 +34,7 @@ defmodule StickerWeb.PageController do
       PageSEO.page("/pricing",
         title: "AI Sticker Maker Pricing - Buy Sticker Credits",
         description:
-          "Compare the free guest trial with one-time Starter and Creator credit packs for text-to-sticker and portrait-to-sticker generation."
+          "Compare the free signup credit with one-time Starter and Creator credit packs for text-to-sticker and portrait-to-sticker generation."
       )
     )
     |> assign(:checkout, params["checkout"])
@@ -57,14 +57,14 @@ defmodule StickerWeb.PageController do
     conn
     |> SEO.assign(
       PageSEO.page("/face-to-sticker",
-        title: "Face to Sticker - Free, No Sign Up",
+        title: "Face to Sticker - 1 Free Credit on Signup",
         description:
-          "Turn a portrait into a sticker with no sign up. Get 3 free guest generations, portrait tips, and PNG or WebP downloads."
+          "Turn a portrait into a sticker. Sign up for 1 free credit, get portrait tips, and PNG or WebP downloads."
       )
     )
     |> assign_structured_data("/face-to-sticker", "Face to Sticker AI Generator",
       steps: [
-        "Open the portrait generator. No account is required for the 3 free guest generations.",
+        "Open the portrait generator. Sign up for 1 free credit to generate.",
         "Upload a clear portrait with one visible face and good lighting.",
         "Add an optional style prompt, then let the face to sticker workflow generate automatically.",
         "Open history to download PNG or WebP, save favorites, or create another version."
@@ -73,7 +73,7 @@ defmodule StickerWeb.PageController do
         {"What makes a good face to sticker upload?",
          "A bright portrait with one clear face, natural expression, and minimal blur works best."},
         {"Does face to sticker use credits?",
-         "Yes. Each portrait generation uses 1 credit, including the 3 free guest generations. Failed generations refund the credit."},
+         "Yes. Each portrait generation uses 1 credit, including your signup free credit. Failed generations refund the credit."},
         {"Can I retry a failed face sticker?",
          "Yes. New upload-based face stickers save a private source image so failed generations can be retried from history."}
       ]
@@ -85,14 +85,14 @@ defmodule StickerWeb.PageController do
     conn
     |> SEO.assign(
       PageSEO.page("/photo-to-sticker",
-        title: "Photo to Sticker - Free, No Sign Up",
+        title: "Photo to Sticker - 1 Free Credit on Signup",
         description:
-          "Turn a photo into a sticker with no sign up. Get 3 free guest generations, photo tips, prompt examples, and PNG or WebP downloads."
+          "Turn a photo into a sticker. Sign up for 1 free credit, get photo tips, prompt examples, and PNG or WebP downloads."
       )
     )
-    |> assign_structured_data("/photo-to-sticker", "Photo to Sticker - Free, No Sign Up",
+    |> assign_structured_data("/photo-to-sticker", "Photo to Sticker - 1 Free Credit on Signup",
       steps: [
-        "Upload a JPG or PNG photo up to 8 MB. No account is required for 3 free guest generations.",
+        "Upload a JPG or PNG photo up to 8 MB. Sign up for 1 free credit to generate.",
         "Add an optional prompt to steer the style, or leave it blank for the default sticker look.",
         "Generate. Each photo generation uses 1 credit and failed generations return the credit.",
         "Download the sticker as PNG or WebP, then resize it for the app where you plan to use it."
@@ -103,7 +103,7 @@ defmodule StickerWeb.PageController do
         {"What photo formats and sizes can I upload?",
          "Upload JPG or PNG images up to 8 MB. Use the largest clear version available; compressed screenshots give the generator less detail."},
         {"How many photos can I convert for free?",
-         "Guests get 3 free generations with no sign up. Each photo generation uses 1 credit."},
+         "Sign up for 1 free credit to start. Each photo generation uses 1 credit."},
         {"Do I need an account to turn a photo into a sticker?",
          "No. Guest results remain available through the current guest identity. Sign in to buy credits and attach eligible results to your account."},
         {"What happens if a generation fails?",
@@ -121,12 +121,12 @@ defmodule StickerWeb.PageController do
     conn
     |> SEO.assign(
       PageSEO.page("/custom-sticker-maker",
-        title: "Custom Sticker Maker - Free, No Sign Up",
+        title: "Custom Sticker Maker - 1 Free Credit on Signup",
         description:
-          "Create custom stickers from prompts, portraits, or product photos. Get 3 free guest generations with no sign up and download PNG, WebP, or original files."
+          "Create custom stickers from prompts, portraits, or product photos. Sign up for 1 free credit and download PNG, WebP, or original files."
       )
     )
-    |> assign_structured_data("/custom-sticker-maker", "Custom Sticker Maker - Free, No Sign Up",
+    |> assign_structured_data("/custom-sticker-maker", "Custom Sticker Maker - 1 Free Credit on Signup",
       steps: [
         "Choose one main subject, such as a pet, mascot, product, character, object, or portrait.",
         "Add a style such as cute, clean, bold outline, white border, or simple background.",
@@ -141,7 +141,7 @@ defmodule StickerWeb.PageController do
         {"What format should I download?",
          "PNG is useful for editing and broad compatibility. WebP is smaller for websites and social assets. Original keeps the generated format."},
         {"Do I need an account to make a custom sticker?",
-         "No. Guests can try 3 custom generations with no sign up, and each generation uses 1 credit."},
+         "Sign up for 1 free credit to start. Each generation uses 1 credit."},
         {"What happens if a custom generation fails?",
          "The credit is returned automatically, and the prompt stays in history so you can retry it without typing it again."},
         {"Can I make a sticker from my own photo?",
@@ -213,12 +213,12 @@ defmodule StickerWeb.PageController do
     conn
     |> SEO.assign(
       PageSEO.page("/sticker-maker-online",
-        title: "Sticker Maker Online - Free, No Sign Up",
+        title: "Sticker Maker Online - 1 Free Credit on Signup",
         description:
-          "Make stickers online from a prompt or portrait. Get 3 free guest generations with no sign up, no install, and PNG, WebP, or original downloads."
+          "Make stickers online from a prompt or portrait. Sign up for 1 free credit, no install, and PNG, WebP, or original downloads."
       )
     )
-    |> assign_structured_data("/sticker-maker-online", "Sticker Maker Online - Free, No Sign Up",
+    |> assign_structured_data("/sticker-maker-online", "Sticker Maker Online - 1 Free Credit on Signup",
       steps: [
         "Start with text to sticker for an idea, object, mascot, or reaction.",
         "Use face or photo to sticker for an avatar-style result from a picture.",
@@ -231,9 +231,9 @@ defmodule StickerWeb.PageController do
         {"Can I manage generated stickers?",
          "Yes. History supports search, filters, favorites, delete, retry, cancel, and batch detail pages."},
         {"Is this online sticker maker credit based?",
-         "Yes. Guests can try 3 generations before signup, and each generation uses 1 credit. A failed generation returns its credit."},
+         "Sign up for 1 free credit to start. Each generation uses 1 credit. A failed generation returns its credit."},
         {"Do I need to install anything or create an account?",
-         "No. It runs in the browser with nothing to install, and the 3 free guest generations need no account."},
+         "It runs in the browser with nothing to install. Sign up for 1 free credit to generate stickers."},
         {"What formats can I download?",
          "Original, PNG, or WebP. PNG is safer for editing, WebP is smaller for the web, and original keeps the generated format."},
         {"Can I make several stickers at once?",
@@ -361,23 +361,23 @@ defmodule StickerWeb.PageController do
     conn
     |> SEO.assign(
       PageSEO.page("/ai-sticker-generator",
-        title: "AI Sticker Generator - Free, No Sign Up",
+        title: "AI Sticker Generator - 1 Free Credit on Signup",
         description:
-          "Use a free AI sticker generator with no sign up for 3 guest generations. Create stickers from text or portraits and download PNG or WebP files."
+          "Use an AI sticker generator — sign up for 1 free credit. Create stickers from text or portraits and download PNG or WebP files."
       )
     )
     |> assign_structured_data("/ai-sticker-generator", "AI Sticker Generator",
       steps: [
-        "Open the generator. No sign up is required for the 3 free guest generations.",
+        "Open the generator. Sign up for 1 free credit to generate.",
         "Write a short prompt or upload a portrait, then generate the sticker.",
         "Each generation uses 1 credit. Failed generations return the credit automatically.",
         "Download completed stickers as PNG or WebP from history."
       ],
       faqs: [
         {"Is this AI sticker generator free?",
-         "Yes. Guests can create up to 3 stickers for free with no sign up and no payment card."},
+         "Yes. Sign up for 1 free credit with no payment card, then buy packs when you need more."},
         {"Do I need an account to generate stickers?",
-         "No. Guests can create up to 3 stickers without an account and can access generated results through the current guest identity. Sign in to buy credits and attach eligible guest-generated stickers to your account later."},
+         "Sign up for 1 free credit to generate. Earlier guest-trial results remain available through the current guest identity. Sign in to buy credits and attach eligible stickers to your account."},
         {"What can I generate?",
          "You can generate prompt-based stickers, portrait stickers, avatars, mascots, and small batches."},
         {"How do I write a good sticker prompt?",
@@ -399,7 +399,7 @@ defmodule StickerWeb.PageController do
       PageSEO.page("/christmas-ai-sticker-maker",
         title: "Christmas AI Sticker Maker - Make Holiday Stickers",
         description:
-          "Make Christmas stickers with AI. Generate holiday characters, cozy icons, and festive reaction stickers from a prompt. Try 3 free generations with no sign up."
+          "Make Christmas stickers with AI. Generate holiday characters, cozy icons, and festive reaction stickers from a prompt. Sign up for 1 free credit."
       )
     )
     |> assign_structured_data("/christmas-ai-sticker-maker", "Christmas AI Sticker Maker",
@@ -413,7 +413,7 @@ defmodule StickerWeb.PageController do
         {"Can I make Christmas stickers with AI?",
          "Yes. Write a holiday prompt or upload a festive portrait and generate a sticker-style image."},
         {"Do I need to sign up?",
-         "No. Guests can try 3 Christmas sticker generations without an account."},
+         "Sign up for 1 free credit to make Christmas stickers."},
         {"What Christmas sticker ideas work well?",
          "Keep one subject: a cocoa mug, tree ornament character, gift box mascot, or cozy winter portrait."},
         {"What should I include in a Christmas sticker prompt?",
@@ -421,7 +421,7 @@ defmodule StickerWeb.PageController do
         {"Can I make a matching Christmas sticker set?",
          "Yes. Repeat the same border, palette, and style words while changing the subject or emotion. Batch mode supports one Christmas prompt per line for a small set."},
         {"Can I use a portrait for a Christmas sticker?",
-         "Yes. Upload a clear portrait and add a festive style prompt for a holiday avatar or reaction. No account is required for the 3 free guest generations."},
+         "Yes. Upload a clear portrait and add a festive style prompt for a holiday avatar or reaction. Sign up for 1 free credit to generate."},
         {"Which download format should I use?",
          "PNG is convenient for editing and compatibility. WebP is usually smaller for websites, previews, and chats."}
       ]

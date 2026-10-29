@@ -32,7 +32,9 @@ initial deployment does not interrupt the current funnel.
 
 ## Confirmed Product Rules
 
-- A new server-recognized guest receives exactly three credits.
+> **Product update (2026-10-29):** New guests receive **0** trial credits. Email confirmation grants **1** signup bonus credit when guest remaining is 0 (or there is no guest row); if a legacy guest still has remaining trial credits, confirmation grants that remaining amount instead. Existing guest_trial_credits rows are **not** zeroed. Refunds still cap remaining at 3 for legacy balances.
+
+- A new server-recognized guest receives exactly zero credits (legacy rows may still hold up to three).
 - A guest credit is spent for each prompt/model task, including each prompt in a batch.
 - A failed or canceled prediction may refund its guest credit under the existing rules.
 - A request-ledger reservation is not removed when a credit is refunded.
@@ -42,8 +44,7 @@ initial deployment does not interrupt the current funnel.
   task requests or at least two distinct guest IDs in the previous 10 minutes.
 - After guest credits are exhausted, generation is blocked until the visitor signs in and has
   account credits.
-- Email confirmation grants only the remaining credits from the originating guest identity. The
-  existing confirmation behavior already implements this rule and must remain compatible.
+- Email confirmation grants remaining guest credits when remaining > 0; otherwise grants 1 signup bonus credit.
 
 ## Identity Architecture
 

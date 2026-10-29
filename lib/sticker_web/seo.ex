@@ -9,7 +9,7 @@ defmodule StickerWeb.SEO do
     open_graph:
       SEO.OpenGraph.build(
         description:
-          "Create up to 3 custom stickers from text or portraits without an account, then download completed designs as PNG or WebP files.",
+          "Sign up for 1 free credit to create custom stickers from text or portraits, then download completed designs as PNG or WebP files.",
         site_name: "AI Sticker Maker",
         locale: "en_US",
         image: @base_url <> @og_image_path
@@ -24,7 +24,7 @@ defmodule StickerWeb.SEO do
     SEO.Site.build(
       default_title: "AI Sticker Maker - Make Custom Stickers from Text or Photo",
       description:
-        "Create up to 3 custom stickers from text or portraits without an account, then download completed designs as PNG or WebP files.",
+        "Sign up for 1 free credit to create custom stickers from text or portraits, then download completed designs as PNG or WebP files.",
       theme_color: "#ff6b1a",
       windows_tile_color: "#ff6b1a",
       mask_icon_color: "#ff6b1a"

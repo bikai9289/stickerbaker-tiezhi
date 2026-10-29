@@ -1,6 +1,8 @@
 defmodule Sticker.GuestGenerationGateTest do
   use Sticker.DataCase
 
+  import Sticker.GuestTrialHelpers
+
   alias Sticker.GuestAbuse
   alias Sticker.GuestAbuse.Attempt
   alias Sticker.GuestGenerationGate
@@ -52,6 +54,7 @@ defmodule Sticker.GuestGenerationGateTest do
   end
 
   test "first low-risk guest request stays frictionless when protection is disabled" do
+    seed_guest_credits("gst_first_guest", 3)
     attrs = gate_attrs("gst_first_guest", "203.0.113.30")
 
     assert {:ok, metadata} = GuestGenerationGate.authorize(attrs)
@@ -65,6 +68,7 @@ defmodule Sticker.GuestGenerationGateTest do
   test "second guest request requires and verifies Turnstile when enabled" do
     enable_turnstile()
     guest_user_id = "gst_repeat_guest"
+    seed_guest_credits(guest_user_id, 3)
     {:ok, _allowance} = GuestTrials.spend_credits(guest_user_id, 1)
     attrs = gate_attrs(guest_user_id, "203.0.113.31")
 
@@ -84,6 +88,7 @@ defmodule Sticker.GuestGenerationGateTest do
   test "challenge requirement preview does not verify or reserve" do
     enable_turnstile()
     guest_user_id = "gst_preview_guest"
+    seed_guest_credits(guest_user_id, 3)
     {:ok, _allowance} = GuestTrials.spend_credits(guest_user_id, 1)
     attrs = gate_attrs(guest_user_id, "203.0.113.36", mode: :portrait)
 
@@ -127,6 +132,7 @@ defmodule Sticker.GuestGenerationGateTest do
     assert {:ok, _attempt} =
              GuestAbuse.reserve_attempt(attempt_attrs(ip_hash, "gst_risk_two", 1), now)
 
+    seed_guest_credits("gst_new_guest", 3)
     attrs = gate_attrs("gst_new_guest", ip)
 
     assert {:error, :turnstile_required} = GuestGenerationGate.authorize(attrs, now)
@@ -141,7 +147,7 @@ defmodule Sticker.GuestGenerationGateTest do
 
   test "exhausted credits, IP limit, duplicate, and invalid parameters return dedicated errors" do
     exhausted_guest = "gst_exhausted_guest"
-    {:ok, _allowance} = GuestTrials.spend_credits(exhausted_guest, 3)
+    seed_guest_credits(exhausted_guest, 0)
 
     assert {:error, :guest_credits_exhausted} =
              GuestGenerationGate.authorize(gate_attrs(exhausted_guest, "203.0.113.33"))
@@ -149,6 +155,7 @@ defmodule Sticker.GuestGenerationGateTest do
     assert {:error, :guest_identity_missing} =
              GuestGenerationGate.authorize(gate_attrs("bad", "203.0.113.33"))
 
+    seed_guest_credits("gst_valid_guest", 3)
     attrs = gate_attrs("gst_valid_guest", "203.0.113.34")
     assert {:ok, _metadata} = GuestGenerationGate.authorize(attrs)
     assert {:error, :attempt_duplicate} = GuestGenerationGate.authorize(attrs)
@@ -160,6 +167,7 @@ defmodule Sticker.GuestGenerationGateTest do
     assert {:ok, _attempt} =
              GuestAbuse.reserve_attempt(attempt_attrs(ip_hash, "gst_limit_guest", 5), now)
 
+    seed_guest_credits("gst_other_guest", 3)
     assert {:error, :guest_ip_limited} =
              GuestGenerationGate.authorize(
                gate_attrs("gst_other_guest", ip, task_count: 2),

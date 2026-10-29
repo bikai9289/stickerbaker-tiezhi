@@ -2,7 +2,10 @@ defmodule Sticker.GuestTrials.GuestTrialCredit do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @max_trial_credits 3
+  # New guest allotment (matches GuestTrials.max_trial_credits/0).
+  @max_trial_credits 0
+  # Upper bound for remaining credits (DB check + legacy guests who still hold up to 3).
+  @credits_remaining_cap 3
 
   schema "guest_trial_credits" do
     field :local_user_id, :string
@@ -28,7 +31,7 @@ defmodule Sticker.GuestTrials.GuestTrialCredit do
     |> validate_length(:local_user_id, min: 6, max: 128)
     |> validate_number(:credits_remaining,
       greater_than_or_equal_to: 0,
-      less_than_or_equal_to: @max_trial_credits
+      less_than_or_equal_to: @credits_remaining_cap
     )
     |> validate_number(:credits_spent, greater_than_or_equal_to: 0)
     |> validate_number(:credits_refunded, greater_than_or_equal_to: 0)

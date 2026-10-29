@@ -4,9 +4,16 @@ defmodule Sticker.GuestTrials do
   alias Sticker.GuestTrials.GuestTrialCredit
   alias Sticker.Repo
 
-  @max_trial_credits 3
+  # New guests receive no free generations (cost control).
+  @max_trial_credits 0
+  # Email confirmation grants this many credits when the guest has no remaining trial.
+  @signup_bonus_credits 1
+  # DB / refund ceiling so legacy guest rows (up to 3 remaining) still refund correctly.
+  @credits_remaining_cap 3
 
   def max_trial_credits, do: @max_trial_credits
+  def signup_bonus_credits, do: @signup_bonus_credits
+  def credits_remaining_cap, do: @credits_remaining_cap
 
   def get_allowance(local_user_id) when is_binary(local_user_id) do
     Repo.get_by(GuestTrialCredit, local_user_id: local_user_id)
@@ -75,7 +82,7 @@ defmodule Sticker.GuestTrials do
   def refund_credits(local_user_id, amount)
       when is_binary(local_user_id) and is_integer(amount) and amount > 0 do
     now = now()
-    max_trial_credits = @max_trial_credits
+    credits_remaining_cap = @credits_remaining_cap
 
     {count, _} =
       from(g in GuestTrialCredit,
@@ -86,7 +93,12 @@ defmodule Sticker.GuestTrials do
           inc: [credits_refunded: ^amount],
           set: [
             credits_remaining:
-              fragment("LEAST(?, ? + ?)", ^max_trial_credits, g.credits_remaining, ^amount),
+              fragment(
+                "LEAST(?, ? + ?)",
+                ^credits_remaining_cap,
+                g.credits_remaining,
+                ^amount
+              ),
             last_seen_at: ^now
           ]
         ]
@@ -102,14 +114,16 @@ defmodule Sticker.GuestTrials do
 
   def refund_credits(_local_user_id, _amount), do: {:error, :invalid_guest_credit_amount}
 
+  # Legacy guests keep remaining trial credits on confirm.
+  # New guests / exhausted guests receive the signup bonus (never 0 on a normal signup).
   def free_credits_for_signup(local_user_id) when is_binary(local_user_id) do
     case get_allowance(local_user_id) do
-      %GuestTrialCredit{credits_remaining: remaining} -> remaining
-      nil -> @max_trial_credits
+      %GuestTrialCredit{credits_remaining: remaining} when remaining > 0 -> remaining
+      _ -> @signup_bonus_credits
     end
   end
 
-  def free_credits_for_signup(_local_user_id), do: @max_trial_credits
+  def free_credits_for_signup(_local_user_id), do: @signup_bonus_credits
 
   defp touch_allowance(%GuestTrialCredit{} = allowance, now) do
     allowance

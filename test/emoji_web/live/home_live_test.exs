@@ -7,6 +7,8 @@ defmodule StickerWeb.HomeLiveTest do
   alias Sticker.Accounts
   alias Sticker.GuestAbuse
   alias Sticker.GuestAbuse.Attempt
+  import Sticker.GuestTrialHelpers
+
   alias Sticker.GuestTrials
   alias Sticker.Predictions
   alias Sticker.Repo
@@ -61,6 +63,7 @@ defmodule StickerWeb.HomeLiveTest do
   test "submission and async failure retain the prompt and replace stale notices", %{conn: conn} do
     conn = get(conn, ~p"/")
     guest_id = get_session(conn, :guest_user_id)
+    seed_guest_credits(guest_id, 3)
     {:ok, view, _} = live(recycle(conn), ~p"/")
     view |> form("#prediction-form", %{"prompt" => "a persistent cat"}) |> render_submit()
     assert has_element?(view, "textarea#prompt", "a persistent cat")
@@ -85,7 +88,7 @@ defmodule StickerWeb.HomeLiveTest do
     end
     render_hook(view, "save", %{"prompt" => %{}})
     assert render(view) =~ "Add a valid sticker prompt."
-    assert GuestTrials.get_allowance(guest_id).credits_remaining == 3
+    assert GuestTrials.get_allowance(guest_id).credits_remaining == 0
     assert Predictions.list_user_recent_predictions(guest_id, 12) == []
   end
 
@@ -105,6 +108,7 @@ defmodule StickerWeb.HomeLiveTest do
   test "first low-risk guest text request reserves one task and spends one credit", %{conn: conn} do
     conn = get(conn, ~p"/")
     guest_user_id = get_session(conn, :guest_user_id)
+    seed_guest_credits(guest_user_id, 3)
     {:ok, view, _html} = live(recycle(conn), ~p"/")
 
     html = view |> form("#prediction-form", %{"prompt" => "a cat"}) |> render_submit()
@@ -123,6 +127,7 @@ defmodule StickerWeb.HomeLiveTest do
     )
 
     guest_user_id = "gst_repeat_home_guest"
+    seed_guest_credits(guest_user_id, 3)
     {:ok, _allowance} = GuestTrials.spend_credits(guest_user_id, 1)
     conn = init_test_session(conn, %{local_user_id: guest_user_id})
     {:ok, view, html} = live(conn, ~p"/")
@@ -147,12 +152,13 @@ defmodule StickerWeb.HomeLiveTest do
 
     assert GuestTrials.get_allowance(guest_user_id).credits_remaining == 0
     refute html =~ ~s(id="guest-turnstile")
-    assert html =~ "Free trial used"
+    assert html =~ "Sign up for 1 free credit to keep generating"
   end
 
   test "batch request reserves and spends the parsed prompt count", %{conn: conn} do
     conn = get(conn, ~p"/")
     guest_user_id = get_session(conn, :guest_user_id)
+    seed_guest_credits(guest_user_id, 3)
     {:ok, view, _html} = live(recycle(conn), ~p"/")
     view |> element("#batch-mode-toggle") |> render_click()
 
@@ -171,6 +177,7 @@ defmodule StickerWeb.HomeLiveTest do
 
     conn = get(conn, ~p"/")
     guest_user_id = get_session(conn, :guest_user_id)
+    seed_guest_credits(guest_user_id, 3)
     {:ok, view, _html} = live(recycle(conn), ~p"/")
 
     html = view |> form("#prediction-form", %{"prompt" => "a blocked cat"}) |> render_submit()
@@ -199,6 +206,7 @@ defmodule StickerWeb.HomeLiveTest do
     )
 
     guest_user_id = "gst_portrait_repeat"
+    seed_guest_credits(guest_user_id, 3)
     {:ok, _allowance} = GuestTrials.spend_credits(guest_user_id, 1)
     conn = init_test_session(conn, %{local_user_id: guest_user_id})
     {:ok, view, _html} = live(conn, ~p"/")
@@ -233,6 +241,7 @@ defmodule StickerWeb.HomeLiveTest do
     )
 
     guest_user_id = "gst_portrait_verified"
+    seed_guest_credits(guest_user_id, 3)
     {:ok, _allowance} = GuestTrials.spend_credits(guest_user_id, 1)
     conn = init_test_session(conn, %{local_user_id: guest_user_id})
     {:ok, view, _html} = live(conn, ~p"/")
@@ -348,6 +357,7 @@ defmodule StickerWeb.HomeLiveTest do
   } do
     conn = get(conn, ~p"/")
     guest_user_id = get_session(conn, :guest_user_id)
+    seed_guest_credits(guest_user_id, 3)
     {:ok, view, _html} = live(recycle(conn), ~p"/")
 
     prediction =

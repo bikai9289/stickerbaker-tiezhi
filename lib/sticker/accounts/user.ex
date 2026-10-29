@@ -35,7 +35,7 @@ defmodule Sticker.Accounts.User do
     |> put_password_hash()
   end
 
-  def confirm_changeset(user, free_credits \\ 3) do
+  def confirm_changeset(user, free_credits \\ 1) do
     user
     |> change(%{
       confirmed_at: DateTime.utc_now() |> DateTime.truncate(:second),

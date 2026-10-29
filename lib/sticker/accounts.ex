@@ -57,7 +57,7 @@ defmodule Sticker.Accounts do
       |> Swoosh.Email.from({"AI Sticker Maker", support_email()})
       |> Swoosh.Email.subject("Confirm your AI Sticker Maker account")
       |> Swoosh.Email.text_body("""
-      Confirm your AI Sticker Maker account to unlock your 3 free sticker credits.
+      Confirm your AI Sticker Maker account to unlock your 1 free sticker credit.
 
       #{url_fun.(token)}
 

@@ -11,13 +11,13 @@
           <span class="saas-eyebrow">
             <%= if @current_user,
               do: "1 credit per generation - failed generations return it",
-              else: "Create up to 3 stickers - no account required" %>
+              else: "Sign up for 1 free credit to start creating" %>
           </span>
           <h1>AI Sticker Maker for Custom Stickers</h1>
 
           <p class="saas-lead">
-            Turn a prompt or portrait into a clean, expressive sticker. Try it free with no sign
-            up, then download sticker-ready PNG or WebP designs.
+            Turn a prompt or portrait into a clean, expressive sticker. Sign up for 1 free
+            credit, then download sticker-ready PNG or WebP designs.
           </p>
 
           <div class="saas-hero-actions">
@@ -245,7 +245,7 @@
                   <% remaining = guest_trial_remaining(@guest_trial) %>
                   <%= if remaining > 0 do %>
                     <span class="saas-raphael-credit">
-                      No account needed · <%= remaining %> free guest generations left
+                      <%= remaining %> guest generations left · sign in to save them
                     </span>
                   <% else %>
                     <.link
@@ -254,7 +254,7 @@
                       data-analytics-event="guest_to_signup_click"
                       data-analytics-context="generator_trial_exhausted"
                     >
-                      Free trial used · Create an account to keep your stickers
+                      Sign up for 1 free credit to keep generating
                     </.link>
                   <% end %>
                 <% end %>
@@ -484,18 +484,18 @@
         <h2>Choose a credit pack when you need more</h2>
 
         <p class="saas-section-copy">
-          Create up to 3 stickers as a guest. Paid packs are one-time purchases for your account,
+          Sign up for 1 free credit. Paid packs are one-time purchases for your account,
           with no subscription.
         </p>
       </div>
 
       <div class="saas-pricing-grid">
         <article class="saas-tile">
-          <h3>Guest trial</h3>
+          <h3>Free starter</h3>
 
           <div class="saas-price">$0</div>
 
-          <p>Up to 3 text or portrait generations. No account or payment card required.</p>
+          <p>Create an account for 1 free credit. No payment card required to start.</p>
 
           <a
             class="saas-button saas-button-ghost saas-plan-button"
@@ -503,7 +503,7 @@
             data-analytics-event="hero_cta_click"
             data-analytics-context="home_free_plan"
           >
-            Create a Free Sticker
+            Create an account
           </a>
         </article>
 
@@ -574,7 +574,7 @@
           <summary>How do free generations and credits work?</summary>
 
           <p>
-            Guests can create up to 3 stickers without an account or payment card. Each text or
+            New visitors sign up for 1 free credit (no payment card required). Each text or
             portrait generation uses 1 credit. When you need more, sign in and buy a one-time
             credit pack. There is no subscription.
           </p>
@@ -593,8 +593,8 @@
           <summary>Do I need an account?</summary>
 
           <p>
-            No account is required for the guest trial. Guest results remain available through the
-            current guest identity; sign in to buy credits and attach eligible results to your account.
+            Sign up for 1 free credit to generate. Guest results from an earlier trial remain
+            available through the current guest identity; sign in to buy credits and attach eligible results to your account.
           </p>
         </details>
 

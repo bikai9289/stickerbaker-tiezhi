@@ -14,8 +14,8 @@ defmodule StickerWeb.StructuredData do
   def for_home do
     [
       how_to("AI Sticker Maker", [
-        "Describe a sticker idea or upload a clear portrait. No account is required for the guest trial.",
-        "Generate a sticker. Guests can create up to 3 stickers without signing up. Each generation uses 1 credit.",
+        "Describe a sticker idea or upload a clear portrait. Sign up for 1 free credit to generate.",
+        "Generate a sticker. Sign up for 1 free credit to start. Each generation uses 1 credit.",
         "If a generation fails, the credit is returned automatically. Try a shorter prompt or a clearer portrait.",
         "Download completed stickers as PNG or WebP from history, including batch ZIP downloads."
       ]),
@@ -23,11 +23,11 @@ defmodule StickerWeb.StructuredData do
         {"What is an AI sticker maker?",
          "An AI sticker maker turns a text prompt or portrait into a sticker-style image you can use for avatars, chats, thumbnails, and creative projects."},
         {"How do free generations and credits work?",
-         "Guests can create up to 3 stickers without an account or payment card. Each text or portrait generation uses 1 credit. When you need more, sign in and buy a one-time credit pack. There is no subscription."},
+         "Sign up for 1 free credit with no payment card. Each text or portrait generation uses 1 credit. When you need more, buy a one-time credit pack. There is no subscription."},
         {"What happens if a generation fails?",
          "Failed generations automatically return the credit. Try again with a shorter prompt, or use a clear, front-facing portrait with one person and good lighting."},
         {"Do I need an account?",
-         "No account is required for the guest trial. Guest results remain available through the current guest identity; sign in to buy credits and attach eligible results to your account."},
+         "Sign up for 1 free credit to generate. Guest results from an earlier trial remain available through the current guest identity; sign in to buy credits and attach eligible results to your account."},
         {"Which download formats are available?",
          "Completed stickers can be downloaded as PNG or WebP files. Your history also supports individual downloads and batch ZIP downloads for completed results."}
       ])

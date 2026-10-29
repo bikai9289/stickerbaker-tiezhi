@@ -45,7 +45,7 @@ defmodule StickerWeb.HomeLive do
        PageSEO.page("/",
          title: "AI Sticker Maker - Make Custom Stickers from Text or Photo",
          description:
-           "Create up to 3 custom AI stickers from text prompts or portraits without an account, then download completed designs as PNG or WebP files."
+           "Sign up for 1 free credit to create custom AI stickers from text prompts or portraits, then download completed designs as PNG or WebP files."
        )
      )
      |> assign(:structured_data, StructuredData.for_home())
@@ -210,7 +210,7 @@ defmodule StickerWeb.HomeLive do
          generation_flash(
            socket,
            :error,
-           "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
+           "Guest generations require an account. Sign up for 1 free credit, then buy more as you need them."
          )}
 
       {:error, :missing_guest_identity} ->
@@ -493,7 +493,7 @@ defmodule StickerWeb.HomeLive do
          generation_flash(
            socket,
            :error,
-           "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
+           "Guest generations require an account. Sign up for 1 free credit, then buy more as you need them."
          )}
 
       {:error, :missing_guest_identity} ->
@@ -707,7 +707,7 @@ defmodule StickerWeb.HomeLive do
      |> reset_generation_request()
      |> generation_flash(
        :error,
-       "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
+       "Guest generations require an account. Sign up for 1 free credit, then buy more as you need them."
      )}
   end
 
@@ -815,7 +815,7 @@ defmodule StickerWeb.HomeLive do
 
   defp insufficient_credit_message(%{assigns: %{current_user: nil}}),
     do:
-      "Your 3 free guest generations are used. Create an account to keep your stickers and buy more credits."
+      "Guest generations require an account. Sign up for 1 free credit, then buy more as you need them."
 
   defp insufficient_credit_message(_socket),
     do: "You have used your free credits. Visit Pricing to buy more credits."
