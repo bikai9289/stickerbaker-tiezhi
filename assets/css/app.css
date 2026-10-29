@@ -2030,6 +2030,17 @@ html {
   line-height: 1.65;
 }
 
+.saas-footer-toolhunter {
+  display: inline-block;
+  margin-top: 0.75rem;
+}
+
+.saas-footer-toolhunter img {
+  display: block;
+  max-width: 200px;
+  height: auto;
+}
+
 .saas-footer-badge {
   display: inline-flex;
   align-items: center;
